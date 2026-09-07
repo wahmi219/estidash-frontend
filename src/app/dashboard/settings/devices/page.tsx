@@ -8,9 +8,9 @@ import type { RootState } from '@/store/store';
 import { authService, type AdminDeviceInfo } from '@/services/authService';
 
 const STATUS_STYLES: Record<string, string> = {
-    trusted: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-    pending: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
-    revoked: 'bg-red-500/15 text-red-400 border-red-500/20',
+    trusted: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    pending: 'bg-amber-50 text-amber-700 border-amber-200',
+    revoked: 'bg-red-50 text-red-700 border-red-200',
 };
 
 function formatDate(iso: string | null) {
@@ -153,20 +153,20 @@ export default function DevicesPage() {
             )}
 
             {/* Table */}
-            <div className="bg-gray-950/60 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden">
                 {isLoading ? (
-                    <div className="py-16 text-center text-gray-500 text-sm">Loading devices…</div>
+                    <div className="py-16 text-center text-[#5B6B7D] text-sm">Loading devices…</div>
                 ) : filtered.length === 0 ? (
-                    <div className="py-16 text-center text-gray-500 text-sm">
+                    <div className="py-16 text-center text-[#5B6B7D] text-sm">
                         {devices.length === 0 ? 'No devices registered yet.' : 'No devices match your filter.'}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-white/8">
+                                <tr className="bg-[#F7F9FB] border-b border-[#DFE6EE]">
                                     {['Device', 'User', 'Platform', 'Status', 'Last Seen', 'Registered', 'Actions'].map(h => (
-                                        <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-widest text-gray-500 font-medium whitespace-nowrap">
+                                        <th key={h} className="px-4 py-3 text-left text-[10px] uppercase tracking-widest text-[#5B6B7D] font-medium whitespace-nowrap">
                                             {h}
                                         </th>
                                     ))}
@@ -181,24 +181,24 @@ export default function DevicesPage() {
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
                                             transition={{ delay: i * 0.03 }}
-                                            className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
+                                            className="border-b border-[#DFE6EE] hover:bg-[#F7F9FB] transition-colors"
                                         >
                                             {/* Device */}
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <Monitor size={14} className="text-gray-600 shrink-0" />
-                                                    <span className="text-white font-medium truncate max-w-[140px]">
+                                                    <Monitor size={14} className="text-[#5B6B7D] shrink-0" />
+                                                    <span className="text-[#0E2B5C] font-medium truncate max-w-[140px]">
                                                         {device.device_name || 'Unnamed Device'}
                                                     </span>
                                                 </div>
                                             </td>
                                             {/* User */}
                                             <td className="px-4 py-3">
-                                                <p className="text-white truncate max-w-[140px]">{device.user_full_name}</p>
-                                                <p className="text-[11px] text-gray-500 truncate max-w-[140px]">{device.user_email}</p>
+                                                <p className="text-[#0E2B5C] truncate max-w-[140px]">{device.user_full_name}</p>
+                                                <p className="text-[11px] text-[#5B6B7D] truncate max-w-[140px]">{device.user_email}</p>
                                             </td>
                                             {/* Platform */}
-                                            <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{device.platform}</td>
+                                            <td className="px-4 py-3 text-[#5B6B7D] whitespace-nowrap">{device.platform}</td>
                                             {/* Status */}
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border capitalize ${STATUS_STYLES[device.status]}`}>
@@ -209,11 +209,11 @@ export default function DevicesPage() {
                                                 </span>
                                             </td>
                                             {/* Last seen */}
-                                            <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">
+                                            <td className="px-4 py-3 text-[#5B6B7D] font-mono text-xs whitespace-nowrap">
                                                 {formatDateTime(device.last_seen_at)}
                                             </td>
                                             {/* Registered */}
-                                            <td className="px-4 py-3 text-gray-500 font-mono text-xs whitespace-nowrap">
+                                            <td className="px-4 py-3 text-[#5B6B7D] font-mono text-xs whitespace-nowrap">
                                                 {formatDate(device.registered_at)}
                                             </td>
                                             {/* Actions */}
@@ -223,7 +223,7 @@ export default function DevicesPage() {
                                                         <button
                                                             onClick={() => handleStatusChange(device, 'trusted')}
                                                             disabled={actionLoading === device.id}
-                                                            className="px-2.5 py-1 text-xs rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/20 transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-emerald-400"
+                                                            className="px-2.5 py-1 text-xs rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-emerald-400"
                                                         >
                                                             Approve
                                                         </button>
@@ -232,13 +232,13 @@ export default function DevicesPage() {
                                                         <button
                                                             onClick={() => handleStatusChange(device, 'revoked')}
                                                             disabled={actionLoading === device.id}
-                                                            className="px-2.5 py-1 text-xs rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20 transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-red-400"
+                                                            className="px-2.5 py-1 text-xs rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-all disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-red-400"
                                                         >
                                                             Revoke
                                                         </button>
                                                     )}
                                                     {actionLoading === device.id && (
-                                                        <svg className="animate-spin h-3.5 w-3.5 text-gray-500" viewBox="0 0 24 24" fill="none">
+                                                        <svg className="animate-spin h-3.5 w-3.5 text-[#5B6B7D]" viewBox="0 0 24 24" fill="none">
                                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                                                         </svg>

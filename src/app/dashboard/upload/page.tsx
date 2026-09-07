@@ -17,8 +17,8 @@ export default function DataUploadPage() {
                 className="mb-8"
             >
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-                        <Upload className="w-6 h-6 text-purple-400" />
+                    <div className="p-2 rounded-xl bg-[#F7F9FB] border border-[#DFE6EE]">
+                        <Upload className="w-6 h-6 text-[#00458B]" />
                     </div>
                     <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
                         Data Upload

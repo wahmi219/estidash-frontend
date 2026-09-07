@@ -82,10 +82,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // redirect above runs -- never the restricted content itself.
     if (!ready || !isAuthorized) {
         return (
-            <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+            <div className="min-h-screen bg-[#F7F9FB] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-cyan-500 to-purple-600 flex items-center justify-center animate-pulse" />
-                    <p className="text-xs uppercase tracking-widest text-gray-500">Loading…</p>
+                    <div className="w-10 h-10 rounded-xl bg-white border border-[#DFE6EE] flex items-center justify-center animate-pulse">
+                        <div className="w-3 h-3 rounded-full bg-[#00458B]" />
+                    </div>
+                    <p className="text-xs uppercase tracking-widest text-[#5B6B7D]">Loading…</p>
                 </div>
             </div>
         );

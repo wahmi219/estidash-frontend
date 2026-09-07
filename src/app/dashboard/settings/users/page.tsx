@@ -750,7 +750,7 @@ export default function UsersPage() {
                     {isSuperAdmin && (
                         <button
                             onClick={openCreate}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-linear-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20 shrink-0"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#00458B] hover:bg-[#045CB4] text-white text-sm font-semibold active:scale-[0.98] transition-all shrink-0"
                         >
                             <Plus size={16} />
                             New User

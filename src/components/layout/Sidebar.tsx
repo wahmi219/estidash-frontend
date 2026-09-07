@@ -261,6 +261,8 @@ export default function Sidebar() {
     const canSee = (item: NavItem) =>
         !item.hidden && (!item.minRole || hasRole(userRole, item.minRole));
 
+    const visibleSecondaryNavItems = secondaryNavItems.filter(canSee);
+
     async function handleLogout() {
         try {
             if (accessToken) await authService.logout(accessToken);
@@ -386,18 +388,22 @@ export default function Sidebar() {
                     })}
                 </div>
 
-                {/* Divider */}
-                <div className="my-4 border-t border-gray-200 dark:border-white/8" />
+                {/* Divider — only when the AI Assistant section below actually
+                    has a visible item for this role, otherwise it's an orphan
+                    rule with nothing under it. */}
+                {visibleSecondaryNavItems.length > 0 && (
+                    <div className="my-4 border-t border-gray-200 dark:border-white/8" />
+                )}
 
                 {/* AI Assistant — only shown to admin+ */}
-                {secondaryNavItems.filter(canSee).length > 0 && (
+                {visibleSecondaryNavItems.length > 0 && (
                     <div className="space-y-1">
                         {!isCollapsed && (
                             <p className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 AI Assistant
                             </p>
                         )}
-                        {secondaryNavItems.filter(canSee).map((item) => (
+                        {visibleSecondaryNavItems.map((item) => (
                             <Link
                                 key={item.id}
                                 href={item.href}
