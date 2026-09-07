@@ -15,7 +15,7 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeProvider attribute="class" forcedTheme="light">
             <Provider store={store}>
                 <AppInitializer>{children}</AppInitializer>
             </Provider>

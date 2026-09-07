@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useSidebar } from './SidebarContext';
-import ThemeToggle from './ThemeToggle';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard,
@@ -274,14 +273,14 @@ export default function Sidebar() {
     return (
         <motion.aside
             initial={false}
-            animate={{ width: isCollapsed ? 72 : 280 }}
+            animate={{ width: isCollapsed ? 64 : 256 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="fixed left-0 top-0 h-screen bg-white/90 dark:bg-gray-950/90 border-r border-gray-200 dark:border-white/8 backdrop-blur-xl z-50 flex flex-col"
+            className="fixed left-0 top-0 h-screen bg-white border-r border-gray-200 z-50 flex flex-col"
         >
             {/* Logo */}
             <div className="p-4 border-b border-gray-200 dark:border-white/8">
                 <Link href="/dashboard" className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-cyan-500 to-purple-600 flex items-center justify-center shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
                         <TrendingUp size={20} className="text-white" />
                     </div>
                     <AnimatePresence>
@@ -292,7 +291,7 @@ export default function Sidebar() {
                                 exit={{ opacity: 0, x: -10 }}
                                 transition={{ duration: 0.15 }}
                             >
-                                <h1 className="text-lg font-bold gradient-text">EstiHub</h1>
+                                <h1 className="text-lg font-bold text-gray-900">EstiHub</h1>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">Market Intelligence</p>
                             </motion.div>
                         )}
@@ -457,7 +456,7 @@ export default function Sidebar() {
                         'flex items-center gap-3 px-3 py-2 mt-1',
                         isCollapsed && 'justify-center'
                     )}>
-                        <div className="w-7 h-7 rounded-full bg-linear-to-br from-cyan-500 to-purple-600 flex items-center justify-center shrink-0 text-white text-xs font-bold">
+                        <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 text-white text-xs font-bold">
                             {user.full_name.charAt(0).toUpperCase()}
                         </div>
                         <AnimatePresence>
@@ -489,9 +488,6 @@ export default function Sidebar() {
                         </AnimatePresence>
                     </div>
                 )}
-
-                {/* Theme Toggle */}
-                <ThemeToggle />
 
                 {/* Collapse Toggle */}
                 <button
