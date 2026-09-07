@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useSidebar } from './SidebarContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -279,23 +280,32 @@ export default function Sidebar() {
         >
             {/* Logo */}
             <div className="p-4 border-b border-gray-200 dark:border-white/8">
-                <Link href="/dashboard" className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0">
-                        <TrendingUp size={20} className="text-white" />
-                    </div>
-                    <AnimatePresence>
-                        {!isCollapsed && (
-                            <motion.div
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -10 }}
-                                transition={{ duration: 0.15 }}
-                            >
-                                <h1 className="text-lg font-bold text-gray-900">EstiHub</h1>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Market Intelligence</p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                <Link href="/dashboard" className="flex flex-col items-start">
+                    {isCollapsed ? (
+                        // Collapsed: a cropped window into the same wordmark asset,
+                        // scaled uniformly (never stretched) so only the hexagon
+                        // mark shows — no separate icon-only asset exists in this
+                        // project, so this reuses the one already available here.
+                        <div className="w-6 h-7 relative overflow-hidden shrink-0">
+                            <Image
+                                src="/brand/estimation-hub-logo-transparent.png"
+                                alt="Estimation Hub"
+                                width={182}
+                                height={47}
+                                className="absolute max-w-none"
+                                style={{ top: '-9px', left: '-13px' }}
+                            />
+                        </div>
+                    ) : (
+                        <Image
+                            src="/brand/estimation-hub-logo-transparent.png"
+                            alt="Estimation Hub"
+                            width={566}
+                            height={146}
+                            priority
+                            className="w-[220px] h-auto object-contain"
+                        />
+                    )}
                 </Link>
             </div>
 
