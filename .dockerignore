@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Next.js build output
+.next
+out
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (we inject these at runtime)
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+
+# AWS deployment scripts (not needed in container)
+aws/
+
+# Documentation
+README.md
+docs/
+
+# Tests
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+coverage/
+
+# Misc
+*.md
+LICENSE
+.eslintcache
