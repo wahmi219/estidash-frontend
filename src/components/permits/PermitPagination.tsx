@@ -8,6 +8,9 @@ interface PermitPaginationProps {
     pagination: PaginationType;
     onPageChange: (page: number) => void;
     onPageSizeChange: (size: number) => void;
+    /** Noun for the "Showing X to Y of Z ___" line. Defaults to "permits" so
+     * every existing Permit Records call site is unaffected. */
+    itemLabel?: string;
 }
 
 const PAGE_SIZES = [10, 25, 50, 100, 500, 1000, 2000];
@@ -16,6 +19,7 @@ export default function PermitPagination({
     pagination,
     onPageChange,
     onPageSizeChange,
+    itemLabel = 'permits',
 }: PermitPaginationProps) {
     const { page, pageSize, totalRecords, totalPages, totalIsEstimate } = pagination;
 
@@ -60,7 +64,7 @@ export default function PermitPagination({
             <div className="text-sm text-[#5B6B7D]">
                 Showing <span className="text-[#0E2B5C] font-medium">{startRecord.toLocaleString()}</span> to{' '}
                 <span className="text-[#0E2B5C] font-medium">{endRecord.toLocaleString()}</span> of{' '}
-                <span className="text-[#0E2B5C] font-medium">{totalLabel}</span> permits
+                <span className="text-[#0E2B5C] font-medium">{totalLabel}</span> {itemLabel}
             </div>
 
             <div className="flex items-center gap-4">

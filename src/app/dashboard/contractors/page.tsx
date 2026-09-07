@@ -2,13 +2,10 @@
 
 import React, { Suspense, useEffect, useCallback, useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useSelector } from 'react-redux';
 import {
     HardHat,
     RefreshCw,
     AlertCircle,
-    Search,
-    X,
     ChevronDown,
     ChevronUp,
     Mail,
@@ -16,8 +13,6 @@ import {
     MapPin,
     FileText,
     ArrowUpDown,
-    Send,
-    Star,
     ShieldCheck,
 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useAppDispatch';
@@ -71,188 +66,53 @@ import {
 } from '@/components/contractors';
 import { RegistryStatsCard, RegistryFiltersPanel, RegistryTable } from '@/components/registry';
 import { ContractorFilters, ContractorRecord, RegistryFilters } from '@/types';
-import { apiService } from '@/services/api';
-import { hasRole } from '@/lib/roles';
-import type { RootState } from '@/store/store';
-import type { Role } from '@/lib/roles';
 
 type ContractorsView = 'permit-contractors' | 'registry';
-
-// Debounce helper
-function useDebounce<T>(value: T, delay: number): T {
-    const [debouncedValue, setDebouncedValue] = React.useState(value);
-
-    useEffect(() => {
-        const handler = setTimeout(() => setDebouncedValue(value), delay);
-        return () => clearTimeout(handler);
-    }, [value, delay]);
-
-    return debouncedValue;
-}
-
-// ============================================================================
-// Score Badge
-// ============================================================================
-
-const BUCKET_STYLES: Record<string, { label: string; classes: string }> = {
-    strategic:      { label: 'Strategic',      classes: 'bg-amber-500/15 text-amber-400 border border-amber-500/20' },
-    strong:         { label: 'Strong',          classes: 'bg-green-500/15 text-green-400 border border-green-500/20' },
-    volume_engine:  { label: 'Volume',          classes: 'bg-blue-500/15 text-blue-400 border border-blue-500/20' },
-    opportunistic:  { label: 'Opportunistic',   classes: 'bg-gray-500/15 text-gray-400 border border-gray-500/20' },
-    unqualified:    { label: 'Unqualified',     classes: 'bg-red-500/10 text-red-500 border border-red-500/15' },
-};
-
-function ScoreBadge({ score, bucket }: { score: number | null; bucket: string | null }) {
-    if (score === null || bucket === null) {
-        return <span className="text-gray-600 text-xs">—</span>;
-    }
-    const style = BUCKET_STYLES[bucket] ?? { label: bucket, classes: 'bg-gray-500/15 text-gray-400' };
-    return (
-        <div className="flex flex-col items-start gap-0.5">
-            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${style.classes}`}>
-                {bucket === 'strategic' && <Star size={9} className="shrink-0" />}
-                {style.label}
-            </span>
-            <span className="text-xs font-mono text-gray-500">{score.toFixed(0)}/100</span>
-        </div>
-    );
-}
 
 // ============================================================================
 // Contractor Table Row
 // ============================================================================
 
-function ContractorRow({
-    contractor,
-    canSendCard,
-}: {
-    contractor: ContractorRecord;
-    canSendCard: boolean;
-}) {
+function ContractorRow({ contractor }: { contractor: ContractorRecord }) {
     const router = useRouter();
     const types = contractor.contractor_types;
-    const [sending, setSending] = useState(false);
-    const [sent, setSent] = useState(false);
-    const [sendError, setSendError] = useState<string | null>(null);
-
-    const isQualified = contractor.score_bucket === 'strategic' || contractor.score_bucket === 'strong';
-
-    const handleSendCard = useCallback(async () => {
-        setSending(true);
-        setSendError(null);
-        try {
-            const result = await apiService.sendRetainerCard(contractor.id);
-            if (result.success) {
-                setSent(true);
-            } else {
-                setSendError(result.error || 'Failed to send');
-            }
-        } catch {
-            setSendError('Request failed');
-        } finally {
-            setSending(false);
-        }
-    }, [contractor.id]);
 
     return (
         <tr
             onClick={() => router.push(`/dashboard/contractors/${contractor.id}`)}
-            className="border-b border-gray-100 dark:border-white/4 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors cursor-pointer"
+            className="border-b border-[#DFE6EE] hover:bg-[#F7F9FB] transition-colors cursor-pointer"
         >
-            {/* Name */}
+            {/* Contractor */}
             <td className="px-4 py-3">
                 <div className="flex items-center gap-1.5">
                     <span
-                        className="font-medium text-gray-700 dark:text-gray-200 truncate max-w-[200px]"
+                        className="font-medium text-[#0E2B5C] truncate max-w-[220px]"
                         title={contractor.name_quality === 'questionable' ? `${contractor.name} (may not be a real business name)` : contractor.name}
                     >
                         {contractor.name}
                     </span>
                     <NameQualityFlag value={contractor.name_quality} />
                 </div>
-                {contractor.license_number && (
-                    <div className="text-xs text-gray-500 mt-0.5">
-                        {contractor.license_number}
-                    </div>
-                )}
-            </td>
-
-            {/* Score */}
-            <td className="px-4 py-3">
-                <ScoreBadge score={contractor.lead_score} bucket={contractor.score_bucket} />
-            </td>
-
-            {/* Type(s) */}
-            <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-1">
-                    {types.length > 0 ? (
-                        types.map((t, i) => (
+                {types.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        {types.map((t, i) => (
                             <span
                                 key={i}
-                                className="inline-block px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[11px] font-medium"
+                                className="inline-block px-1.5 py-0.5 rounded bg-[#F7F9FB] text-[#5B6B7D] text-[10px] font-medium border border-[#DFE6EE]"
                             >
                                 {t}
                             </span>
-                        ))
-                    ) : (
-                        <span className="text-gray-600 text-sm">-</span>
-                    )}
-                </div>
-            </td>
-
-            {/* Email */}
-            <td className="px-4 py-3">
-                {contractor.email ? (
-                    <a
-                        href={`mailto:${contractor.email}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 hover:text-cyan-400 transition-colors truncate max-w-[200px]"
-                        title={contractor.email}
-                    >
-                        <Mail size={13} className="shrink-0 text-gray-500" />
-                        {contractor.email}
-                    </a>
-                ) : (
-                    <span className="text-gray-600 text-sm">-</span>
-                )}
-            </td>
-
-            {/* Phone */}
-            <td className="px-4 py-3">
-                {contractor.phone ? (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                        <Phone size={13} className="shrink-0 text-gray-500" />
-                        {contractor.phone}
+                        ))}
                     </div>
-                ) : (
-                    <span className="text-gray-600 text-sm">-</span>
-                )}
-            </td>
-
-            {/* City */}
-            <td className="px-4 py-3">
-                {contractor.city ? (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                        <MapPin size={13} className="shrink-0 text-gray-500" />
-                        {contractor.city}
-                        {contractor.state_code ? `, ${contractor.state_code}` : ''}
-                    </div>
-                ) : (
-                    <span className="text-gray-600 text-sm">-</span>
                 )}
             </td>
 
             {/* Permits */}
             <td className="px-4 py-3 text-center">
                 <div className="flex items-center justify-center gap-1.5 text-sm">
-                    <FileText size={13} className="text-gray-500" />
-                    <span className="text-gray-600 dark:text-gray-300">{contractor.permit_count}</span>
+                    <FileText size={13} className="text-[#5B6B7D]" />
+                    <span className="text-[#0E2B5C] font-mono">{contractor.permit_count}</span>
                 </div>
-            </td>
-
-            {/* Identity Strength */}
-            <td className="px-4 py-3">
-                <IdentityStrengthBadge value={contractor.identity_strength} />
             </td>
 
             {/* Contactability */}
@@ -260,38 +120,54 @@ function ContractorRow({
                 <ContactabilityBadge value={contractor.contactability} />
             </td>
 
-            {/* License Readiness */}
+            {/* Identity */}
             <td className="px-4 py-3">
-                <LicenseReadinessBadge value={contractor.license_readiness} />
+                <IdentityStrengthBadge value={contractor.identity_strength} />
             </td>
 
-            {/* Send Card */}
-            {canSendCard && (
-                <td className="px-4 py-3 text-center">
-                    {isQualified && contractor.email ? (
-                        <div className="flex flex-col items-center gap-0.5">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); handleSendCard(); }}
-                                disabled={sending || sent}
-                                title={sent ? 'Card sent' : 'Send retainer card'}
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors disabled:opacity-60
-                                    ${sent
-                                        ? 'bg-green-500/15 text-green-400 border border-green-500/20'
-                                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20'
-                                    }`}
-                            >
-                                <Send size={11} className={sending ? 'animate-pulse' : ''} />
-                                {sent ? 'Sent' : sending ? 'Sending…' : 'Send Card'}
-                            </button>
-                            {sendError && (
-                                <span className="text-[10px] text-red-400 max-w-25 text-center leading-tight">{sendError}</span>
-                            )}
-                        </div>
-                    ) : (
-                        <span className="text-gray-700 text-xs">—</span>
-                    )}
-                </td>
-            )}
+            {/* License */}
+            <td className="px-4 py-3">
+                <LicenseReadinessBadge value={contractor.license_readiness} />
+                {contractor.license_number && (
+                    <div className="text-xs text-[#5B6B7D] font-mono mt-0.5">{contractor.license_number}</div>
+                )}
+            </td>
+
+            {/* Location */}
+            <td className="px-4 py-3">
+                {contractor.city ? (
+                    <div className="flex items-center gap-1.5 text-sm text-[#5B6B7D]">
+                        <MapPin size={13} className="shrink-0 text-[#5B6B7D]" />
+                        {contractor.city}
+                        {contractor.state_code ? `, ${contractor.state_code}` : ''}
+                    </div>
+                ) : (
+                    <span className="text-[#5B6B7D] text-sm">—</span>
+                )}
+            </td>
+
+            {/* Contact */}
+            <td className="px-4 py-3">
+                {contractor.email ? (
+                    <a
+                        href={`mailto:${contractor.email}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 text-sm text-[#00458B] hover:text-[#045CB4] transition-colors truncate max-w-[200px]"
+                        title={contractor.email}
+                    >
+                        <Mail size={13} className="shrink-0" />
+                        {contractor.email}
+                    </a>
+                ) : (
+                    <span className="text-[#5B6B7D] text-sm">—</span>
+                )}
+                {contractor.phone && (
+                    <div className="flex items-center gap-1.5 text-xs text-[#5B6B7D] mt-0.5">
+                        <Phone size={11} className="shrink-0" />
+                        {contractor.phone}
+                    </div>
+                )}
+            </td>
         </tr>
     );
 }
@@ -318,19 +194,19 @@ function SortHeader({
     const isActive = currentField === field;
     return (
         <th
-            className={`px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition-colors select-none ${className}`}
+            className={`px-4 py-3 text-left text-xs font-semibold text-[#5B6B7D] uppercase tracking-wider cursor-pointer hover:text-[#0E2B5C] transition-colors select-none ${className}`}
             onClick={() => onSort(field)}
         >
             <div className="flex items-center gap-1">
                 {label}
                 {isActive ? (
                     currentDirection === 'desc' ? (
-                        <ChevronDown size={14} className="text-cyan-400" />
+                        <ChevronDown size={14} className="text-[#00458B]" />
                     ) : (
-                        <ChevronUp size={14} className="text-cyan-400" />
+                        <ChevronUp size={14} className="text-[#00458B]" />
                     )
                 ) : (
-                    <ArrowUpDown size={12} className="text-gray-600" />
+                    <ArrowUpDown size={12} className="text-[#5B6B7D] opacity-50" />
                 )}
             </div>
         </th>
@@ -349,7 +225,7 @@ function ContractorsPageContent() {
 
     // Which dataset is showing — "Permit Contractors" (the permit-linked
     // directory, existing) vs "Official Registry" (synced state license
-    // registries, new). Never merged: separate Redux slices, separate API
+    // registries). Never merged: separate Redux slices, separate API
     // endpoints, separate URL-sync effects below (each guarded by `view` so
     // they don't clobber each other's query params).
     const [view, setView] = useState<ContractorsView>(() =>
@@ -375,9 +251,15 @@ function ContractorsPageContent() {
     const registrySources = useAppSelector(selectRegistrySources);
     const registrySourcesStatus = useAppSelector(selectRegistrySourcesStatus);
 
-    const { user } = useSelector((s: RootState) => s.auth);
-    const userRole = (user?.role ?? 'viewer') as Role;
-    const canSendCard = hasRole(userRole, 'outreach');
+    // Debounce helper
+    function useDebounce<T>(value: T, delay: number): T {
+        const [debouncedValue, setDebouncedValue] = React.useState(value);
+        useEffect(() => {
+            const handler = setTimeout(() => setDebouncedValue(value), delay);
+            return () => clearTimeout(handler);
+        }, [value, delay]);
+        return debouncedValue;
+    }
 
     const debouncedSearch = useDebounce(filters.search, 300);
     const debouncedRegistrySearch = useDebounce(registryFilters.search, 300);
@@ -504,7 +386,6 @@ function ContractorsPageContent() {
         filters.city,
         filters.stateCode,
         filters.hasEmail,
-        filters.scoreBucket,
         filters.hasLicense,
         filters.hasPhone,
         filters.hasWebsite,
@@ -539,20 +420,12 @@ function ContractorsPageContent() {
         registrySorting.direction,
     ]);
 
-    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        dispatch(setFilters({ search: e.target.value }));
+    const handleSearchChange = useCallback((value: string) => {
+        dispatch(setFilters({ search: value }));
     }, [dispatch]);
 
     const handleSearchClear = useCallback(() => {
         dispatch(setFilters({ search: '' }));
-    }, [dispatch]);
-
-    const handleTypeChange = useCallback((type: string | null) => {
-        dispatch(setFilters({ contractorType: type }));
-    }, [dispatch]);
-
-    const handleBucketChange = useCallback((bucket: string | null) => {
-        dispatch(setFilters({ scoreBucket: bucket }));
     }, [dispatch]);
 
     const handlePanelFilterChange = useCallback((patch: Partial<ContractorFilters>) => {
@@ -615,7 +488,7 @@ function ContractorsPageContent() {
     const isRegistryLoading = registryStatus === 'loading';
 
     const hasActiveFilters = Boolean(
-        filters.search || filters.contractorType || filters.city || filters.stateCode || filters.hasEmail !== null || filters.scoreBucket ||
+        filters.search || filters.contractorType || filters.city || filters.stateCode || filters.hasEmail !== null ||
         filters.hasLicense !== null || filters.hasPhone !== null || filters.hasWebsite !== null || filters.licenseReadiness
     );
 
@@ -629,24 +502,24 @@ function ContractorsPageContent() {
     const selectedRegistrySource = registrySources.find((s) => s.source_key === registryFilters.sourceKey) ?? null;
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4 bg-[#F7F9FB] min-h-screen">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-linear-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+                    <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
                             <HardHat size={20} />
                         </div>
                         Contractors
                     </h1>
-                    <p className="text-gray-500 mt-1">
-                        Browse and search licensed contractors
+                    <p className="text-[#5B6B7D] mt-1">
+                        Browse and review permit-linked contractors
                     </p>
                 </div>
                 <button
                     onClick={view === 'registry' ? handleRegistryRefresh : handleRefresh}
                     disabled={view === 'registry' ? isRegistryLoading : isLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] transition-colors disabled:opacity-50"
                 >
                     <RefreshCw size={16} className={(view === 'registry' ? isRegistryLoading : isLoading) ? 'animate-spin' : ''} />
                     Refresh
@@ -655,14 +528,14 @@ function ContractorsPageContent() {
 
             {/* View switcher — "Permit Contractors" (permit-linked directory) vs
                 "Official Registry" (synced state license registries). Two
-                distinct datasets, never merged — see plan Context section. */}
-            <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-white/4 rounded-xl w-fit">
+                distinct datasets, never merged. */}
+            <div className="flex items-center gap-1 p-1 bg-white border border-[#DFE6EE] rounded-lg w-fit">
                 <button
                     onClick={() => setView('permit-contractors')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         view === 'permit-contractors'
-                            ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'bg-[#00458B] text-white'
+                            : 'text-[#5B6B7D] hover:text-[#0E2B5C] hover:bg-[#F7F9FB]'
                     }`}
                 >
                     <HardHat size={15} />
@@ -670,10 +543,10 @@ function ContractorsPageContent() {
                 </button>
                 <button
                     onClick={() => setView('registry')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         view === 'registry'
-                            ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            ? 'bg-[#00458B] text-white'
+                            : 'text-[#5B6B7D] hover:text-[#0E2B5C] hover:bg-[#F7F9FB]'
                     }`}
                 >
                     <ShieldCheck size={15} />
@@ -683,83 +556,22 @@ function ContractorsPageContent() {
 
             {view === 'permit-contractors' && (
             <>
-            {/* Search + Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-                {/* Search */}
-                <div className="relative max-w-md flex-1">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                    <input
-                        type="text"
-                        value={filters.search}
-                        onChange={handleSearchChange}
-                        placeholder="Search by name, email, phone, license..."
-                        className="w-full pl-10 pr-10 py-2.5 bg-gray-100 dark:bg-white/4 border border-gray-200 dark:border-white/8 rounded-xl text-gray-700 dark:text-gray-200 text-sm placeholder-gray-500 focus:outline-none focus:border-cyan-500/40 transition-colors"
-                    />
-                    {filters.search && (
-                        <button
-                            onClick={handleSearchClear}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-                        >
-                            <X size={14} />
-                        </button>
-                    )}
-                </div>
-
-                {/* Type filter */}
-                <div className="relative">
-                    <select
-                        value={filters.contractorType || ''}
-                        onChange={(e) => handleTypeChange(e.target.value || null)}
-                        className="pl-4 pr-8 py-2.5 bg-gray-100 dark:bg-white/4 border border-gray-200 dark:border-white/8 rounded-xl text-gray-700 dark:text-gray-200 text-sm appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/40 transition-colors"
-                    >
-                        <option value="">All Types</option>
-                        {availableTypes.map((t) => (
-                            <option key={t} value={t}>{t}</option>
-                        ))}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                </div>
-
-                {/* Score bucket filter */}
-                <div className="relative">
-                    <select
-                        value={filters.scoreBucket || ''}
-                        onChange={(e) => handleBucketChange(e.target.value || null)}
-                        className="pl-4 pr-8 py-2.5 bg-gray-100 dark:bg-white/4 border border-gray-200 dark:border-white/8 rounded-xl text-gray-700 dark:text-gray-200 text-sm appearance-none cursor-pointer focus:outline-none focus:border-cyan-500/40 transition-colors"
-                    >
-                        <option value="">All Scores</option>
-                        <option value="strategic">⭐ Strategic (85+)</option>
-                        <option value="strong">Strong (70–84)</option>
-                        <option value="volume_engine">Volume (55–69)</option>
-                        <option value="opportunistic">Opportunistic (40–54)</option>
-                        <option value="unqualified">Unqualified (&lt;40)</option>
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                </div>
-
-                {/* Reset filters */}
-                {hasActiveFilters && (
-                    <button
-                        onClick={handleResetFilters}
-                        className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-                    >
-                        <X size={14} />
-                        Clear filters
-                    </button>
-                )}
-            </div>
-
-            {/* Additional filters (Phase 2A, 2A.2) — state, city, has-license/phone/website, license readiness */}
+            {/* Compact filter toolbar */}
             <ContractorFiltersPanel
                 filters={filters}
                 onFilterChange={handlePanelFilterChange}
+                onReset={handleResetFilters}
                 availableStates={availableStates}
                 availableCities={availableCities}
+                availableTypes={availableTypes}
+                searchValue={filters.search}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
             />
 
             {/* Error Banner */}
             {error && (
-                <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
                     <AlertCircle size={20} />
                     <span>{error}</span>
                     <button
@@ -772,41 +584,14 @@ function ContractorsPageContent() {
             )}
 
             {/* Table */}
-            <div className="bg-white dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-gray-200 dark:border-white/8 bg-gray-50 dark:bg-white/2">
+                            <tr className="border-b border-[#DFE6EE] bg-[#F7F9FB]">
                                 <SortHeader
-                                    label="Name"
+                                    label="Contractor"
                                     field="name"
-                                    currentField={sorting.field}
-                                    currentDirection={sorting.direction}
-                                    onSort={handleSort}
-                                />
-                                <SortHeader
-                                    label="Score"
-                                    field="lead_score"
-                                    currentField={sorting.field}
-                                    currentDirection={sorting.direction}
-                                    onSort={handleSort}
-                                />
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Type(s)
-                                </th>
-                                <SortHeader
-                                    label="Email"
-                                    field="email"
-                                    currentField={sorting.field}
-                                    currentDirection={sorting.direction}
-                                    onSort={handleSort}
-                                />
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Phone
-                                </th>
-                                <SortHeader
-                                    label="City"
-                                    field="city"
                                     currentField={sorting.field}
                                     currentDirection={sorting.direction}
                                     onSort={handleSort}
@@ -819,41 +604,50 @@ function ContractorsPageContent() {
                                     onSort={handleSort}
                                     className="text-center"
                                 />
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Identity
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-[#5B6B7D] uppercase tracking-wider">
                                     Contactability
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-[#5B6B7D] uppercase tracking-wider">
+                                    Identity Strength
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-[#5B6B7D] uppercase tracking-wider">
                                     License
                                 </th>
-                                {canSendCard && (
-                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                        Retainer
-                                    </th>
-                                )}
+                                <SortHeader
+                                    label="Location"
+                                    field="city"
+                                    currentField={sorting.field}
+                                    currentDirection={sorting.direction}
+                                    onSort={handleSort}
+                                />
+                                <SortHeader
+                                    label="Contact"
+                                    field="email"
+                                    currentField={sorting.field}
+                                    currentDirection={sorting.direction}
+                                    onSort={handleSort}
+                                />
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 Array.from({ length: 10 }).map((_, i) => (
-                                    <tr key={i} className="border-b border-gray-100 dark:border-white/4">
-                                        {Array.from({ length: canSendCard ? 11 : 10 }).map((_, j) => (
+                                    <tr key={i} className="border-b border-[#DFE6EE]">
+                                        {Array.from({ length: 7 }).map((_, j) => (
                                             <td key={j} className="px-4 py-3">
-                                                <div className="h-4 bg-gray-200 dark:bg-white/4 rounded animate-pulse" />
+                                                <div className="h-4 bg-[#DFE6EE] rounded animate-pulse" />
                                             </td>
                                         ))}
                                     </tr>
                                 ))
                             ) : contractors.length === 0 ? (
                                 <tr>
-                                    <td colSpan={canSendCard ? 11 : 10} className="px-4 py-20 text-center">
-                                        <HardHat size={48} className="mx-auto mb-4 text-gray-600 opacity-40" />
-                                        <p className="text-gray-500 text-lg mb-1">
+                                    <td colSpan={7} className="px-4 py-20 text-center">
+                                        <HardHat size={48} className="mx-auto mb-4 text-[#DFE6EE]" />
+                                        <p className="text-[#0E2B5C] text-lg mb-1">
                                             {hasActiveFilters ? 'No contractors match your filters' : 'No contractors found'}
                                         </p>
-                                        <p className="text-gray-600 text-sm">
+                                        <p className="text-[#5B6B7D] text-sm">
                                             {hasActiveFilters
                                                 ? 'Try adjusting your search or filters'
                                                 : 'Import contractors from a GeoJSON file to get started'
@@ -862,7 +656,7 @@ function ContractorsPageContent() {
                                         {hasActiveFilters && (
                                             <button
                                                 onClick={handleResetFilters}
-                                                className="mt-4 px-4 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 text-sm transition-colors"
+                                                className="mt-4 px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] text-sm transition-colors"
                                             >
                                                 Clear all filters
                                             </button>
@@ -871,7 +665,7 @@ function ContractorsPageContent() {
                                 </tr>
                             ) : (
                                 contractors.map((contractor) => (
-                                    <ContractorRow key={contractor.id} contractor={contractor} canSendCard={canSendCard} />
+                                    <ContractorRow key={contractor.id} contractor={contractor} />
                                 ))
                             )}
                         </tbody>
@@ -880,11 +674,12 @@ function ContractorsPageContent() {
 
                 {/* Pagination */}
                 {contractors.length > 0 && (
-                    <div className="border-t border-gray-200 dark:border-white/6">
+                    <div className="border-t border-[#DFE6EE]">
                         <PermitPagination
                             pagination={pagination}
                             onPageChange={handlePageChange}
                             onPageSizeChange={handlePageSizeChange}
+                            itemLabel="contractors"
                         />
                     </div>
                 )}
@@ -895,8 +690,8 @@ function ContractorsPageContent() {
             {view === 'registry' && (
             <>
             {/* Registry Stats / Overview card — makes the "0 matched" reality
-                visible up front (per plan section 6a) rather than only
-                discoverable by scrolling an empty-feeling table. */}
+                visible up front rather than only discoverable by scrolling an
+                empty-feeling table. */}
             <RegistryStatsCard source={selectedRegistrySource} loading={registrySourcesStatus === 'loading' && registrySources.length === 0} />
 
             {/* Source selector + filters */}
@@ -909,7 +704,7 @@ function ContractorsPageContent() {
 
             {/* Error Banner */}
             {registryError && (
-                <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
                     <AlertCircle size={20} />
                     <span>{registryError}</span>
                     <button
@@ -922,7 +717,7 @@ function ContractorsPageContent() {
             )}
 
             {/* Table */}
-            <div className="bg-white dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <RegistryTable
                     records={registryRecords}
                     isLoading={isRegistryLoading}
@@ -934,11 +729,12 @@ function ContractorsPageContent() {
 
                 {/* Pagination */}
                 {registryRecords.length > 0 && (
-                    <div className="border-t border-gray-200 dark:border-white/6">
+                    <div className="border-t border-[#DFE6EE]">
                         <PermitPagination
                             pagination={registryPagination}
                             onPageChange={handleRegistryPageChange}
                             onPageSizeChange={handleRegistryPageSizeChange}
+                            itemLabel="records"
                         />
                     </div>
                 )}
@@ -952,24 +748,24 @@ function ContractorsPageContent() {
 // Loading fallback
 function ContractorsPageLoading() {
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4 bg-[#F7F9FB] min-h-screen">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-linear-to-br from-orange-500 to-amber-600 flex items-center justify-center">
+                <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
                         <HardHat size={20} />
                     </div>
                     Contractors
                 </h1>
-                <p className="text-gray-500 mt-1">Browse and search licensed contractors</p>
+                <p className="text-[#5B6B7D] mt-1">Browse and review permit-linked contractors</p>
             </div>
-            <div className="bg-white dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <table className="w-full">
                     <tbody>
                         {Array.from({ length: 10 }).map((_, i) => (
-                            <tr key={i} className="border-b border-gray-100 dark:border-white/4">
-                                {Array.from({ length: 6 }).map((_, j) => (
+                            <tr key={i} className="border-b border-[#DFE6EE]">
+                                {Array.from({ length: 7 }).map((_, j) => (
                                     <td key={j} className="px-4 py-3">
-                                        <div className="h-4 bg-gray-200 dark:bg-white/4 rounded animate-pulse" />
+                                        <div className="h-4 bg-[#DFE6EE] rounded animate-pulse" />
                                     </td>
                                 ))}
                             </tr>

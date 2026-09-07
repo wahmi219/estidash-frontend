@@ -14,9 +14,9 @@ import type {
 // app/services/contractor_completeness_service.py for the exact rules.
 
 const IDENTITY_STYLES: Record<ContractorIdentityStrength, { label: string; classes: string }> = {
-    strong:   { label: 'Strong',   classes: 'bg-green-500/15 text-green-400 border border-green-500/20' },
-    partial:  { label: 'Partial',  classes: 'bg-amber-500/15 text-amber-400 border border-amber-500/20' },
-    minimal:  { label: 'Minimal',  classes: 'bg-gray-500/15 text-gray-400 border border-gray-500/20' },
+    strong:   { label: 'Strong',   classes: 'bg-green-50 text-green-700 border border-green-200' },
+    partial:  { label: 'Partial',  classes: 'bg-amber-50 text-amber-700 border border-amber-200' },
+    minimal:  { label: 'Minimal',  classes: 'bg-gray-100 text-[#5B6B7D] border border-gray-200' },
 };
 
 export function IdentityStrengthBadge({ value }: { value: ContractorIdentityStrength }) {
@@ -29,9 +29,9 @@ export function IdentityStrengthBadge({ value }: { value: ContractorIdentityStre
 }
 
 const CONTACTABILITY_STYLES: Record<ContractorContactability, { label: string; classes: string }> = {
-    reachable: { label: 'Reachable', classes: 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/20' },
-    limited:   { label: 'Limited',   classes: 'bg-amber-500/15 text-amber-400 border border-amber-500/20' },
-    none:      { label: 'None',      classes: 'bg-gray-500/15 text-gray-400 border border-gray-500/20' },
+    reachable: { label: 'Reachable', classes: 'bg-blue-50 text-blue-700 border border-blue-200' },
+    limited:   { label: 'Limited',   classes: 'bg-amber-50 text-amber-700 border border-amber-200' },
+    none:      { label: 'None',      classes: 'bg-gray-100 text-[#5B6B7D] border border-gray-200' },
 };
 
 export function ContactabilityBadge({ value }: { value: ContractorContactability }) {
@@ -44,10 +44,10 @@ export function ContactabilityBadge({ value }: { value: ContractorContactability
 }
 
 const READINESS_STYLES: Record<ContractorLicenseReadiness, { label: string; classes: string }> = {
-    ready:          { label: 'Ready',          classes: 'bg-green-500/15 text-green-400 border border-green-500/20' },
-    needs_state:    { label: 'Needs State',    classes: 'bg-amber-500/15 text-amber-400 border border-amber-500/20' },
-    no_license:     { label: 'No License',     classes: 'bg-gray-500/15 text-gray-400 border border-gray-500/20' },
-    invalid_format: { label: 'Invalid Format', classes: 'bg-red-500/10 text-red-500 border border-red-500/15' },
+    ready:          { label: 'Ready',          classes: 'bg-green-50 text-green-700 border border-green-200' },
+    needs_state:    { label: 'Needs State',    classes: 'bg-amber-50 text-amber-700 border border-amber-200' },
+    no_license:     { label: 'No License',     classes: 'bg-gray-100 text-[#5B6B7D] border border-gray-200' },
+    invalid_format: { label: 'Invalid Format', classes: 'bg-red-50 text-red-700 border border-red-200' },
 };
 
 export function LicenseReadinessBadge({ value }: { value: ContractorLicenseReadiness }) {
@@ -75,7 +75,7 @@ export function NameQualityFlag({ value }: { value: ContractorNameQuality }) {
     return (
         <AlertTriangle
             size={12}
-            className="text-amber-400 shrink-0"
+            className="text-amber-600 shrink-0"
             aria-label="Name may not be a real business name"
         />
     );

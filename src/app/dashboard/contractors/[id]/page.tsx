@@ -76,15 +76,15 @@ function DetailRow({
 }) {
     const isEmpty = !value;
     return (
-        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-black/2 dark:hover:bg-white/2 transition-colors">
-            <Icon size={14} className="text-gray-600 flex-shrink-0" />
-            <span className="text-xs text-gray-500 uppercase tracking-wider w-24 flex-shrink-0">{label}</span>
+        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-[#F7F9FB] transition-colors">
+            <Icon size={14} className="text-[#5B6B7D] flex-shrink-0" />
+            <span className="text-xs text-[#5B6B7D] uppercase tracking-wider w-24 flex-shrink-0">{label}</span>
             {href && !isEmpty ? (
-                <a href={href} className={`text-sm text-cyan-400 hover:text-cyan-300 transition-colors truncate ${mono ? 'font-mono text-xs' : ''}`}>
+                <a href={href} className={`text-sm text-[#00458B] hover:text-[#045CB4] transition-colors truncate ${mono ? 'font-mono text-xs' : ''}`}>
                     {value}
                 </a>
             ) : (
-                <span className={`text-sm truncate ${isEmpty ? 'text-gray-600 italic' : 'text-gray-700 dark:text-gray-200'} ${mono ? 'font-mono text-xs' : ''}`}>
+                <span className={`text-sm truncate ${isEmpty ? 'text-[#5B6B7D] italic' : 'text-[#0E2B5C]'} ${mono ? 'font-mono text-xs' : ''}`}>
                     {isEmpty ? 'Not present' : value}
                 </span>
             )}
@@ -105,15 +105,15 @@ function MetricCard({
 }) {
     const isEmpty = value === '—';
     return (
-        <div className="bg-black/2 dark:bg-white/3 border border-gray-200 dark:border-white/6 rounded-xl p-4">
+        <div className="bg-[#F7F9FB] border border-[#DFE6EE] rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-                <Icon size={14} className={isEmpty ? 'text-gray-600' : 'text-cyan-400'} />
-                <span className="text-[11px] text-gray-500 uppercase tracking-wider font-medium">{label}</span>
+                <Icon size={14} className={isEmpty ? 'text-[#5B6B7D]' : 'text-[#00458B]'} />
+                <span className="text-[11px] text-[#5B6B7D] uppercase tracking-wider font-medium">{label}</span>
             </div>
-            <p className={`text-lg font-mono font-semibold ${isEmpty ? 'text-gray-600 italic text-sm' : 'text-gray-900 dark:text-white'}`}>
+            <p className={`text-lg font-mono font-semibold ${isEmpty ? 'text-[#5B6B7D] italic text-sm' : 'text-[#0E2B5C]'}`}>
                 {value}
             </p>
-            {subtext && !isEmpty && <p className="text-[11px] text-gray-500 mt-1">{subtext}</p>}
+            {subtext && !isEmpty && <p className="text-[11px] text-[#5B6B7D] mt-1">{subtext}</p>}
         </div>
     );
 }
@@ -190,18 +190,18 @@ export default function ContractorDetailPage() {
     // Loading state
     if (loading) {
         return (
-            <div className="p-6 space-y-5 max-w-[1100px] mx-auto">
-                <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <div className="p-6 space-y-5 max-w-[1100px] mx-auto bg-[#F7F9FB] min-h-screen">
+                <button onClick={() => router.back()} className="flex items-center gap-2 text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors">
                     <ArrowLeft size={18} /> Back
                 </button>
                 <div className="animate-pulse space-y-4">
-                    <div className="h-32 bg-black/2 dark:bg-white/3 rounded-2xl" />
+                    <div className="h-32 bg-[#DFE6EE] rounded-xl" />
                     <div className="grid grid-cols-3 gap-3">
-                        {[1, 2, 3].map(i => <div key={i} className="h-24 bg-black/2 dark:bg-white/3 rounded-xl" />)}
+                        {[1, 2, 3].map(i => <div key={i} className="h-24 bg-[#DFE6EE] rounded-xl" />)}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="h-64 bg-black/2 dark:bg-white/3 rounded-xl" />
-                        <div className="h-64 bg-black/2 dark:bg-white/3 rounded-xl" />
+                        <div className="h-64 bg-[#DFE6EE] rounded-xl" />
+                        <div className="h-64 bg-[#DFE6EE] rounded-xl" />
                     </div>
                 </div>
             </div>
@@ -211,19 +211,19 @@ export default function ContractorDetailPage() {
     // Error state
     if (error || !contractor) {
         return (
-            <div className="p-6 space-y-5 max-w-[1100px] mx-auto">
-                <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <div className="p-6 space-y-5 max-w-[1100px] mx-auto bg-[#F7F9FB] min-h-screen">
+                <button onClick={() => router.back()} className="flex items-center gap-2 text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors">
                     <ArrowLeft size={18} /> Back
                 </button>
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4">
-                        <AlertCircle size={28} className="text-red-400" />
+                    <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center mb-4">
+                        <AlertCircle size={28} className="text-red-600" />
                     </div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Contractor Not Found</h2>
-                    <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">{error || 'The contractor you are looking for could not be found.'}</p>
+                    <h2 className="text-xl font-semibold text-[#0E2B5C] mb-2">Contractor Not Found</h2>
+                    <p className="text-[#5B6B7D] max-w-md mb-6">{error || 'The contractor you are looking for could not be found.'}</p>
                     <button
                         onClick={() => router.push('/dashboard/contractors')}
-                        className="px-5 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-400 rounded-lg transition-colors text-sm font-medium"
+                        className="px-5 py-2.5 bg-[#00458B]/10 hover:bg-[#00458B]/20 border border-[#00458B]/20 text-[#00458B] rounded-lg transition-colors text-sm font-medium"
                     >
                         Return to Contractors
                     </button>
@@ -256,68 +256,65 @@ export default function ContractorDetailPage() {
     const similarRecords = contractor.possible_similar_records ?? [];
 
     return (
-        <div className="p-6 space-y-5 max-w-[1100px] mx-auto">
+        <div className="p-6 space-y-5 max-w-[1100px] mx-auto bg-[#F7F9FB] min-h-screen">
             {/* Back Button */}
             <button
                 onClick={() => router.back()}
-                className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors group"
+                className="flex items-center gap-2 text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors group"
             >
                 <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
                 <span className="text-sm">Back to Contractors</span>
             </button>
 
-            {/* ─── HERO HEADER ─── */}
-            <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-white/8">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-50 via-white to-purple-50 dark:from-cyan-950/40 dark:via-gray-900/60 dark:to-purple-950/30" />
-                <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 dark:bg-cyan-500/4 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-
-                <div className="relative px-6 py-6">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3 flex-wrap">
-                                <HardHat size={22} className="text-cyan-400" />
-                                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-                                    {contractor.name}
-                                </h1>
-                                <NameQualityFlag value={contractor.name_quality} />
+            {/* ─── HEADER CARD ─── */}
+            <div className="bg-white border border-[#DFE6EE] rounded-xl px-6 py-6">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="w-10 h-10 rounded-lg bg-[#00458B] flex items-center justify-center text-white shrink-0">
+                                <HardHat size={20} />
                             </div>
-                            {contractor.name_quality === 'questionable' && (
-                                <p className="text-xs text-amber-400/90">
-                                    This name may not be a real business name — it looks like it came from bad source data during ingestion, not a real contractor. Shown as recorded.
-                                </p>
-                            )}
-
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <IdentityStrengthBadge value={contractor.identity_strength} />
-                                <ContactabilityBadge value={contractor.contactability} />
-                                <LicenseReadinessBadge value={contractor.license_readiness} />
-                            </div>
-
-                            <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 text-sm flex-wrap">
-                                {(contractor.city || contractor.state_code) && (
-                                    <span className="flex items-center gap-1.5">
-                                        <MapPin size={13} className="text-gray-500" />
-                                        {[contractor.city, contractor.state_code].filter(Boolean).join(', ')}
-                                    </span>
-                                )}
-                                {contractor.contractor_types.length > 0 && (
-                                    <span className="flex items-center gap-1.5 flex-wrap">
-                                        {contractor.contractor_types.map(t => (
-                                            <span key={t} className="px-2 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/15 rounded text-[11px] capitalize">
-                                                {t}
-                                            </span>
-                                        ))}
-                                    </span>
-                                )}
-                            </div>
+                            <h1 className="text-xl sm:text-2xl font-bold text-[#0E2B5C] tracking-tight">
+                                {contractor.name}
+                            </h1>
+                            <NameQualityFlag value={contractor.name_quality} />
                         </div>
-
-                        <div className="text-right flex-shrink-0">
-                            <p className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 font-mono">
-                                {(summary?.total ?? contractor.permit_count).toLocaleString()}
+                        {contractor.name_quality === 'questionable' && (
+                            <p className="text-xs text-amber-700">
+                                This name may not be a real business name — it looks like it came from bad source data during ingestion, not a real contractor. Shown as recorded.
                             </p>
-                            <p className="text-[11px] text-gray-500 uppercase tracking-wider mt-1">Total Permits</p>
+                        )}
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <IdentityStrengthBadge value={contractor.identity_strength} />
+                            <ContactabilityBadge value={contractor.contactability} />
+                            <LicenseReadinessBadge value={contractor.license_readiness} />
                         </div>
+
+                        <div className="flex items-center gap-3 text-[#5B6B7D] text-sm flex-wrap">
+                            {(contractor.city || contractor.state_code) && (
+                                <span className="flex items-center gap-1.5">
+                                    <MapPin size={13} className="text-[#5B6B7D]" />
+                                    {[contractor.city, contractor.state_code].filter(Boolean).join(', ')}
+                                </span>
+                            )}
+                            {contractor.contractor_types.length > 0 && (
+                                <span className="flex items-center gap-1.5 flex-wrap">
+                                    {contractor.contractor_types.map(t => (
+                                        <span key={t} className="px-2 py-0.5 bg-[#F7F9FB] text-[#5B6B7D] border border-[#DFE6EE] rounded text-[11px] capitalize">
+                                            {t}
+                                        </span>
+                                    ))}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="text-right flex-shrink-0">
+                        <p className="text-3xl font-bold text-[#00458B] font-mono">
+                            {(summary?.total ?? contractor.permit_count).toLocaleString()}
+                        </p>
+                        <p className="text-[11px] text-[#5B6B7D] uppercase tracking-wider mt-1">Total Permits</p>
                     </div>
                 </div>
             </div>
@@ -336,8 +333,8 @@ export default function ContractorDetailPage() {
 
             {/* Identity + Contact */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-black/2 dark:bg-white/3 border border-gray-200 dark:border-white/6 rounded-xl p-4 space-y-1">
-                    <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
+                <div className="bg-white border border-[#DFE6EE] rounded-xl p-4 space-y-1">
+                    <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
                         <Shield size={13} /> Identity
                     </h3>
                     <DetailRow icon={Hash} label="License #" value={contractor.license_number} mono />
@@ -348,21 +345,21 @@ export default function ContractorDetailPage() {
                     {/* License Enrichment Readiness — non-interactive status card, not a
                         button. Registry lookups are a later phase; this only shows what's
                         already known. */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/6">
-                        <p className="text-[11px] text-gray-500 uppercase tracking-wider font-medium mb-2">
+                    <div className="mt-3 pt-3 border-t border-[#DFE6EE]">
+                        <p className="text-[11px] text-[#5B6B7D] uppercase tracking-wider font-medium mb-2">
                             License Enrichment Readiness
                         </p>
                         <div className="flex items-center gap-2 mb-1.5">
                             <LicenseReadinessBadge value={contractor.license_readiness} />
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                        <p className="text-xs text-[#5B6B7D] leading-relaxed">
                             {READINESS_COPY[contractor.license_readiness]}
                         </p>
                     </div>
                 </div>
 
-                <div className="bg-black/2 dark:bg-white/3 border border-gray-200 dark:border-white/6 rounded-xl p-4 space-y-1">
-                    <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
+                <div className="bg-white border border-[#DFE6EE] rounded-xl p-4 space-y-1">
+                    <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
                         <Mail size={13} /> Contact Information
                     </h3>
                     <DetailRow icon={Mail} label="Email" value={contractor.email} href={contractor.email ? `mailto:${contractor.email}` : undefined} />
@@ -372,7 +369,7 @@ export default function ContractorDetailPage() {
                     {/* Terminology discipline: these fields are only ever shown as
                         "present" — never "verified". Verification would require an
                         external lookup, which this phase deliberately does not do. */}
-                    <p className="text-[11px] text-gray-500 mt-3 pt-3 border-t border-gray-200 dark:border-white/6 leading-relaxed">
+                    <p className="text-[11px] text-[#5B6B7D] mt-3 pt-3 border-t border-[#DFE6EE] leading-relaxed">
                         Values shown above are as recorded from permit data — presence only,
                         not independently verified.
                     </p>
@@ -380,31 +377,31 @@ export default function ContractorDetailPage() {
             </div>
 
             {/* Data Quality */}
-            <div className="bg-black/2 dark:bg-white/3 border border-gray-200 dark:border-white/6 rounded-xl p-4">
-                <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Data Quality</h3>
+            <div className="bg-white border border-[#DFE6EE] rounded-xl p-4">
+                <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-3">Data Quality</h3>
                 {missingFields.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">All identity and contact fields are present.</p>
+                    <p className="text-sm text-[#5B6B7D]">All identity and contact fields are present.</p>
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {missingFields.map(f => (
-                            <span key={f.label} className="px-2 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/15 rounded text-[11px]">
+                            <span key={f.label} className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[11px]">
                                 Missing: {f.label}
                             </span>
                         ))}
                     </div>
                 )}
                 {conflicts && Object.keys(conflicts).length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/6">
-                        <p className="text-[11px] text-gray-500 uppercase tracking-wider font-medium mb-2">
+                    <div className="mt-3 pt-3 border-t border-[#DFE6EE]">
+                        <p className="text-[11px] text-[#5B6B7D] uppercase tracking-wider font-medium mb-2">
                             Recorded Contact Conflicts
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
+                        <p className="text-xs text-[#5B6B7D] mb-2 leading-relaxed">
                             A different value was seen for these fields during ingestion but not applied,
                             since a value already existed.
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {Object.entries(conflicts).map(([field, value]) => (
-                                <span key={field} className="px-2 py-1 bg-gray-500/10 text-gray-400 border border-gray-500/15 rounded text-[11px] font-mono">
+                                <span key={field} className="px-2 py-1 bg-gray-100 text-[#5B6B7D] border border-[#DFE6EE] rounded text-[11px] font-mono">
                                     {field}: {String(value)}
                                 </span>
                             ))}
@@ -412,11 +409,11 @@ export default function ContractorDetailPage() {
                     </div>
                 )}
                 {similarRecords.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/6">
-                        <p className="text-[11px] text-gray-500 uppercase tracking-wider font-medium mb-2">
+                    <div className="mt-3 pt-3 border-t border-[#DFE6EE]">
+                        <p className="text-[11px] text-[#5B6B7D] uppercase tracking-wider font-medium mb-2">
                             Possible Similar Records
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
+                        <p className="text-xs text-[#5B6B7D] mb-2 leading-relaxed">
                             These contractors have a matching normalized name plus at least one other
                             matching field (phone, address, email, license, or city/state) — not
                             necessarily duplicates. No records are merged automatically.
@@ -426,16 +423,16 @@ export default function ContractorDetailPage() {
                                 <Link
                                     key={m.id}
                                     href={`/dashboard/contractors/${m.id}`}
-                                    className="flex items-center justify-between gap-3 px-3 py-2 bg-black/2 dark:bg-white/2 hover:bg-black/4 dark:hover:bg-white/4 rounded-lg transition-colors"
+                                    className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F7F9FB] hover:bg-[#DFE6EE] rounded-lg transition-colors"
                                 >
-                                    <span className="text-sm text-cyan-400 hover:text-cyan-300 truncate">{m.name}</span>
+                                    <span className="text-sm text-[#00458B] hover:text-[#045CB4] truncate">{m.name}</span>
                                     <span className="flex items-center gap-1.5 flex-shrink-0">
                                         {m.matched_signals.map(sig => (
-                                            <span key={sig} className="px-1.5 py-0.5 bg-gray-500/10 text-gray-400 border border-gray-500/15 rounded text-[10px] uppercase tracking-wide">
+                                            <span key={sig} className="px-1.5 py-0.5 bg-gray-100 text-[#5B6B7D] border border-[#DFE6EE] rounded text-[10px] uppercase tracking-wide">
                                                 {sig.replace('_', ' + ')}
                                             </span>
                                         ))}
-                                        <span className="text-[11px] text-gray-500 font-mono">{m.permit_count} permits</span>
+                                        <span className="text-[11px] text-[#5B6B7D] font-mono">{m.permit_count} permits</span>
                                     </span>
                                 </Link>
                             ))}
@@ -445,24 +442,24 @@ export default function ContractorDetailPage() {
             </div>
 
             {/* Permit History */}
-            <div className="bg-black/2 dark:bg-white/3 border border-gray-200 dark:border-white/6 rounded-xl p-4">
-                <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Permit History</h3>
+            <div className="bg-white border border-[#DFE6EE] rounded-xl p-4">
+                <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-3">Permit History</h3>
 
                 {permitsError && (
-                    <p className="text-sm text-red-400 mb-3">{permitsError}</p>
+                    <p className="text-sm text-red-600 mb-3">{permitsError}</p>
                 )}
 
                 {permitsLoading ? (
                     <div className="animate-pulse space-y-2">
-                        {[1, 2, 3].map(i => <div key={i} className="h-10 bg-black/2 dark:bg-white/3 rounded-lg" />)}
+                        {[1, 2, 3].map(i => <div key={i} className="h-10 bg-[#F7F9FB] rounded-lg" />)}
                     </div>
                 ) : permits.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No permits on file for this contractor.</p>
+                    <p className="text-sm text-[#5B6B7D]">No permits on file for this contractor.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="text-left text-[10px] uppercase tracking-widest text-gray-500 border-b border-gray-200 dark:border-white/6">
+                                <tr className="text-left text-[10px] uppercase tracking-widest text-[#5B6B7D] border-b border-[#DFE6EE]">
                                     <th className="py-2 pr-3 font-medium">Permit #</th>
                                     <th className="py-2 pr-3 font-medium">Type</th>
                                     <th className="py-2 pr-3 font-medium">Status</th>
@@ -477,15 +474,15 @@ export default function ContractorDetailPage() {
                                     <tr
                                         key={p.id}
                                         onClick={() => router.push(`/dashboard/permits/${p.id}`)}
-                                        className="border-b border-gray-100 dark:border-white/4 hover:bg-black/2 dark:hover:bg-white/3 cursor-pointer transition-colors"
+                                        className="border-b border-[#DFE6EE] hover:bg-[#F7F9FB] cursor-pointer transition-colors"
                                     >
-                                        <td className="py-2 pr-3 font-mono text-xs text-gray-700 dark:text-gray-200">{p.permit_number}</td>
-                                        <td className="py-2 pr-3 text-gray-700 dark:text-gray-300">{p.permit_type}</td>
-                                        <td className="py-2 pr-3 text-gray-500 dark:text-gray-400">{p.status}</td>
-                                        <td className="py-2 pr-3 text-gray-500 dark:text-gray-400">{p.city}{p.state_code ? `, ${p.state_code}` : ''}</td>
-                                        <td className="py-2 pr-3 font-mono text-xs text-gray-500 dark:text-gray-400">{formatDate(p.issue_date || p.application_date)}</td>
-                                        <td className="py-2 pr-3 font-mono text-xs text-right text-gray-700 dark:text-gray-200">{formatCurrency(p.estimated_cost)}</td>
-                                        <td className="py-2 pl-3 text-gray-500">
+                                        <td className="py-2 pr-3 font-mono text-xs text-[#0E2B5C]">{p.permit_number}</td>
+                                        <td className="py-2 pr-3 text-[#0E2B5C]">{p.permit_type}</td>
+                                        <td className="py-2 pr-3 text-[#5B6B7D]">{p.status}</td>
+                                        <td className="py-2 pr-3 text-[#5B6B7D]">{p.city}{p.state_code ? `, ${p.state_code}` : ''}</td>
+                                        <td className="py-2 pr-3 font-mono text-xs text-[#5B6B7D]">{formatDate(p.issue_date || p.application_date)}</td>
+                                        <td className="py-2 pr-3 font-mono text-xs text-right text-[#0E2B5C]">{formatCurrency(p.estimated_cost)}</td>
+                                        <td className="py-2 pl-3 text-[#5B6B7D]">
                                             <ExternalLink size={12} />
                                         </td>
                                     </tr>
