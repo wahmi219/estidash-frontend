@@ -25,6 +25,8 @@ const settingsItems = [
         gradient: 'from-cyan-500/20 to-purple-500/20',
         iconColor: 'text-cyan-400',
         minRole: 'super_admin' as const,
+        // MVP: hidden from settings grid, route stays functional
+        hidden: true,
     },
     {
         icon: Monitor,
@@ -43,6 +45,8 @@ const settingsItems = [
         gradient: 'from-orange-500/20 to-red-500/20',
         iconColor: 'text-orange-400',
         minRole: 'super_admin' as const,
+        // MVP: hidden from settings grid, route stays functional
+        hidden: true,
     },
     {
         icon: Database,
@@ -85,7 +89,7 @@ const settingsItems = [
 export default function SettingsPage() {
     const { user } = useSelector((s: RootState) => s.auth);
     const userRole = user?.role ?? 'viewer';
-    const visibleItems = settingsItems.filter(item => hasRole(userRole, item.minRole));
+    const visibleItems = settingsItems.filter(item => !item.hidden && hasRole(userRole, item.minRole));
 
     return (
         <div className="p-6 lg:p-8">

@@ -371,13 +371,6 @@ export default function DashboardPage() {
                             Tip: Click refresh on individual cards for targeted updates, or use &quot;Refresh All&quot; for a complete intelligence report.
                         </span>
                     </div>
-                    <a
-                        href="/dashboard/chat"
-                        className="btn-secondary text-sm flex items-center gap-2"
-                    >
-                        <Sparkles size={16} />
-                        Ask AI Agent
-                    </a>
                 </div>
             </motion.div>
         </div>
