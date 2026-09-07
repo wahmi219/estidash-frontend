@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, usePathname } from 'next/navigation';
 import type { RootState, AppDispatch } from '@/store/store';
-import { hasRole, PAGE_MIN_ROLES } from '@/lib/roles';
+import { hasRole, resolveMinRole } from '@/lib/roles';
 import { authService } from '@/services/authService';
 import { setCredentials, logout } from '@/store/slices/authSlice';
 
@@ -38,15 +38,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Route-level role guard — runs whenever path or auth state changes.
-    useEffect(() => {
-        if (!isAuthenticated || !user) return;
+    // Route-level role guard. minRole resolves via the longest matching path
+    // prefix (see resolveMinRole) so nested/dynamic routes such as
+    // /dashboard/contractors/[id] inherit their parent's requirement
+    // (/dashboard/contractors) without a separate PAGE_MIN_ROLES entry.
+    // isAuthorized is computed synchronously from already-loaded redux state
+    // (no async call), so the very first render for a new pathname already
+    // reflects the correct access decision -- restricted content never paints
+    // even for one frame before the redirect below fires.
+    const minRole = resolveMinRole(pathname);
+    const isAuthorized = !minRole || (isAuthenticated && !!user && hasRole(user.role, minRole));
 
-        const minRole = PAGE_MIN_ROLES[pathname];
-        if (minRole && !hasRole(user.role, minRole)) {
+    // Side-effect: perform the actual redirect once auth/role state is known.
+    useEffect(() => {
+        if (!ready || !isAuthenticated || !user) return;
+        if (!isAuthorized) {
             router.replace('/dashboard');
         }
-    }, [isAuthenticated, pathname, user, router]);
+    }, [ready, isAuthenticated, user, isAuthorized, router]);
 
     // Refresh access token in background before it expires (JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30).
     useEffect(() => {
@@ -67,7 +76,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return () => clearInterval(id);
     }, [isAuthenticated, accessToken, dispatch, router]);
 
-    if (!ready) {
+    // Withhold children until auth bootstrap AND the current route's role
+    // check both resolve in the user's favor. An insufficient role shows this
+    // same neutral placeholder instead of the restricted page while the
+    // redirect above runs -- never the restricted content itself.
+    if (!ready || !isAuthorized) {
         return (
             <div className="min-h-screen bg-gray-950 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">

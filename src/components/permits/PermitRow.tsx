@@ -237,6 +237,11 @@ const PermitRow = React.forwardRef<HTMLTableRowElement, PermitRowProps>(function
     const statusClass = statusColors[permit.status] || GRAY;
     const contractorName = permit.contractor_name || null;
     const showSelection = onToggleSelect !== undefined;
+    // Mirrors QualificationCell's rule exactly: Qualified = !is_excluded &&
+    // score_bucket set && score_bucket != 'no_send'. Only an active qualified
+    // permit needs contractor verification -- an Invalid/Excluded or
+    // not-yet-scored permit is never worked, so it should never show this.
+    const isQualified = !permit.is_excluded && !!permit.score_bucket && permit.score_bucket !== 'no_send';
 
     const [generatingCost, setGeneratingCost] = useState(false);
     const [generatedCost, setGeneratedCost] = useState<{ midpoint: number; confidence: string } | null>(null);
@@ -359,8 +364,11 @@ const PermitRow = React.forwardRef<HTMLTableRowElement, PermitRowProps>(function
                         </span>
                     )}
                 </div>
-                {/* Unlinked — whether or not a name is known — always needs verification. */}
-                {!permit.contractor_id && (
+                {/* Unlinked on an active QUALIFIED permit — whether or not a name is
+                    known — always needs verification. Invalid/Excluded and
+                    not-yet-scored permits are never in the active workflow, so an
+                    unlinked contractor there is not actionable and must not show this. */}
+                {isQualified && !permit.contractor_id && (
                     <div className="text-xs text-amber-700 font-medium ml-5.5 mt-0.5">
                         Verification Needed
                     </div>

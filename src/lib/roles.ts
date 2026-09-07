@@ -37,3 +37,25 @@ export const PAGE_MIN_ROLES: Record<string, Role> = {
     "/dashboard/settings/agents": "super_admin",
     "/dashboard/warmup": "admin",
 };
+
+// Resolves the minimum role for a pathname, falling back from an exact
+// PAGE_MIN_ROLES match to the longest matching path-segment prefix. This lets
+// a dynamic/nested route (e.g. /dashboard/contractors/[id]) inherit its
+// parent's requirement (/dashboard/contractors) without a separate entry,
+// while an exact entry (e.g. /dashboard/settings/users) still wins over any
+// shorter parent gate. Matches whole path segments only, so
+// /dashboard/permitsxyz can never match /dashboard/permits.
+export function resolveMinRole(pathname: string): Role | undefined {
+    if (PAGE_MIN_ROLES[pathname]) return PAGE_MIN_ROLES[pathname];
+
+    // Stop above i=1 so this never falls back to the bare top-level
+    // "/dashboard" entry as a catch-all default for every unrelated nested
+    // route -- only an explicit, more-specific parent entry (two or more
+    // segments) can be inherited from.
+    const segments = pathname.split('/').filter(Boolean);
+    for (let i = segments.length - 1; i > 1; i--) {
+        const prefix = '/' + segments.slice(0, i).join('/');
+        if (PAGE_MIN_ROLES[prefix]) return PAGE_MIN_ROLES[prefix];
+    }
+    return undefined;
+}
