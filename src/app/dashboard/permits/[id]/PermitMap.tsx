@@ -31,7 +31,7 @@ export default function PermitMap({
     permitNumber,
 }: PermitMapProps) {
     return (
-        <div className="rounded-xl overflow-hidden border border-white/[0.08]" style={{ height: '300px' }}>
+        <div className="rounded-lg overflow-hidden border border-[#DFE6EE]" style={{ height: '300px' }}>
             <MapContainer
                 center={[latitude, longitude]}
                 zoom={15}

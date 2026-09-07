@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
     PieChart, Pie, Cell, ResponsiveContainer,
     BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -10,7 +10,6 @@ import {
 import {
     Brain,
     ChevronDown,
-    ChevronUp,
     Target,
     Clock,
     Users,
@@ -20,13 +19,10 @@ import {
     Shield,
     DollarSign,
     RefreshCw,
-    Loader2,
     Zap,
-    Eye,
     Activity,
     CheckCircle2,
     XCircle,
-    ArrowUpRight,
 } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { PermitRecord } from '@/types';
@@ -83,15 +79,15 @@ interface PermitAnalysisData {
 }
 
 // =============================================================================
-// Color / style helpers
+// Color / style helpers — Estimation Hub light theme, no neon/glow
 // =============================================================================
 
-const SCORE_COLORS: Record<string, { fill: string; text: string; bg: string; border: string; glow: string; gradient: string }> = {
-    hot:    { fill: '#ef4444', text: 'text-red-400',    bg: 'bg-red-500/10',    border: 'border-red-500/30',    glow: 'shadow-red-500/25',    gradient: 'from-red-600 to-rose-500' },
-    high:   { fill: '#f97316', text: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30', glow: 'shadow-orange-500/25', gradient: 'from-orange-600 to-amber-500' },
-    strong: { fill: '#f59e0b', text: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  glow: 'shadow-amber-500/25',  gradient: 'from-amber-600 to-yellow-500' },
-    med:    { fill: '#3b82f6', text: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   glow: 'shadow-blue-500/25',   gradient: 'from-blue-600 to-cyan-500' },
-    low:    { fill: '#6b7280', text: 'text-gray-400',   bg: 'bg-gray-500/10',   border: 'border-gray-500/30',   glow: 'shadow-gray-500/25',   gradient: 'from-gray-600 to-gray-500' },
+const SCORE_COLORS: Record<string, { fill: string; text: string; bg: string; border: string }> = {
+    hot:    { fill: '#dc2626', text: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-200' },
+    high:   { fill: '#ea580c', text: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200' },
+    strong: { fill: '#d97706', text: 'text-amber-700',  bg: 'bg-amber-50',  border: 'border-amber-200' },
+    med:    { fill: '#00458B', text: 'text-[#00458B]',  bg: 'bg-blue-50',   border: 'border-blue-200' },
+    low:    { fill: '#9ca3af', text: 'text-[#5B6B7D]',  bg: 'bg-gray-100',  border: 'border-gray-200' },
 };
 
 function getScoreTier(v: number) {
@@ -104,20 +100,20 @@ function getScoreTier(v: number) {
 
 function getDecisionColor(d: string) {
     const u = d.toUpperCase();
-    if (u.includes('EMAIL NOW'))      return 'text-red-400';
-    if (u.includes('HIGH PRIORITY'))  return 'text-orange-400';
-    if (u.includes('STRONG'))         return 'text-amber-400';
-    if (u.includes('SELECTIVE'))      return 'text-blue-400';
-    if (u.includes('RESEARCH'))       return 'text-purple-400';
-    return 'text-gray-400';
+    if (u.includes('EMAIL NOW'))      return 'text-red-700';
+    if (u.includes('HIGH PRIORITY'))  return 'text-orange-700';
+    if (u.includes('STRONG'))         return 'text-amber-700';
+    if (u.includes('SELECTIVE'))      return 'text-blue-700';
+    if (u.includes('RESEARCH'))       return 'text-[#00458B]';
+    return 'text-[#5B6B7D]';
 }
 
 function confidenceStyle(c: string | null) {
-    if (!c) return { bg: 'bg-gray-500/10', text: 'text-gray-400' };
+    if (!c) return { bg: 'bg-gray-100', text: 'text-[#5B6B7D]' };
     const l = c.toLowerCase();
-    if (l === 'high')   return { bg: 'bg-emerald-500/10', text: 'text-emerald-400' };
-    if (l === 'medium') return { bg: 'bg-amber-500/10', text: 'text-amber-400' };
-    return { bg: 'bg-red-500/10', text: 'text-red-400' };
+    if (l === 'high')   return { bg: 'bg-emerald-50', text: 'text-emerald-700' };
+    if (l === 'medium') return { bg: 'bg-amber-50', text: 'text-amber-700' };
+    return { bg: 'bg-red-50', text: 'text-red-700' };
 }
 
 function formatCurrency(v: number | null | undefined) {
@@ -134,12 +130,12 @@ function ScoreGauge({ value, max, tier }: { value: number; max: number; tier: ty
     const pct = Math.round((value / max) * 100);
     const data = [{ name: 'score', value: pct, fill: tier.fill }];
     return (
-        <div className="relative w-32 h-32">
+        <div className="relative w-28 h-28">
             <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart
                     cx="50%" cy="50%"
                     innerRadius="78%" outerRadius="100%"
-                    barSize={10}
+                    barSize={9}
                     data={data}
                     startAngle={225}
                     endAngle={-45}
@@ -147,20 +143,15 @@ function ScoreGauge({ value, max, tier }: { value: number; max: number; tier: ty
                     <RadialBar
                         dataKey="value"
                         cornerRadius={5}
-                        background={{ fill: 'rgba(255,255,255,0.04)' }}
+                        background={{ fill: '#F7F9FB' }}
                     />
                 </RadialBarChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <motion.span
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3, type: 'spring' }}
-                    className={`text-3xl font-black ${tier.text}`}
-                >
+                <span className={`text-2xl font-bold font-mono ${tier.text}`}>
                     {value}
-                </motion.span>
-                <span className="text-[10px] text-gray-500 -mt-0.5">/ {max}</span>
+                </span>
+                <span className="text-[10px] text-[#5B6B7D] -mt-0.5">/ {max}</span>
             </div>
         </div>
     );
@@ -170,69 +161,65 @@ function ScoreGauge({ value, max, tier }: { value: number; max: number; tier: ty
 function ConfidenceDonut({ confidence }: { confidence: string }) {
     const c = confidence.toLowerCase();
     const val = c === 'high' ? 90 : c === 'medium' ? 60 : 30;
-    const color = c === 'high' ? '#10b981' : c === 'medium' ? '#f59e0b' : '#ef4444';
+    const color = c === 'high' ? '#059669' : c === 'medium' ? '#d97706' : '#dc2626';
     const data = [
         { name: 'filled', value: val },
         { name: 'empty', value: 100 - val },
     ];
     return (
-        <div className="relative w-16 h-16">
+        <div className="relative w-14 h-14">
             <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                    <Pie data={data} cx="50%" cy="50%" innerRadius={20} outerRadius={28} dataKey="value" strokeWidth={0} startAngle={90} endAngle={-270}>
+                    <Pie data={data} cx="50%" cy="50%" innerRadius={18} outerRadius={25} dataKey="value" strokeWidth={0} startAngle={90} endAngle={-270}>
                         <Cell fill={color} />
-                        <Cell fill="rgba(255,255,255,0.04)" />
+                        <Cell fill="#F7F9FB" />
                     </Pie>
                 </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 capitalize">{confidence}</span>
+                <span className="text-[9px] font-bold text-[#0E2B5C] capitalize">{confidence}</span>
             </div>
         </div>
     );
 }
 
 /** Horizontal signal strength bars */
-function SignalBars({ items, color }: { items: string[]; color: string }) {
-    if (!items || items.length === 0) return <p className="text-xs text-gray-600 italic pl-1">None detected</p>;
+function SignalBars({ items, color, reduceMotion }: { items: string[]; color: string; reduceMotion: boolean }) {
+    if (!items || items.length === 0) return <p className="text-xs text-[#5B6B7D] italic pl-1">None detected</p>;
     return (
         <div className="space-y-2">
             {items.map((item, i) => (
                 <motion.div
                     key={i}
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: reduceMotion ? 0 : -12 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.08 }}
+                    transition={{ delay: reduceMotion ? 0 : i * 0.06, duration: reduceMotion ? 0 : undefined }}
                     className="flex items-center gap-3"
                 >
-                    <div className="h-1.5 rounded-full flex-shrink-0" style={{ width: `${Math.max(20, 100 - i * 15)}%`, backgroundColor: color, opacity: 1 - i * 0.15 }} />
-                    <span className="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">{item}</span>
+                    <div className="h-1.5 rounded-full flex-shrink-0" style={{ width: `${Math.max(20, 100 - i * 15)}%`, backgroundColor: color, opacity: 1 - i * 0.12 }} />
+                    <span className="text-xs text-[#0E2B5C] whitespace-nowrap">{item}</span>
                 </motion.div>
             ))}
         </div>
     );
 }
 
-/** Animated metric card */
+/** Metric card */
 function MetricTile({
-    icon: Icon, label, value, sub, color = 'text-cyan-400',
+    icon: Icon, label, value, sub, color = 'text-[#00458B]',
 }: {
     icon: React.ComponentType<{ size?: number; className?: string }>;
     label: string; value: string; sub?: string; color?: string;
 }) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-black/2 dark:bg-white/3 hover:bg-black/4 dark:hover:bg-white/5 border border-gray-200 dark:border-white/6 rounded-xl transition-all duration-300"
-        >
-            <div className="flex items-center gap-2 mb-2">
-                <Icon size={14} className={color} />
-                <span className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</span>
+        <div className="p-3.5 bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg">
+            <div className="flex items-center gap-2 mb-1.5">
+                <Icon size={13} className={color} />
+                <span className="text-[10px] text-[#5B6B7D] uppercase tracking-wider">{label}</span>
             </div>
-            <p className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{value}</p>
-            {sub && <p className="text-[10px] text-gray-500 mt-0.5">{sub}</p>}
-        </motion.div>
+            <p className="text-base font-semibold text-[#0E2B5C] leading-tight">{value}</p>
+            {sub && <p className="text-[10px] text-[#5B6B7D] mt-0.5">{sub}</p>}
+        </div>
     );
 }
 
@@ -249,23 +236,20 @@ function PainStagePipeline({ current }: { current: string }) {
                 const isPast = i < activeIdx;
                 return (
                     <React.Fragment key={stage}>
-                        <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: i * 0.06 }}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap transition-all
+                        <div
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-medium whitespace-nowrap
                                 ${isActive
-                                    ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40 shadow-lg shadow-violet-500/10'
+                                    ? 'bg-[#00458B]/10 text-[#00458B] border border-[#00458B]/30'
                                     : isPast
-                                        ? 'bg-black/3 dark:bg-white/4 text-gray-500 border border-gray-200 dark:border-white/6'
-                                        : 'bg-black/2 dark:bg-white/2 text-gray-400 dark:text-gray-600 border border-gray-100 dark:border-white/4'
+                                        ? 'bg-[#F7F9FB] text-[#5B6B7D] border border-[#DFE6EE]'
+                                        : 'bg-white text-gray-400 border border-[#DFE6EE]'
                                 }`}
                         >
-                            {isActive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-400 mr-1 animate-pulse" />}
+                            {isActive && <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00458B] mr-1" />}
                             {stage}
-                        </motion.div>
+                        </div>
                         {i < stages.length - 1 && (
-                            <div className={`w-3 h-px flex-shrink-0 ${isPast ? 'bg-violet-500/30' : 'bg-gray-200 dark:bg-white/6'}`} />
+                            <div className={`w-3 h-px flex-shrink-0 ${isPast ? 'bg-[#00458B]/30' : 'bg-[#DFE6EE]'}`} />
                         )}
                     </React.Fragment>
                 );
@@ -277,29 +261,27 @@ function PainStagePipeline({ current }: { current: string }) {
 /** Reachability tier visual */
 function ReachabilityGauge({ tier, explanation }: { tier: string; explanation: string }) {
     const tierNum = tier.toLowerCase().includes('1') ? 1 : tier.toLowerCase().includes('2') ? 2 : 3;
-    const colors = ['#10b981', '#f59e0b', '#ef4444'];
+    const colors = ['#059669', '#d97706', '#dc2626'];
     const labels = ['Direct Buyer', 'Researchable', 'Weak'];
 
     return (
         <div className="flex items-center gap-4">
             <div className="flex gap-1">
                 {[1, 2, 3].map(t => (
-                    <motion.div
+                    <div
                         key={t}
-                        initial={{ scaleY: 0 }}
-                        animate={{ scaleY: 1 }}
-                        transition={{ delay: t * 0.1 }}
-                        className="w-3 rounded-sm origin-bottom"
+                        className="w-3 rounded-sm"
                         style={{
                             height: `${16 + (4 - t) * 8}px`,
-                            backgroundColor: t <= tierNum ? colors[tierNum - 1] : 'rgba(255,255,255,0.06)',
+                            backgroundColor: t <= tierNum ? colors[tierNum - 1] : '#F7F9FB',
+                            border: t <= tierNum ? 'none' : '1px solid #DFE6EE',
                         }}
                     />
                 ))}
             </div>
             <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">{tier} <span className="text-xs text-gray-500 font-normal">({labels[tierNum - 1]})</span></p>
-                <p className="text-[11px] text-gray-500">{explanation}</p>
+                <p className="text-sm font-semibold text-[#0E2B5C]">{tier} <span className="text-xs text-[#5B6B7D] font-normal">({labels[tierNum - 1]})</span></p>
+                <p className="text-[11px] text-[#5B6B7D]">{explanation}</p>
             </div>
         </div>
     );
@@ -314,22 +296,22 @@ function RedFlagsChart({ flags }: { flags: string[] }) {
         <div className="h-[120px]">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} layout="vertical" margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F7F9FB" horizontal={false} />
                     <XAxis type="number" hide />
-                    <YAxis type="category" dataKey="name" width={140} tick={{ fill: '#9ca3af', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" width={140} tick={{ fill: '#5B6B7D', fontSize: 10 }} axisLine={false} tickLine={false} />
                     <Tooltip
                         content={({ active, payload }) => {
                             if (!active || !payload?.length) return null;
                             return (
-                                <div className="bg-gray-900 border border-gray-700 px-3 py-2 rounded-lg shadow-xl">
-                                    <p className="text-xs text-red-400">{payload[0]?.payload?.fullName}</p>
+                                <div className="bg-white border border-[#DFE6EE] px-3 py-2 rounded-lg shadow-sm">
+                                    <p className="text-xs text-red-700">{payload[0]?.payload?.fullName}</p>
                                 </div>
                             );
                         }}
                     />
                     <Bar dataKey="severity" radius={[0, 4, 4, 0]}>
                         {data.map((_, i) => (
-                            <Cell key={i} fill={`rgba(239, 68, 68, ${0.8 - i * 0.15})`} />
+                            <Cell key={i} fill={`rgba(220, 38, 38, ${0.85 - i * 0.15})`} />
                         ))}
                     </Bar>
                 </BarChart>
@@ -343,24 +325,24 @@ function RedFlagsChart({ flags }: { flags: string[] }) {
 // =============================================================================
 
 function Section({
-    title, icon: Icon, defaultOpen = false, count, children,
+    title, icon: Icon, defaultOpen = false, count, children, reduceMotion,
 }: {
     title: string; icon: React.ComponentType<{ size?: number; className?: string }>;
-    defaultOpen?: boolean; count?: number; children: React.ReactNode;
+    defaultOpen?: boolean; count?: number; children: React.ReactNode; reduceMotion: boolean;
 }) {
     const [open, setOpen] = useState(defaultOpen);
     return (
-        <div className="border-t border-gray-200 dark:border-white/6">
-            <button onClick={() => setOpen(!open)} className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-black/2 dark:hover:bg-white/2 transition-colors">
+        <div className="border-t border-[#DFE6EE]">
+            <button onClick={() => setOpen(!open)} className="w-full px-5 py-3 flex items-center justify-between hover:bg-[#F7F9FB] transition-colors">
                 <div className="flex items-center gap-2.5">
-                    <Icon size={15} className="text-gray-500" />
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{title}</span>
+                    <Icon size={15} className="text-[#5B6B7D]" />
+                    <span className="text-xs font-semibold text-[#5B6B7D] uppercase tracking-wider">{title}</span>
                     {count != null && count > 0 && (
-                        <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-gray-200 dark:bg-white/6 text-gray-500">{count}</span>
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-[#F7F9FB] border border-[#DFE6EE] text-[#5B6B7D]">{count}</span>
                     )}
                 </div>
-                <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                    <ChevronDown size={14} className="text-gray-500" />
+                <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: reduceMotion ? 0 : 0.2 }}>
+                    <ChevronDown size={14} className="text-[#5B6B7D]" />
                 </motion.div>
             </button>
             <AnimatePresence>
@@ -369,7 +351,7 @@ function Section({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.2 }}
                         className="overflow-hidden"
                     >
                         <div className="px-5 pb-5">{children}</div>
@@ -389,6 +371,7 @@ interface PermitAnalysisProps {
 }
 
 export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
+    const reduceMotion = !!useReducedMotion();
     const [analysis, setAnalysis] = useState<PermitAnalysisData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -500,18 +483,15 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
     // ── Loading ──
     if (loading) {
         return (
-            <div className="bg-black/2 dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden">
                 <Header />
-                <div className="flex flex-col items-center justify-center py-16 gap-4">
-                    <div className="relative">
-                        <div className="w-16 h-16 rounded-full border-2 border-violet-500/20 animate-ping absolute inset-0" />
-                        <div className="w-16 h-16 rounded-full bg-violet-500/10 border border-violet-500/30 flex items-center justify-center relative">
-                            <Brain size={24} className="text-violet-400 animate-pulse" />
-                        </div>
+                <div className="flex flex-col items-center justify-center py-14 gap-4">
+                    <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center">
+                        <Brain size={22} className="text-[#00458B]" />
                     </div>
                     <div className="text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Analyzing permit data...</p>
-                        <p className="text-[11px] text-gray-600 mt-1">Master Permit Intelligence Engine v3.3</p>
+                        <p className="text-sm text-[#0E2B5C] font-medium">Analyzing permit data...</p>
+                        <p className="text-[11px] text-[#5B6B7D] mt-1">Master Permit Intelligence Engine v3.3</p>
                     </div>
                 </div>
             </div>
@@ -521,14 +501,14 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
     // ── Error ──
     if (error) {
         return (
-            <div className="bg-black/2 dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden">
                 <Header />
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
-                    <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                        <AlertTriangle size={22} className="text-red-400" />
+                    <div className="w-14 h-14 rounded-full bg-red-50 border border-red-200 flex items-center justify-center">
+                        <AlertTriangle size={22} className="text-red-600" />
                     </div>
-                    <p className="text-sm text-gray-400 text-center max-w-sm">{error}</p>
-                    <button onClick={runAnalysis} className="flex items-center gap-2 px-4 py-2 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-violet-400 rounded-xl transition-colors text-sm font-medium">
+                    <p className="text-sm text-[#5B6B7D] text-center max-w-sm">{error}</p>
+                    <button onClick={runAnalysis} className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[#00458B] rounded-lg transition-colors text-sm font-medium">
                         <RefreshCw size={14} /> Retry Analysis
                     </button>
                 </div>
@@ -539,16 +519,16 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
     // ── Idle (not yet requested) ── on-demand to avoid an LLM call on every page view
     if (!analysis) {
         return (
-            <div className="bg-black/2 dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-2xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden">
                 <Header />
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
-                    <div className="w-14 h-14 rounded-full bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                        <Brain size={22} className="text-violet-400" />
+                    <div className="w-14 h-14 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center">
+                        <Brain size={22} className="text-[#00458B]" />
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-sm">
+                    <p className="text-sm text-[#5B6B7D] text-center max-w-sm">
                         Run the Master Permit Intelligence Engine to score this permit and generate outreach guidance.
                     </p>
-                    <button onClick={runAnalysis} className="flex items-center gap-2 px-4 py-2 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-violet-400 rounded-xl transition-colors text-sm font-medium">
+                    <button onClick={runAnalysis} className="flex items-center gap-2 px-4 py-2 bg-[#00458B] hover:bg-[#045CB4] text-white rounded-lg transition-colors text-sm font-medium">
                         <Brain size={14} /> Run AI Analysis
                     </button>
                 </div>
@@ -563,65 +543,61 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="bg-black/2 dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-2xl overflow-hidden"
+            transition={{ duration: reduceMotion ? 0 : 0.3 }}
+            className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden"
         >
             {/* ── Header ── */}
-            <div className="px-5 py-3.5 border-b border-gray-200 dark:border-white/6 flex items-center justify-between">
+            <div className="px-5 py-3 border-b border-[#DFE6EE] flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                    <div className="w-8 h-8 rounded-lg bg-[#00458B] flex items-center justify-center">
                         <Brain size={16} className="text-white" />
                     </div>
                     <div>
-                        <h2 className="text-sm font-bold text-gray-700 dark:text-gray-200">AI Permit Analysis</h2>
-                        <p className="text-[10px] text-gray-600">Intelligence Engine v3.3</p>
+                        <h2 className="text-sm font-bold text-[#0E2B5C]">AI Permit Analysis</h2>
+                        <p className="text-[10px] text-[#5B6B7D]">Intelligence Engine v3.3</p>
                     </div>
                 </div>
                 <button
                     onClick={runAnalysis}
                     disabled={loading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-black/3 dark:bg-white/4 hover:bg-black/5 dark:hover:bg-white/8 border border-gray-200 dark:border-white/8 rounded-xl transition-all text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg transition-all text-[11px] text-[#5B6B7D] hover:text-[#0E2B5C]"
                 >
                     <RefreshCw size={12} /> Re-analyze
                 </button>
             </div>
 
             {/* ── Score Hero ── */}
-            <div className="px-5 py-6">
+            <div className="px-5 py-5">
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                     {/* Gauge */}
                     <ScoreGauge value={analysis.score.value} max={analysis.score.max} tier={tier} />
 
                     {/* Decision + summary */}
                     <div className="flex-1 text-center sm:text-left">
-                        <motion.div
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 }}
-                        >
+                        <div>
                             <div className="flex items-center gap-3 justify-center sm:justify-start mb-2">
-                                <span className={`text-lg font-black uppercase tracking-wide ${decColor}`}>
+                                <span className={`text-lg font-bold uppercase tracking-wide ${decColor}`}>
                                     {analysis.score.decision}
                                 </span>
                                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${tier.bg} ${tier.text} border ${tier.border}`}>
                                     {analysis.score.rating}
                                 </span>
                             </div>
-                            <p className="text-xs text-gray-500 mb-1">{analysis.lead_type}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{analysis.analysis_summary}</p>
-                        </motion.div>
+                            <p className="text-xs text-[#5B6B7D] mb-1">{analysis.lead_type}</p>
+                            <p className="text-sm text-[#0E2B5C] leading-relaxed">{analysis.analysis_summary}</p>
+                        </div>
 
                         {/* Quick chips */}
                         <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold ${tier.bg} ${tier.text} border ${tier.border}`}>
                                 <Target size={10} /> {analysis.pain_stage}
                             </span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold ${confidenceStyle(analysis.buyer_confidence).bg} ${confidenceStyle(analysis.buyer_confidence).text} border border-gray-200 dark:border-white/8`}>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold ${confidenceStyle(analysis.buyer_confidence).bg} ${confidenceStyle(analysis.buyer_confidence).text} border border-[#DFE6EE]`}>
                                 <Users size={10} /> {analysis.reachability.tier}
                             </span>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-black/3 dark:bg-white/4 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-white/6`}>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-[#F7F9FB] text-[#5B6B7D] border border-[#DFE6EE]">
                                 <Mail size={10} /> {analysis.who_to_email}
                             </span>
                         </div>
@@ -630,65 +606,65 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
                     {/* Buyer confidence donut */}
                     <div className="hidden sm:block">
                         <ConfidenceDonut confidence={analysis.buyer_confidence} />
-                        <p className="text-[9px] text-gray-600 text-center mt-1">Buyer Conf.</p>
+                        <p className="text-[9px] text-[#5B6B7D] text-center mt-1">Buyer Conf.</p>
                     </div>
                 </div>
             </div>
 
             {/* ── Pain Stage Pipeline ── */}
             <div className="px-5 pb-4">
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-2">Pain Stage</p>
+                <p className="text-[10px] text-[#5B6B7D] uppercase tracking-wider mb-2">Pain Stage</p>
                 <PainStagePipeline current={analysis.pain_stage} />
             </div>
 
             {/* ── Key Insights Cards ── */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-5 pb-5">
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="p-4 bg-gradient-to-br from-amber-500/[0.06] to-transparent border border-amber-500/10 rounded-xl">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                        <Zap size={14} className="text-amber-400" />
-                        <span className="text-[10px] text-amber-400/70 uppercase tracking-wider font-semibold">Why Now</span>
+                        <Zap size={14} className="text-amber-600" />
+                        <span className="text-[10px] text-amber-700 uppercase tracking-wider font-semibold">Why Now</span>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{analysis.why_matters_now}</p>
-                </motion.div>
+                    <p className="text-sm text-[#0E2B5C] leading-relaxed">{analysis.why_matters_now}</p>
+                </div>
 
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="p-4 bg-gradient-to-br from-cyan-500/[0.06] to-transparent border border-cyan-500/10 rounded-xl">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                        <Mail size={14} className="text-cyan-400" />
-                        <span className="text-[10px] text-cyan-400/70 uppercase tracking-wider font-semibold">Outreach Angle</span>
+                        <Mail size={14} className="text-[#00458B]" />
+                        <span className="text-[10px] text-[#00458B] uppercase tracking-wider font-semibold">Outreach Angle</span>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed italic">{analysis.best_outreach_angle}</p>
-                </motion.div>
+                    <p className="text-sm text-[#0E2B5C] leading-relaxed italic">{analysis.best_outreach_angle}</p>
+                </div>
 
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="p-4 bg-gradient-to-br from-violet-500/[0.06] to-transparent border border-violet-500/10 rounded-xl">
+                <div className="p-4 bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                        <Shield size={14} className="text-violet-400" />
-                        <span className="text-[10px] text-violet-400/70 uppercase tracking-wider font-semibold">Final Verdict</span>
+                        <Shield size={14} className="text-[#0E2B5C]" />
+                        <span className="text-[10px] text-[#0E2B5C] uppercase tracking-wider font-semibold">Final Verdict</span>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed font-medium">{analysis.final_verdict}</p>
-                </motion.div>
+                    <p className="text-sm text-[#0E2B5C] leading-relaxed font-medium">{analysis.final_verdict}</p>
+                </div>
             </div>
 
             {/* ── Timing Metrics ── */}
-            <Section title="Timing & Reachability" icon={Clock} defaultOpen>
+            <Section title="Timing & Reachability" icon={Clock} defaultOpen reduceMotion={reduceMotion}>
                 <div className="space-y-4">
                     <div className="grid grid-cols-3 gap-3">
                         <MetricTile
                             icon={Clock}
                             label="Days Since Issued"
                             value={analysis.timing.days_since_issued != null ? String(analysis.timing.days_since_issued) : '—'}
-                            color="text-blue-400"
+                            color="text-blue-700"
                         />
                         <MetricTile
                             icon={Activity}
                             label="Last Movement"
                             value={analysis.timing.last_movement_days != null ? `${analysis.timing.last_movement_days}d` : '—'}
-                            color="text-emerald-400"
+                            color="text-emerald-700"
                         />
                         <MetricTile
                             icon={analysis.timing.amendment_active ? CheckCircle2 : XCircle}
                             label="Amendment Active"
                             value={analysis.timing.amendment_active ? 'Yes' : 'No'}
-                            color={analysis.timing.amendment_active ? 'text-amber-400' : 'text-gray-500'}
+                            color={analysis.timing.amendment_active ? 'text-amber-700' : 'text-[#5B6B7D]'}
                         />
                     </div>
                     <ReachabilityGauge tier={analysis.reachability.tier} explanation={analysis.reachability.explanation} />
@@ -696,59 +672,59 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
             </Section>
 
             {/* ── Key Signals & Triggers ── */}
-            <Section title="Key Signals & Reply Triggers" icon={TrendingUp} count={(analysis.key_signals?.length ?? 0) + (analysis.reply_triggers?.length ?? 0)}>
+            <Section title="Key Signals & Reply Triggers" icon={TrendingUp} count={(analysis.key_signals?.length ?? 0) + (analysis.reply_triggers?.length ?? 0)} reduceMotion={reduceMotion}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                        <p className="text-[10px] text-cyan-400/60 uppercase tracking-wider font-semibold mb-3">Key Signals</p>
-                        <SignalBars items={analysis.key_signals} color="#22d3ee" />
+                        <p className="text-[10px] text-[#00458B] uppercase tracking-wider font-semibold mb-3">Key Signals</p>
+                        <SignalBars items={analysis.key_signals} color="#00458B" reduceMotion={reduceMotion} />
                     </div>
                     <div>
-                        <p className="text-[10px] text-amber-400/60 uppercase tracking-wider font-semibold mb-3">Reply Triggers</p>
-                        <SignalBars items={analysis.reply_triggers} color="#fbbf24" />
+                        <p className="text-[10px] text-amber-700 uppercase tracking-wider font-semibold mb-3">Reply Triggers</p>
+                        <SignalBars items={analysis.reply_triggers} color="#d97706" reduceMotion={reduceMotion} />
                     </div>
                 </div>
                 {analysis.builder_repeat_signals.length > 0 && (
                     <div className="mt-4">
-                        <p className="text-[10px] text-emerald-400/60 uppercase tracking-wider font-semibold mb-3">Builder Repeat Signals</p>
-                        <SignalBars items={analysis.builder_repeat_signals} color="#34d399" />
+                        <p className="text-[10px] text-emerald-700 uppercase tracking-wider font-semibold mb-3">Builder Repeat Signals</p>
+                        <SignalBars items={analysis.builder_repeat_signals} color="#059669" reduceMotion={reduceMotion} />
                     </div>
                 )}
             </Section>
 
             {/* ── Key Players & Cost ── */}
-            <Section title="Key Players & Cost" icon={DollarSign} defaultOpen={!!(hasKeyPlayers || analysis.estimated_cost?.value != null)}>
+            <Section title="Key Players & Cost" icon={DollarSign} defaultOpen={!!(hasKeyPlayers || analysis.estimated_cost?.value != null)} reduceMotion={reduceMotion}>
                 <div className="space-y-4">
                     {analysis.estimated_cost?.value != null && (
-                        <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-emerald-500/[0.06] to-transparent border border-emerald-500/10 rounded-xl">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                                <DollarSign size={20} className="text-emerald-400" />
+                        <div className="flex items-center gap-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            <div className="w-11 h-11 rounded-lg bg-white border border-emerald-200 flex items-center justify-center">
+                                <DollarSign size={18} className="text-emerald-700" />
                             </div>
                             <div>
-                                <p className="text-xl font-bold text-white">{formatCurrency(analysis.estimated_cost.value)}</p>
+                                <p className="text-xl font-bold text-[#0E2B5C]">{formatCurrency(analysis.estimated_cost.value)}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     {analysis.estimated_cost.confidence && (
                                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${confidenceStyle(analysis.estimated_cost.confidence).bg} ${confidenceStyle(analysis.estimated_cost.confidence).text}`}>
                                             {analysis.estimated_cost.confidence}
                                         </span>
                                     )}
-                                    {analysis.estimated_cost.method && <span className="text-[10px] text-gray-500">{analysis.estimated_cost.method}</span>}
+                                    {analysis.estimated_cost.method && <span className="text-[10px] text-[#5B6B7D]">{analysis.estimated_cost.method}</span>}
                                 </div>
-                                {analysis.estimated_cost.note && <p className="text-[11px] text-gray-500 mt-1">{analysis.estimated_cost.note}</p>}
+                                {analysis.estimated_cost.note && <p className="text-[11px] text-[#5B6B7D] mt-1">{analysis.estimated_cost.note}</p>}
                             </div>
                         </div>
                     )}
 
                     {analysis.key_players?.general_contractor?.name && (
-                        <div className="flex items-center gap-3 p-3 bg-black/2 dark:bg-white/3 rounded-xl border border-gray-200 dark:border-white/6">
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                                <Users size={16} className="text-white" />
+                        <div className="flex items-center gap-3 p-3 bg-[#F7F9FB] rounded-lg border border-[#DFE6EE]">
+                            <div className="w-9 h-9 rounded-lg bg-white border border-[#DFE6EE] flex items-center justify-center">
+                                <Users size={15} className="text-[#00458B]" />
                             </div>
                             <div>
-                                <p className="text-[10px] text-gray-500 uppercase tracking-wider">General Contractor</p>
-                                <p className="text-sm text-white font-semibold">{analysis.key_players.general_contractor.name}</p>
+                                <p className="text-[10px] text-[#5B6B7D] uppercase tracking-wider">General Contractor</p>
+                                <p className="text-sm text-[#0E2B5C] font-semibold">{analysis.key_players.general_contractor.name}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     {analysis.key_players.general_contractor.contact_available && (
-                                        <span className="text-[10px] text-emerald-400 flex items-center gap-1"><CheckCircle2 size={9} /> Contact available</span>
+                                        <span className="text-[10px] text-emerald-700 flex items-center gap-1"><CheckCircle2 size={9} /> Contact available</span>
                                     )}
                                 </div>
                             </div>
@@ -757,14 +733,14 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
 
                     {analysis.key_players?.subcontractors && analysis.key_players.subcontractors.length > 0 && (
                         <div className="space-y-1.5">
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Subcontractors</p>
+                            <p className="text-[10px] text-[#5B6B7D] uppercase tracking-wider">Subcontractors</p>
                             {analysis.key_players.subcontractors.map((sub, i) => (
-                                <div key={i} className="flex items-center justify-between px-3 py-2 bg-black/2 dark:bg-white/2 rounded-lg border border-gray-100 dark:border-white/4">
+                                <div key={i} className="flex items-center justify-between px-3 py-2 bg-white rounded-lg border border-[#DFE6EE]">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] text-gray-500 font-medium">{sub.trade}</span>
-                                        <span className="text-xs text-gray-600 dark:text-gray-300">{sub.name}</span>
+                                        <span className="text-[10px] text-[#5B6B7D] font-medium">{sub.trade}</span>
+                                        <span className="text-xs text-[#0E2B5C]">{sub.name}</span>
                                     </div>
-                                    {sub.estimated_value && <span className="text-xs text-gray-400 font-mono">{formatCurrency(sub.estimated_value)}</span>}
+                                    {sub.estimated_value && <span className="text-xs text-[#5B6B7D] font-mono">{formatCurrency(sub.estimated_value)}</span>}
                                 </div>
                             ))}
                         </div>
@@ -774,22 +750,22 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
 
             {/* ── Red Flags & Anomalies ── */}
             {hasFlags && (
-                <Section title="Red Flags & Anomalies" icon={AlertTriangle} count={(analysis.red_flags?.length ?? 0) + (analysis.anomalies?.length ?? 0)}>
+                <Section title="Red Flags & Anomalies" icon={AlertTriangle} count={(analysis.red_flags?.length ?? 0) + (analysis.anomalies?.length ?? 0)} reduceMotion={reduceMotion}>
                     <div className="space-y-4">
                         {analysis.red_flags.length > 0 && (
                             <RedFlagsChart flags={analysis.red_flags} />
                         )}
                         {analysis.anomalies.length > 0 && (
                             <div className="space-y-2">
-                                <p className="text-[10px] text-gray-500 uppercase tracking-wider">Data Anomalies</p>
+                                <p className="text-[10px] text-[#5B6B7D] uppercase tracking-wider">Data Anomalies</p>
                                 {analysis.anomalies.map((a, i) => (
-                                    <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }} className="flex items-start gap-2.5 p-3 bg-black/2 dark:bg-white/2 rounded-lg border border-gray-100 dark:border-white/4">
-                                        <AlertTriangle size={13} className={a.severity === 'high' ? 'text-red-400' : a.severity === 'medium' ? 'text-amber-400' : 'text-gray-500'} />
+                                    <div key={i} className="flex items-start gap-2.5 p-3 bg-white rounded-lg border border-[#DFE6EE]">
+                                        <AlertTriangle size={13} className={a.severity === 'high' ? 'text-red-600' : a.severity === 'medium' ? 'text-amber-600' : 'text-[#5B6B7D]'} />
                                         <div>
-                                            <p className="text-xs text-gray-600 dark:text-gray-300">{a.description}</p>
-                                            <span className="text-[10px] text-gray-600">{a.type} &middot; {a.severity}</span>
+                                            <p className="text-xs text-[#0E2B5C]">{a.description}</p>
+                                            <span className="text-[10px] text-[#5B6B7D]">{a.type} &middot; {a.severity}</span>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -799,13 +775,13 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
 
             {/* ── Kill reason ── */}
             {analysis.kill_reason_if_skip && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 py-3 border-t border-red-500/10 bg-red-500/[0.03]">
+                <div className="px-5 py-3 border-t border-red-200 bg-red-50">
                     <div className="flex items-center gap-2">
-                        <XCircle size={13} className="text-red-400" />
-                        <span className="text-[11px] text-red-400 font-semibold">Skip Reason:</span>
-                        <span className="text-xs text-gray-400">{analysis.kill_reason_if_skip}</span>
+                        <XCircle size={13} className="text-red-600" />
+                        <span className="text-[11px] text-red-700 font-semibold">Skip Reason:</span>
+                        <span className="text-xs text-[#5B6B7D]">{analysis.kill_reason_if_skip}</span>
                     </div>
-                </motion.div>
+                </div>
             )}
         </motion.div>
     );
@@ -814,13 +790,13 @@ export default function PermitAnalysis({ permit }: PermitAnalysisProps) {
 /** Shared header for loading/error states */
 function Header() {
     return (
-        <div className="px-5 py-3.5 border-b border-gray-200 dark:border-white/6 flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+        <div className="px-5 py-3 border-b border-[#DFE6EE] flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#00458B] flex items-center justify-center">
                 <Brain size={16} className="text-white" />
             </div>
             <div>
-                <h2 className="text-sm font-bold text-gray-700 dark:text-gray-200">AI Permit Analysis</h2>
-                <p className="text-[10px] text-gray-600">Intelligence Engine v3.3</p>
+                <h2 className="text-sm font-bold text-[#0E2B5C]">AI Permit Analysis</h2>
+                <p className="text-[10px] text-[#5B6B7D]">Intelligence Engine v3.3</p>
             </div>
         </div>
     );

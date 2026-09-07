@@ -25,19 +25,19 @@ const BUCKET_LABEL: Record<string, string> = {
 };
 
 const BUCKET_COLOR: Record<string, string> = {
-    strategic: 'text-emerald-400',
-    strong: 'text-cyan-400',
-    core: 'text-blue-400',
-    opportunistic: 'text-amber-400',
-    no_send: 'text-gray-400',
+    strategic: 'text-emerald-700',
+    strong: 'text-blue-700',
+    core: 'text-[#00458B]',
+    opportunistic: 'text-amber-700',
+    no_send: 'text-[#5B6B7D]',
 };
 
 function Card({ children }: { children: React.ReactNode }) {
     return (
-        <section className="rounded-2xl border border-white/[0.08] bg-gray-950/80 backdrop-blur-sm p-5">
+        <section className="rounded-lg border border-[#DFE6EE] bg-white p-5">
             <div className="flex items-center gap-2 mb-4">
-                <Gauge size={16} className="text-cyan-400" />
-                <h3 className="text-sm font-semibold text-white">Score breakdown</h3>
+                <Gauge size={16} className="text-[#00458B]" />
+                <h3 className="text-sm font-semibold text-[#0E2B5C]">Score breakdown</h3>
             </div>
             {children}
         </section>
@@ -56,7 +56,7 @@ export default function ScoreBreakdownCard({ permit }: { permit: PermitRecord })
         const reason = (permit.exclude_reason || bd?.reason || 'excluded').replace(/_/g, ' ');
         return (
             <Card>
-                <div className="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-3 text-sm text-rose-300">
+                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700">
                     <Ban size={15} className="shrink-0" />
                     <span>
                         <span className="font-medium">Excluded — {reason}.</span>{' '}
@@ -76,10 +76,10 @@ export default function ScoreBreakdownCard({ permit }: { permit: PermitRecord })
             {/* Total → bucket */}
             <div className="flex items-baseline justify-between mb-4">
                 <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-mono font-bold text-white tabular-nums">{Math.round(total)}</span>
-                    <span className="text-sm text-gray-500">/ 100</span>
+                    <span className="text-3xl font-mono font-bold text-[#0E2B5C] tabular-nums">{Math.round(total)}</span>
+                    <span className="text-sm text-[#5B6B7D]">/ 100</span>
                 </div>
-                <span className={`text-sm font-medium ${BUCKET_COLOR[bucket] || 'text-gray-300'}`}>
+                <span className={`text-sm font-medium ${BUCKET_COLOR[bucket] || 'text-[#5B6B7D]'}`}>
                     {BUCKET_LABEL[bucket] || bucket}
                 </span>
             </div>
@@ -93,14 +93,14 @@ export default function ScoreBreakdownCard({ permit }: { permit: PermitRecord })
                     return (
                         <div key={c.key}>
                             <div className="flex items-center justify-between text-xs mb-1">
-                                <span className="text-gray-300">{c.label}</span>
+                                <span className="text-[#0E2B5C]">{c.label}</span>
                                 <div className="flex items-center gap-2">
-                                    {s.label && <span className="text-gray-500">{String(s.label).replace(/_/g, ' ')}</span>}
-                                    <span className="font-mono tabular-nums text-gray-200">{pts} / {c.max}</span>
+                                    {s.label && <span className="text-[#5B6B7D]">{String(s.label).replace(/_/g, ' ')}</span>}
+                                    <span className="font-mono tabular-nums text-[#0E2B5C]">{pts} / {c.max}</span>
                                 </div>
                             </div>
-                            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                                <div className="h-full bg-cyan-500/70" style={{ width: `${pct}%` }} />
+                            <div className="h-1.5 rounded-full bg-[#F7F9FB] border border-[#DFE6EE] overflow-hidden">
+                                <div className="h-full bg-[#00458B]" style={{ width: `${pct}%` }} />
                             </div>
                         </div>
                     );
@@ -108,7 +108,7 @@ export default function ScoreBreakdownCard({ permit }: { permit: PermitRecord })
             </div>
 
             {permit.contact_count != null && permit.contact_count > 0 && (
-                <p className="mt-4 text-xs text-gray-500">
+                <p className="mt-4 text-xs text-[#5B6B7D]">
                     {permit.contact_count} reachable contact{permit.contact_count === 1 ? '' : 's'} on this permit.
                 </p>
             )}
