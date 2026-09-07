@@ -533,6 +533,10 @@ class ApiService {
         if (params.score_bucket) queryParams.score_bucket = params.score_bucket;
         if (params.is_excluded !== undefined) queryParams.is_excluded = params.is_excluded;
         if (params.cost_source) queryParams.cost_source = params.cost_source;
+        if (params.qualification) queryParams.qualification = params.qualification;
+        if (params.has_contractor !== undefined) queryParams.has_contractor = params.has_contractor;
+        if (params.added_start_date) queryParams.added_start_date = params.added_start_date;
+        if (params.added_end_date) queryParams.added_end_date = params.added_end_date;
 
         const response = await this.client.get<PermitSearchResponse>('/permits/search', {
             params: queryParams

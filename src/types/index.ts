@@ -516,10 +516,17 @@ export interface PermitFilters {
     maxCost: number | null;
     /** Permit score bucket: strategic | strong | core | opportunistic | no_send */
     scoreBucket: string | null;
-    /** true = only auto-excluded permits */
+    /** true = only auto-excluded permits. Legacy — superseded by `qualification`; cleared whenever a saved view sets `qualification` so it can't silently conflict. */
     isExcluded: boolean | null;
     /** Cost source: 'real' | 'ai' | 'none' (null = any) */
     costSource: string | null;
+    /** Business qualification state — 'qualified' | 'invalid' (null = any). Distinct from scoreBucket. */
+    qualification: string | null;
+    /** true = Contractor Linked (contractor_id set) | false = Verification Needed | null = any */
+    hasContractor: boolean | null;
+    /** Added Date range — filters on PermitRecord.created_at (Estimation Hub ingestion time), not Permit Date */
+    addedStartDate: string | null;
+    addedEndDate: string | null;
 }
 
 export interface PermitCounty {
@@ -604,6 +611,11 @@ export interface PermitSearchParams {
     score_bucket?: string;
     is_excluded?: boolean;
     cost_source?: string;
+    /** Business qualification state: 'qualified' | 'invalid' */
+    qualification?: string;
+    has_contractor?: boolean;
+    added_start_date?: string;
+    added_end_date?: string;
     limit: number;
     offset: number;
     order_by: string;

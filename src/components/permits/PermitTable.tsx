@@ -14,14 +14,15 @@ interface PermitTableProps {
     sorting: PermitSorting;
     onSort: (field: string) => void;
     onViewDetails?: (permit: PermitRecord) => void;
-    onSendMessage?: (permit: PermitRecord) => void;
     onResetFilters?: () => void;
     hasFilters?: boolean;
-    selectedIds: Set<string>;
-    onToggleSelect: (id: string) => void;
-    onToggleSelectAll: () => void;
-    allSelected: boolean;
-    someSelected: boolean;
+    // Selection/delete UI is entirely optional — omitted for roles that can't
+    // delete, which also hides the checkbox column (see dashboard/permits/page.tsx).
+    selectedIds?: Set<string>;
+    onToggleSelect?: (id: string) => void;
+    onToggleSelectAll?: () => void;
+    allSelected?: boolean;
+    someSelected?: boolean;
 }
 
 interface SortableHeaderProps {
@@ -37,17 +38,17 @@ function SortableHeader({ field, label, currentSort, onSort, align = 'left' }: S
 
     return (
         <th
-            className={`px-4 py-3 font-medium cursor-pointer hover:bg-gray-100 dark:hover:bg-white/2 transition-colors select-none ${align === 'right' ? 'text-right' : ''}`}
+            className={`px-4 py-3 font-medium cursor-pointer hover:bg-[#F7F9FB] transition-colors select-none ${align === 'right' ? 'text-right' : ''}`}
             onClick={() => onSort(field)}
         >
             <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
                 {label}
-                <span className="text-gray-500">
+                <span className="text-[#5B6B7D]">
                     {isActive ? (
                         currentSort.direction === 'asc' ? (
-                            <ChevronUp size={14} className="text-cyan-400" />
+                            <ChevronUp size={14} className="text-[#00458B]" />
                         ) : (
-                            <ChevronDown size={14} className="text-cyan-400" />
+                            <ChevronDown size={14} className="text-[#00458B]" />
                         )
                     ) : (
                         <ChevronsUpDown size={14} className="opacity-50" />
@@ -64,16 +65,17 @@ export default function PermitTable({
     sorting,
     onSort,
     onViewDetails,
-    onSendMessage,
     onResetFilters,
     hasFilters = false,
     selectedIds,
     onToggleSelect,
     onToggleSelectAll,
-    allSelected,
-    someSelected,
+    allSelected = false,
+    someSelected = false,
 }: PermitTableProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const showSelection = Boolean(onToggleSelect && onToggleSelectAll);
+    const columnCount = showSelection ? 8 : 7;
 
     // Virtualizer — always called before any early returns (Rules of Hooks).
     // measureElement enables dynamic row height tracking so rows with extra
@@ -114,33 +116,33 @@ export default function PermitTable({
         >
             <table className="w-full text-left text-sm">
                 {/* sticky so the header stays visible while the body scrolls */}
-                <thead className="bg-gray-50 dark:bg-white/2 text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-white/6 sticky top-0 z-10">
+                <thead className="bg-[#F7F9FB] text-[#5B6B7D] border-b border-[#DFE6EE] sticky top-0 z-10">
                     <tr>
-                        <th className="px-4 py-3 w-10">
-                            <input
-                                type="checkbox"
-                                checked={allSelected}
-                                ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
-                                onChange={onToggleSelectAll}
-                                className="w-4 h-4 rounded border-gray-400 dark:border-gray-600 bg-transparent text-cyan-500 focus:ring-cyan-500/30 cursor-pointer"
-                            />
-                        </th>
-                        <SortableHeader field="issue_date" label="Date" currentSort={sorting} onSort={onSort} />
-                        <SortableHeader field="permit_number" label="Permit #" currentSort={sorting} onSort={onSort} />
-                        <SortableHeader field="permit_type" label="Type" currentSort={sorting} onSort={onSort} />
-                        <SortableHeader field="city" label="City" currentSort={sorting} onSort={onSort} />
+                        {showSelection && (
+                            <th className="px-4 py-3 w-10">
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                                    onChange={onToggleSelectAll}
+                                    className="w-4 h-4 rounded border-[#DFE6EE] bg-white text-[#00458B] focus:ring-[#00458B]/30 cursor-pointer"
+                                />
+                            </th>
+                        )}
+                        <SortableHeader field="created_at" label="Added" currentSort={sorting} onSort={onSort} />
+                        <SortableHeader field="permit_number" label="Permit / Project Scope" currentSort={sorting} onSort={onSort} />
+                        <SortableHeader field="city" label="Location" currentSort={sorting} onSort={onSort} />
                         <th className="px-4 py-3 font-medium">Contractor</th>
-                        <SortableHeader field="status" label="Status" currentSort={sorting} onSort={onSort} />
-                        <SortableHeader field="estimated_cost" label="Est. Cost" currentSort={sorting} onSort={onSort} align="right" />
-                        <SortableHeader field="lead_score" label="Score" currentSort={sorting} onSort={onSort} align="right" />
-                        <th className="px-4 py-3 font-medium w-28">Actions</th>
+                        <SortableHeader field="estimated_cost" label="Value" currentSort={sorting} onSort={onSort} align="right" />
+                        <SortableHeader field="lead_score" label="Qualification" currentSort={sorting} onSort={onSort} align="right" />
+                        <th className="px-4 py-3 font-medium w-20">Actions</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/4">
+                <tbody className="divide-y divide-[#DFE6EE]">
                     {/* Top spacer — represents all rows scrolled above the viewport */}
                     {paddingTop > 0 && (
                         <tr aria-hidden>
-                            <td colSpan={10} style={{ height: paddingTop, padding: 0 }} />
+                            <td colSpan={columnCount} style={{ height: paddingTop, padding: 0 }} />
                         </tr>
                     )}
 
@@ -151,10 +153,9 @@ export default function PermitTable({
                                 key={permit.id}
                                 ref={rowVirtualizer.measureElement}
                                 permit={permit}
-                                isSelected={selectedIds.has(permit.id)}
+                                isSelected={showSelection ? (selectedIds?.has(permit.id) ?? false) : undefined}
                                 onToggleSelect={onToggleSelect}
                                 onViewDetails={onViewDetails}
-                                onSendMessage={onSendMessage}
                             />
                         );
                     })}
@@ -162,7 +163,7 @@ export default function PermitTable({
                     {/* Bottom spacer — represents all rows not yet scrolled into view */}
                     {paddingBottom > 0 && (
                         <tr aria-hidden>
-                            <td colSpan={10} style={{ height: paddingBottom, padding: 0 }} />
+                            <td colSpan={columnCount} style={{ height: paddingBottom, padding: 0 }} />
                         </tr>
                     )}
                 </tbody>

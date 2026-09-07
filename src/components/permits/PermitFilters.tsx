@@ -1,7 +1,10 @@
 'use client';
 
-import React, { useMemo } from 'react';
-import { Filter, X, RefreshCw, MapPin, Building2, Globe, Briefcase, Layers, Target, DollarSign, Calendar, LandPlot, Gauge } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import {
+    Filter, X, RefreshCw, MapPin, Building2, Briefcase, Layers, Target,
+    DollarSign, Calendar, LandPlot, Gauge, Globe, UserCheck, ChevronDown, ChevronUp,
+} from 'lucide-react';
 import { PermitFilters, PermitCityInfo, PermitCounty } from '@/types';
 import {
     OPPORTUNITY_CATEGORIES,
@@ -36,17 +39,18 @@ const STATE_NAMES: Record<string, string> = {
     SK: 'Saskatchewan', YT: 'Yukon',
 };
 
-// Color config per opportunity category
-const OPPORTUNITY_COLORS: Record<string, { dot: string; text: string; badge: string }> = {
-    'Fresh Leads':          { dot: 'bg-cyan-400',   text: 'text-cyan-400',   badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
-    'Scope Change':         { dot: 'bg-orange-400', text: 'text-orange-400', badge: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
-    'Introduction / Track': { dot: 'bg-blue-400',   text: 'text-blue-400',   badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-    'Late / Execution':     { dot: 'bg-yellow-400', text: 'text-yellow-400', badge: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
-    'Dead':                 { dot: 'bg-gray-500',   text: 'text-gray-400',   badge: 'bg-gray-500/10 text-gray-400 border-gray-500/20' },
-};
+// Estimation Hub light theme
+const PRIMARY = '#00458B';
+const NAVY = '#0E2B5C';
+const MUTED = '#5B6B7D';
 
 const SELECT_CLS =
-    'w-full px-3 py-2 bg-white dark:bg-white/3 border border-gray-300 dark:border-white/8 rounded-lg text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-colors text-sm';
+    'w-full px-2.5 py-1.5 bg-white border border-[#DFE6EE] rounded-md text-[#0E2B5C] focus:outline-none focus:ring-2 focus:ring-[#00458B]/25 focus:border-[#00458B] transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed';
+
+const LABEL_CLS = 'text-xs text-[#5B6B7D] font-medium flex items-center gap-1';
+
+const BADGE_CLS =
+    'inline-flex items-center gap-1 px-2 py-0.5 bg-[#F7F9FB] text-[#00458B] text-xs rounded-full border border-[#DFE6EE]';
 
 const SCORE_BUCKET_OPTIONS = [
     { value: '', label: 'All Buckets' },
@@ -64,6 +68,18 @@ const COST_SOURCE_OPTIONS = [
     { value: 'none', label: 'No cost' },
 ];
 
+const QUALIFICATION_OPTIONS = [
+    { value: '', label: 'All' },
+    { value: 'qualified', label: 'Qualified' },
+    { value: 'invalid', label: 'Invalid / Excluded' },
+];
+
+const CONTRACTOR_OPTIONS = [
+    { value: '', label: 'All' },
+    { value: 'true', label: 'Contractor Linked' },
+    { value: 'false', label: 'Verification Needed' },
+];
+
 export default function PermitFiltersPanel({
     filters,
     availableCities,
@@ -71,6 +87,18 @@ export default function PermitFiltersPanel({
     onFilterChange,
     onReset,
 }: PermitFiltersProps) {
+    // "More Filters" starts expanded if any of the secondary filters it holds are
+    // already active — otherwise a user landing on a filtered URL wouldn't see why.
+    const [showMore, setShowMore] = useState(() => Boolean(
+        filters.workScope || filters.metro || filters.opportunityCategory ||
+        filters.issuedAgeBucket || filters.costSource || filters.scoreBucket
+    ));
+
+    const hasMoreActive = Boolean(
+        filters.workScope || filters.metro || filters.opportunityCategory ||
+        filters.issuedAgeBucket || filters.costSource || filters.scoreBucket
+    );
+
     const hasActiveFilters = Boolean(
         filters.city ||
         filters.state ||
@@ -82,10 +110,14 @@ export default function PermitFiltersPanel({
         filters.workScope ||
         filters.startDate ||
         filters.endDate ||
+        filters.addedStartDate ||
+        filters.addedEndDate ||
         filters.minCost != null ||
         filters.maxCost != null ||
         filters.scoreBucket ||
-        filters.costSource
+        filters.costSource ||
+        filters.qualification ||
+        filters.hasContractor != null
     );
 
     const handleOpportunityCategoryChange = (value: string) => {
@@ -176,160 +208,130 @@ export default function PermitFiltersPanel({
         onFilterChange({ projectClass: value || null, workScope: null });
     };
 
+    const handleQualificationChange = (value: string) => {
+        onFilterChange({ qualification: value || null, isExcluded: null });
+    };
+
+    const handleContractorChange = (value: string) => {
+        onFilterChange({ hasContractor: value === '' ? null : value === 'true' });
+    };
+
     // ── Render ─────────────────────────────────────────────────────────────────
 
     return (
-        <div className="bg-gray-50 dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-xl p-4 space-y-4">
+        <div className="bg-white border border-[#DFE6EE] rounded-lg p-4 space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200">
+                <div className="flex items-center gap-2" style={{ color: NAVY }}>
                     <Filter size={16} />
                     <span className="font-medium text-sm">Filters</span>
                 </div>
-                {hasActiveFilters && (
-                    <button
-                        onClick={onReset}
-                        className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                    >
-                        <RefreshCw size={12} />
-                        Reset
-                    </button>
-                )}
             </div>
 
-            {/* Row 1 — Location + Opportunities + Age Bucket + Project Class + Work Scope */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-4">
-
-                {/* Metro Area */}
+            {/* Row 1 — Added Date, Permit Date, Location, Project Type, Qualification */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Added Date */}
                 <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <Globe size={12} />
-                        Metro Area
+                    <label className={LABEL_CLS}>
+                        <Calendar size={12} />
+                        Added Date
                     </label>
-                    <select
-                        value={filters.metro || ''}
-                        onChange={(e) => handleMetroChange(e.target.value || null)}
-                        className={SELECT_CLS.replace('cyan-500/40', 'purple-500/40')}
-                    >
-                        <option value="">All Metros</option>
-                        {availableMetros.map((metro: { code: string; name: string; cityCount: number }) => (
-                            <option key={metro.code} value={metro.code}>
-                                {metro.name.split(',')[0]} ({metro.cityCount})
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* State */}
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <MapPin size={12} />
-                        State
-                    </label>
-                    <select
-                        value={filters.state || ''}
-                        onChange={(e) => handleStateChange(e.target.value || null)}
-                        className={SELECT_CLS}
-                    >
-                        <option value="">All States</option>
-                        {availableStates.map((st: string) => (
-                            <option key={st} value={st}>
-                                {STATE_NAMES[st] ? `${STATE_NAMES[st]} (${st})` : st}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* County */}
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <LandPlot size={12} />
-                        County
-                    </label>
-                    <select
-                        value={filters.county || ''}
-                        onChange={(e) => onFilterChange({ county: e.target.value || null })}
-                        className={SELECT_CLS}
-                    >
-                        <option value="">All Counties</option>
-                        {filteredCounties.map((c) => (
-                            <option key={`${c.county_name}-${c.state_code}`} value={c.county_name}>
-                                {c.county_name}, {c.state_code}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* City */}
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <Building2 size={12} />
-                        City
-                    </label>
-                    <select
-                        value={filters.city || ''}
-                        onChange={(e) => onFilterChange({ city: e.target.value || null })}
-                        className={SELECT_CLS}
-                    >
-                        <option value="">All Cities</option>
-                        {filteredCities.map((city) => (
-                            <option key={city.key} value={city.key}>
-                                {city.name}, {city.state_code}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Opportunities */}
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <Target size={12} />
-                        Opportunities
-                    </label>
-                    <div className="relative">
-                        <select
-                            value={filters.opportunityCategory || ''}
-                            onChange={(e) => handleOpportunityCategoryChange(e.target.value)}
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            type="date"
+                            value={filters.addedStartDate || ''}
+                            onChange={(e) => onFilterChange({ addedStartDate: e.target.value || null })}
+                            title="Added from"
                             className={SELECT_CLS}
-                        >
-                            <option value="">All Opportunities</option>
-                            {OPPORTUNITY_CATEGORIES.map((cat) => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                        {/* Colored indicator dot when active */}
-                        {filters.opportunityCategory && (
-                            <span
-                                className={`absolute right-7 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${OPPORTUNITY_COLORS[filters.opportunityCategory]?.dot ?? 'bg-cyan-400'}`}
-                            />
-                        )}
+                        />
+                        <input
+                            type="date"
+                            value={filters.addedEndDate || ''}
+                            onChange={(e) => onFilterChange({ addedEndDate: e.target.value || null })}
+                            title="Added to"
+                            className={SELECT_CLS}
+                        />
                     </div>
                 </div>
 
-                {/* Issued Age Bucket — only meaningful for Fresh Leads */}
+                {/* Permit Date (jurisdiction issue/application date) */}
                 <div className="space-y-1">
-                    <label className={`text-xs font-medium flex items-center gap-1 transition-colors ${filters.opportunityCategory === 'Fresh Leads' ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-600'}`}>
-                        <Target size={12} />
-                        Issue Age
+                    <label className={LABEL_CLS}>
+                        <Calendar size={12} />
+                        Permit Date
                     </label>
-                    <select
-                        value={filters.issuedAgeBucket || ''}
-                        onChange={(e) => onFilterChange({ issuedAgeBucket: e.target.value || null })}
-                        disabled={filters.opportunityCategory !== 'Fresh Leads'}
-                        title={filters.opportunityCategory !== 'Fresh Leads' ? 'Select "Fresh Leads" to filter by issue age' : undefined}
-                        className={`${SELECT_CLS} disabled:opacity-40 disabled:cursor-not-allowed`}
-                    >
-                        {ISSUED_AGE_BUCKET_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            type="date"
+                            value={filters.startDate || ''}
+                            onChange={(e) => onFilterChange({ startDate: e.target.value || null })}
+                            title="Permit date from"
+                            className={SELECT_CLS}
+                        />
+                        <input
+                            type="date"
+                            value={filters.endDate || ''}
+                            onChange={(e) => onFilterChange({ endDate: e.target.value || null })}
+                            title="Permit date to"
+                            className={SELECT_CLS}
+                        />
+                    </div>
                 </div>
 
-                {/* Project Class */}
+                {/* Location — State / County / City */}
+                <div className="space-y-1 lg:col-span-2">
+                    <label className={LABEL_CLS}>
+                        <MapPin size={12} />
+                        Location
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                        <select
+                            value={filters.state || ''}
+                            onChange={(e) => handleStateChange(e.target.value || null)}
+                            className={SELECT_CLS}
+                            title="State"
+                        >
+                            <option value="">All States</option>
+                            {availableStates.map((st: string) => (
+                                <option key={st} value={st}>
+                                    {STATE_NAMES[st] ? `${STATE_NAMES[st]} (${st})` : st}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            value={filters.county || ''}
+                            onChange={(e) => onFilterChange({ county: e.target.value || null })}
+                            className={SELECT_CLS}
+                            title="County"
+                        >
+                            <option value="">All Counties</option>
+                            {filteredCounties.map((c) => (
+                                <option key={`${c.county_name}-${c.state_code}`} value={c.county_name}>
+                                    {c.county_name}, {c.state_code}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            value={filters.city || ''}
+                            onChange={(e) => onFilterChange({ city: e.target.value || null })}
+                            className={SELECT_CLS}
+                            title="City"
+                        >
+                            <option value="">All Cities</option>
+                            {filteredCities.map((city) => (
+                                <option key={city.key} value={city.key}>
+                                    {city.name}, {city.state_code}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Project Type */}
                 <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
+                    <label className={LABEL_CLS}>
                         <Briefcase size={12} />
-                        Project Class
+                        Project Type
                     </label>
                     <select
                         value={filters.projectClass || ''}
@@ -341,218 +343,345 @@ export default function PermitFiltersPanel({
                         ))}
                     </select>
                 </div>
-
-                {/* Work Scope — conditional on Project Class */}
-                <div className="space-y-1">
-                    <label className={`text-xs font-medium flex items-center gap-1 transition-colors ${filters.projectClass ? 'text-gray-600 dark:text-gray-400' : 'text-gray-400 dark:text-gray-600'}`}>
-                        <Layers size={12} />
-                        Work Scope
-                    </label>
-                    <select
-                        value={filters.workScope || ''}
-                        onChange={(e) => onFilterChange({ workScope: e.target.value || null })}
-                        disabled={!filters.projectClass}
-                        className={`${SELECT_CLS} disabled:opacity-40 disabled:cursor-not-allowed`}
-                    >
-                        <option value="">All Scopes</option>
-                        {WORK_SCOPE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
             </div>
 
-            {/* Row 2 — Score + Dates and Cost */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {/* Score Bucket */}
+            {/* Row 2 — Qualification, Contractor, Value, More Filters, Clear */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                {/* Qualification — business state, distinct from score bucket */}
                 <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
+                    <label className={LABEL_CLS}>
                         <Gauge size={12} />
-                        Score Bucket
+                        Qualification
                     </label>
                     <select
-                        value={filters.scoreBucket || ''}
-                        onChange={(e) => onFilterChange({ scoreBucket: e.target.value || null })}
+                        value={filters.qualification || ''}
+                        onChange={(e) => handleQualificationChange(e.target.value)}
                         className={SELECT_CLS}
                     >
-                        {SCORE_BUCKET_OPTIONS.map((opt) => (
+                        {QUALIFICATION_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                     </select>
                 </div>
 
-                {/* Cost Source */}
+                {/* Contractor */}
                 <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <DollarSign size={12} />
-                        Cost Source
+                    <label className={LABEL_CLS}>
+                        <UserCheck size={12} />
+                        Contractor
                     </label>
                     <select
-                        value={filters.costSource || ''}
-                        onChange={(e) => onFilterChange({ costSource: e.target.value || null })}
+                        value={filters.hasContractor === null ? '' : String(filters.hasContractor)}
+                        onChange={(e) => handleContractorChange(e.target.value)}
                         className={SELECT_CLS}
                     >
-                        {COST_SOURCE_OPTIONS.map((opt) => (
+                        {CONTRACTOR_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
                     </select>
                 </div>
 
+                {/* Value */}
                 <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <Calendar size={12} />
-                        From Date
-                    </label>
-                    <input
-                        type="date"
-                        value={filters.startDate || ''}
-                        onChange={(e) => onFilterChange({ startDate: e.target.value || null })}
-                        className={SELECT_CLS}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <Calendar size={12} />
-                        To Date
-                    </label>
-                    <input
-                        type="date"
-                        value={filters.endDate || ''}
-                        onChange={(e) => onFilterChange({ endDate: e.target.value || null })}
-                        className={SELECT_CLS}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
+                    <label className={LABEL_CLS}>
                         <DollarSign size={12} />
-                        Min Cost
+                        Value
                     </label>
-                    <input
-                        type="number"
-                        value={filters.minCost ?? ''}
-                        onChange={(e) => onFilterChange({ minCost: e.target.value !== '' ? Number(e.target.value) : null })}
-                        placeholder="0"
-                        min={0}
-                        className={SELECT_CLS}
-                    />
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            type="number"
+                            value={filters.minCost ?? ''}
+                            onChange={(e) => onFilterChange({ minCost: e.target.value !== '' ? Number(e.target.value) : null })}
+                            placeholder="Min"
+                            min={0}
+                            className={SELECT_CLS}
+                        />
+                        <input
+                            type="number"
+                            value={filters.maxCost ?? ''}
+                            onChange={(e) => onFilterChange({ maxCost: e.target.value !== '' ? Number(e.target.value) : null })}
+                            placeholder="Max"
+                            min={0}
+                            className={SELECT_CLS}
+                        />
+                    </div>
                 </div>
-                <div className="space-y-1">
-                    <label className="text-xs text-gray-600 dark:text-gray-400 font-medium flex items-center gap-1">
-                        <DollarSign size={12} />
-                        Max Cost
-                    </label>
-                    <input
-                        type="number"
-                        value={filters.maxCost ?? ''}
-                        onChange={(e) => onFilterChange({ maxCost: e.target.value !== '' ? Number(e.target.value) : null })}
-                        placeholder="∞"
-                        min={0}
-                        className={SELECT_CLS}
-                    />
-                </div>
+
+                {/* More Filters toggle */}
+                <button
+                    type="button"
+                    onClick={() => setShowMore((v) => !v)}
+                    className="relative flex items-center justify-center gap-1.5 h-[34px] px-3 rounded-md border border-[#DFE6EE] text-sm font-medium text-[#0E2B5C] hover:bg-[#F7F9FB] transition-colors"
+                >
+                    <Filter size={14} />
+                    More Filters
+                    {showMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {hasMoreActive && (
+                        <span
+                            className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                            style={{ backgroundColor: PRIMARY }}
+                            aria-hidden
+                        />
+                    )}
+                </button>
+
+                {/* Clear */}
+                <button
+                    type="button"
+                    onClick={onReset}
+                    disabled={!hasActiveFilters}
+                    className="flex items-center justify-center gap-1.5 h-[34px] px-3 rounded-md border border-[#DFE6EE] text-sm font-medium text-[#5B6B7D] hover:text-[#00458B] hover:bg-[#F7F9FB] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    <RefreshCw size={14} />
+                    Clear
+                </button>
             </div>
+
+            {/* More Filters — Work Scope, Metro Area, Opportunity Category, Issue Age, Cost Source, Score Bucket */}
+            {showMore && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 pt-2 border-t border-[#DFE6EE]">
+                    {/* Work Scope — conditional on Project Type */}
+                    <div className="space-y-1">
+                        <label className={`${LABEL_CLS} ${!filters.projectClass ? 'opacity-50' : ''}`}>
+                            <Layers size={12} />
+                            Work Scope
+                        </label>
+                        <select
+                            value={filters.workScope || ''}
+                            onChange={(e) => onFilterChange({ workScope: e.target.value || null })}
+                            disabled={!filters.projectClass}
+                            title={!filters.projectClass ? 'Select a Project Type to filter by work scope' : undefined}
+                            className={SELECT_CLS}
+                        >
+                            <option value="">All Scopes</option>
+                            {WORK_SCOPE_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Metro Area */}
+                    <div className="space-y-1">
+                        <label className={LABEL_CLS}>
+                            <Globe size={12} />
+                            Metro Area
+                        </label>
+                        <select
+                            value={filters.metro || ''}
+                            onChange={(e) => handleMetroChange(e.target.value || null)}
+                            className={SELECT_CLS}
+                        >
+                            <option value="">All Metros</option>
+                            {availableMetros.map((metro: { code: string; name: string; cityCount: number }) => (
+                                <option key={metro.code} value={metro.code}>
+                                    {metro.name.split(',')[0]} ({metro.cityCount})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Opportunity Category */}
+                    <div className="space-y-1">
+                        <label className={LABEL_CLS}>
+                            <Target size={12} />
+                            Opportunity
+                        </label>
+                        <select
+                            value={filters.opportunityCategory || ''}
+                            onChange={(e) => handleOpportunityCategoryChange(e.target.value)}
+                            className={SELECT_CLS}
+                        >
+                            <option value="">All Opportunities</option>
+                            {OPPORTUNITY_CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Issue Age — only meaningful for Fresh Leads */}
+                    <div className="space-y-1">
+                        <label className={`${LABEL_CLS} ${filters.opportunityCategory !== 'Fresh Leads' ? 'opacity-50' : ''}`}>
+                            <Target size={12} />
+                            Issue Age
+                        </label>
+                        <select
+                            value={filters.issuedAgeBucket || ''}
+                            onChange={(e) => onFilterChange({ issuedAgeBucket: e.target.value || null })}
+                            disabled={filters.opportunityCategory !== 'Fresh Leads'}
+                            title={filters.opportunityCategory !== 'Fresh Leads' ? 'Select "Fresh Leads" to filter by issue age' : undefined}
+                            className={SELECT_CLS}
+                        >
+                            {ISSUED_AGE_BUCKET_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Cost Source */}
+                    <div className="space-y-1">
+                        <label className={LABEL_CLS}>
+                            <DollarSign size={12} />
+                            Cost Source
+                        </label>
+                        <select
+                            value={filters.costSource || ''}
+                            onChange={(e) => onFilterChange({ costSource: e.target.value || null })}
+                            className={SELECT_CLS}
+                        >
+                            {COST_SOURCE_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Score Bucket */}
+                    <div className="space-y-1">
+                        <label className={LABEL_CLS}>
+                            <LandPlot size={12} />
+                            Score Bucket
+                        </label>
+                        <select
+                            value={filters.scoreBucket || ''}
+                            onChange={(e) => onFilterChange({ scoreBucket: e.target.value || null })}
+                            className={SELECT_CLS}
+                        >
+                            {SCORE_BUCKET_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            )}
 
             {/* Active filter badges */}
             {hasActiveFilters && (
-                <div className="flex items-center gap-2 flex-wrap pt-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-500">Active:</span>
+                <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-[#DFE6EE]">
+                    <span className="text-xs" style={{ color: MUTED }}>Active:</span>
 
+                    {filters.qualification && (
+                        <span className={BADGE_CLS}>
+                            <Gauge size={10} />
+                            {QUALIFICATION_OPTIONS.find((o) => o.value === filters.qualification)?.label ?? filters.qualification}
+                            <button onClick={() => onFilterChange({ qualification: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
+                        </span>
+                    )}
+                    {filters.hasContractor != null && (
+                        <span className={BADGE_CLS}>
+                            <UserCheck size={10} />
+                            {filters.hasContractor ? 'Contractor Linked' : 'Verification Needed'}
+                            <button onClick={() => onFilterChange({ hasContractor: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
+                        </span>
+                    )}
+                    {filters.addedStartDate && (
+                        <span className={BADGE_CLS}>
+                            <Calendar size={10} />
+                            Added from: {filters.addedStartDate}
+                            <button onClick={() => onFilterChange({ addedStartDate: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
+                        </span>
+                    )}
+                    {filters.addedEndDate && (
+                        <span className={BADGE_CLS}>
+                            <Calendar size={10} />
+                            Added to: {filters.addedEndDate}
+                            <button onClick={() => onFilterChange({ addedEndDate: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
+                        </span>
+                    )}
                     {filters.metro && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded-full border border-purple-500/20">
+                        <span className={BADGE_CLS}>
                             <Globe size={10} />
                             {selectedMetroName?.split(',')[0]}
-                            <button onClick={() => handleMetroChange(null)} className="hover:text-purple-300"><X size={10} /></button>
+                            <button onClick={() => handleMetroChange(null)} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.state && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-xs rounded-full border border-cyan-500/20">
+                        <span className={BADGE_CLS}>
                             <MapPin size={10} />
                             {STATE_NAMES[filters.state] ? `${STATE_NAMES[filters.state]} (${filters.state})` : filters.state}
-                            <button onClick={() => handleStateChange(null)} className="hover:text-cyan-300"><X size={10} /></button>
+                            <button onClick={() => handleStateChange(null)} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.county && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs rounded-full border border-emerald-500/20">
+                        <span className={BADGE_CLS}>
                             <LandPlot size={10} />
                             {filters.county}
-                            <button onClick={() => onFilterChange({ county: null })} className="hover:text-emerald-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ county: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.city && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                        <span className={BADGE_CLS}>
                             <Building2 size={10} />
                             {filters.city}
-                            <button onClick={() => onFilterChange({ city: null })} className="hover:text-blue-300"><X size={10} /></button>
-                        </span>
-                    )}
-                    {filters.opportunityCategory && (
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${OPPORTUNITY_COLORS[filters.opportunityCategory]?.badge ?? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${OPPORTUNITY_COLORS[filters.opportunityCategory]?.dot ?? 'bg-cyan-400'}`} />
-                            {filters.opportunityCategory}
-                            <button onClick={() => onFilterChange({ opportunityCategory: null, issuedAgeBucket: null })} className="hover:opacity-70"><X size={10} /></button>
-                        </span>
-                    )}
-                    {filters.issuedAgeBucket && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-xs rounded-full border border-cyan-500/20">
-                            <Target size={10} />
-                            {ISSUED_AGE_BUCKET_OPTIONS.find((o) => o.value === filters.issuedAgeBucket)?.label ?? filters.issuedAgeBucket}
-                            <button onClick={() => onFilterChange({ issuedAgeBucket: null })} className="hover:text-cyan-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ city: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.projectClass && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs rounded-full border border-amber-500/20">
+                        <span className={BADGE_CLS}>
                             <Briefcase size={10} />
                             {filters.projectClass}
-                            <button onClick={() => onFilterChange({ projectClass: null, workScope: null })} className="hover:text-amber-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ projectClass: null, workScope: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.workScope && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-500/10 text-violet-400 text-xs rounded-full border border-violet-500/20">
+                        <span className={BADGE_CLS}>
                             <Layers size={10} />
                             {filters.workScope}
-                            <button onClick={() => onFilterChange({ workScope: null })} className="hover:text-violet-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ workScope: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
+                        </span>
+                    )}
+                    {filters.opportunityCategory && (
+                        <span className={BADGE_CLS}>
+                            <Target size={10} />
+                            {filters.opportunityCategory}
+                            <button onClick={() => onFilterChange({ opportunityCategory: null, issuedAgeBucket: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
+                        </span>
+                    )}
+                    {filters.issuedAgeBucket && (
+                        <span className={BADGE_CLS}>
+                            <Target size={10} />
+                            {ISSUED_AGE_BUCKET_OPTIONS.find((o) => o.value === filters.issuedAgeBucket)?.label ?? filters.issuedAgeBucket}
+                            <button onClick={() => onFilterChange({ issuedAgeBucket: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.startDate && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-500/10 text-teal-400 text-xs rounded-full border border-teal-500/20">
+                        <span className={BADGE_CLS}>
                             <Calendar size={10} />
-                            From: {filters.startDate}
-                            <button onClick={() => onFilterChange({ startDate: null })} className="hover:text-teal-300"><X size={10} /></button>
+                            Permit from: {filters.startDate}
+                            <button onClick={() => onFilterChange({ startDate: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.endDate && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-500/10 text-teal-400 text-xs rounded-full border border-teal-500/20">
+                        <span className={BADGE_CLS}>
                             <Calendar size={10} />
-                            To: {filters.endDate}
-                            <button onClick={() => onFilterChange({ endDate: null })} className="hover:text-teal-300"><X size={10} /></button>
+                            Permit to: {filters.endDate}
+                            <button onClick={() => onFilterChange({ endDate: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.minCost != null && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-400 text-xs rounded-full border border-green-500/20">
+                        <span className={BADGE_CLS}>
                             <DollarSign size={10} />
                             Min: ${filters.minCost.toLocaleString()}
-                            <button onClick={() => onFilterChange({ minCost: null })} className="hover:text-green-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ minCost: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.maxCost != null && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500/10 text-green-400 text-xs rounded-full border border-green-500/20">
+                        <span className={BADGE_CLS}>
                             <DollarSign size={10} />
                             Max: ${filters.maxCost.toLocaleString()}
-                            <button onClick={() => onFilterChange({ maxCost: null })} className="hover:text-green-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ maxCost: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.scoreBucket && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 text-orange-400 text-xs rounded-full border border-orange-500/20">
+                        <span className={BADGE_CLS}>
                             <Gauge size={10} />
                             {SCORE_BUCKET_OPTIONS.find((o) => o.value === filters.scoreBucket)?.label ?? filters.scoreBucket}
-                            <button onClick={() => onFilterChange({ scoreBucket: null })} className="hover:text-orange-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ scoreBucket: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                     {filters.costSource && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-500/10 text-orange-400 text-xs rounded-full border border-orange-500/20">
+                        <span className={BADGE_CLS}>
                             <DollarSign size={10} />
                             {COST_SOURCE_OPTIONS.find((o) => o.value === filters.costSource)?.label ?? filters.costSource}
-                            <button onClick={() => onFilterChange({ costSource: null })} className="hover:text-orange-300"><X size={10} /></button>
+                            <button onClick={() => onFilterChange({ costSource: null })} className="hover:text-[#045CB4]"><X size={10} /></button>
                         </span>
                     )}
                 </div>

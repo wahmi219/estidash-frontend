@@ -57,20 +57,20 @@ export default function PermitPagination({
     return (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2">
             {/* Records info */}
-            <div className="text-sm text-gray-500 dark:text-gray-500">
-                Showing <span className="text-gray-800 dark:text-gray-300">{startRecord.toLocaleString()}</span> to{' '}
-                <span className="text-gray-800 dark:text-gray-300">{endRecord.toLocaleString()}</span> of{' '}
-                <span className="text-gray-800 dark:text-gray-300">{totalLabel}</span> permits
+            <div className="text-sm text-[#5B6B7D]">
+                Showing <span className="text-[#0E2B5C] font-medium">{startRecord.toLocaleString()}</span> to{' '}
+                <span className="text-[#0E2B5C] font-medium">{endRecord.toLocaleString()}</span> of{' '}
+                <span className="text-[#0E2B5C] font-medium">{totalLabel}</span> permits
             </div>
 
             <div className="flex items-center gap-4">
                 {/* Page size selector */}
                 <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">Show</span>
+                    <span className="text-sm text-[#5B6B7D]">Show</span>
                     <select
                         value={pageSize}
                         onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                        className="px-2 py-1 bg-white dark:bg-white/3 border border-gray-300 dark:border-white/8 rounded-lg text-gray-900 dark:text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-colors"
+                        className="px-2 py-1 bg-white border border-[#DFE6EE] rounded-lg text-[#0E2B5C] text-sm focus:outline-none focus:ring-2 focus:ring-[#00458B]/25 transition-colors"
                     >
                         {PAGE_SIZES.map((size) => (
                             <option key={size} value={size}>
@@ -86,7 +86,7 @@ export default function PermitPagination({
                     <button
                         onClick={() => onPageChange(1)}
                         disabled={!canGoPrev}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[#F7F9FB] disabled:opacity-30 disabled:cursor-not-allowed text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
                         title="First page"
                     >
                         <ChevronsLeft size={16} />
@@ -96,7 +96,7 @@ export default function PermitPagination({
                     <button
                         onClick={() => onPageChange(page - 1)}
                         disabled={!canGoPrev}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[#F7F9FB] disabled:opacity-30 disabled:cursor-not-allowed text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
                         title="Previous page"
                     >
                         <ChevronLeft size={16} />
@@ -106,7 +106,7 @@ export default function PermitPagination({
                     <div className="flex items-center gap-1 mx-1">
                         {getPageNumbers().map((p, idx) =>
                             p === 'ellipsis' ? (
-                                <span key={`ellipsis-${idx}`} className="px-2 text-gray-500">
+                                <span key={`ellipsis-${idx}`} className="px-2 text-[#5B6B7D]">
                                     ...
                                 </span>
                             ) : (
@@ -114,8 +114,8 @@ export default function PermitPagination({
                                     key={p}
                                     onClick={() => onPageChange(p)}
                                     className={`min-w-[32px] h-8 px-2 rounded-lg text-sm font-medium transition-colors ${page === p
-                                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                                            : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                                            ? 'bg-[#00458B]/10 text-[#00458B] border border-[#00458B]/30'
+                                            : 'hover:bg-[#F7F9FB] text-[#5B6B7D] hover:text-[#0E2B5C]'
                                         }`}
                                 >
                                     {p}
@@ -128,7 +128,7 @@ export default function PermitPagination({
                     <button
                         onClick={() => onPageChange(page + 1)}
                         disabled={!canGoNext}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[#F7F9FB] disabled:opacity-30 disabled:cursor-not-allowed text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
                         title="Next page"
                     >
                         <ChevronRight size={16} />
@@ -138,7 +138,7 @@ export default function PermitPagination({
                     <button
                         onClick={() => onPageChange(totalPages)}
                         disabled={!canGoNext}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[#F7F9FB] disabled:opacity-30 disabled:cursor-not-allowed text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
                         title="Last page"
                     >
                         <ChevronsRight size={16} />

@@ -39,6 +39,10 @@ const initialFilters: PermitFilters = {
     scoreBucket: null,
     isExcluded: null,
     costSource: null,
+    qualification: null,
+    hasContractor: null,
+    addedStartDate: null,
+    addedEndDate: null,
 };
 
 const initialState: PermitsState = {
@@ -88,6 +92,10 @@ function buildQueryParams(state: PermitsState) {
         score_bucket: filters.scoreBucket || undefined,
         is_excluded: filters.isExcluded ?? undefined,
         cost_source: filters.costSource || undefined,
+        qualification: filters.qualification || undefined,
+        has_contractor: filters.hasContractor ?? undefined,
+        added_start_date: filters.addedStartDate || undefined,
+        added_end_date: filters.addedEndDate || undefined,
         limit: pagination.pageSize,
         offset: (pagination.page - 1) * pagination.pageSize,
         order_by: sorting.field,

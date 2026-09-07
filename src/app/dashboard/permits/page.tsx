@@ -2,15 +2,14 @@
 
 import React, { Suspense, useEffect, useCallback, useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { AnimatePresence } from 'framer-motion';
 import { FileText, RefreshCw, AlertCircle, Trash2, X } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useAppDispatch';
+import { hasRole } from '@/lib/roles';
 import {
     fetchPermits,
     fetchPermitCities,
     fetchPermitCounties,
     bulkDeletePermits,
-    bulkDeleteByFilter,
     setFilters,
     resetFilters,
     setPage,
@@ -32,10 +31,8 @@ import {
     PermitFiltersPanel,
     PermitPagination,
     PermitTableSkeleton,
-    ContactOutreachModal,
-    MyLeadBankBanner,
 } from '@/components/permits';
-import { PermitFilters, PermitRecord } from '@/types';
+import { PermitFilters } from '@/types';
 
 // Debounce helper
 function useDebounce<T>(value: T, delay: number): T {
@@ -48,6 +45,17 @@ function useDebounce<T>(value: T, delay: number): T {
 
     return debouncedValue;
 }
+
+// Saved views control only the workflow filters (qualification, hasContractor) — every
+// other active filter (state/city/county, project type, dates, value, work scope, etc.)
+// is preserved when switching views. `isExcluded` is always cleared alongside — it's a
+// legacy hidden field that predates `qualification` and must not silently conflict with it.
+const SAVED_VIEWS: { key: string; label: string; qualification: string | null; hasContractor: boolean | null }[] = [
+    { key: 'all', label: 'All Permits', qualification: null, hasContractor: null },
+    { key: 'qualified', label: 'Qualified', qualification: 'qualified', hasContractor: null },
+    { key: 'contractor_verification', label: 'Contractor Verification', qualification: 'qualified', hasContractor: false },
+    { key: 'invalid', label: 'Invalid / Excluded', qualification: 'invalid', hasContractor: null },
+];
 
 // Inner component that uses useSearchParams
 function PermitsPageContent() {
@@ -65,6 +73,12 @@ function PermitsPageContent() {
     const sorting = useAppSelector(selectPermitSorting);
     const availableCities = useAppSelector(selectAvailableCities);
     const availableCounties = useAppSelector(selectAvailableCounties);
+
+    // Delete is admin/super_admin only (backend already enforces this — see
+    // require_role("admin") on /permits/bulk in app/routers/permits.py). This gate
+    // hides the selection checkboxes and delete UI client-side for everyone else.
+    const userRole = useAppSelector((s) => s.auth.user?.role) ?? 'viewer';
+    const canDelete = hasRole(userRole, 'admin');
 
     // Debounce the entire filter object so any rapid filter change (city, county,
     // score bucket, etc.) waits 300 ms before triggering a network request.
@@ -84,6 +98,10 @@ function PermitsPageContent() {
         const search = searchParams.get('search');
         const startDate = searchParams.get('start_date');
         const endDate = searchParams.get('end_date');
+        const qualification = searchParams.get('qualification');
+        const hasContractorParam = searchParams.get('has_contractor');
+        const addedStartDate = searchParams.get('added_start_date');
+        const addedEndDate = searchParams.get('added_end_date');
 
         if (city) urlFilters.city = city;
         if (stateParam) urlFilters.state = stateParam;
@@ -96,6 +114,10 @@ function PermitsPageContent() {
         if (search) urlFilters.search = search;
         if (startDate) urlFilters.startDate = startDate;
         if (endDate) urlFilters.endDate = endDate;
+        if (qualification) urlFilters.qualification = qualification;
+        if (hasContractorParam !== null) urlFilters.hasContractor = hasContractorParam === 'true';
+        if (addedStartDate) urlFilters.addedStartDate = addedStartDate;
+        if (addedEndDate) urlFilters.addedEndDate = addedEndDate;
 
         const page = searchParams.get('page');
         const pageSize = searchParams.get('pageSize');
@@ -131,6 +153,10 @@ function PermitsPageContent() {
         if (filters.search) params.set('search', filters.search);
         if (filters.startDate) params.set('start_date', filters.startDate);
         if (filters.endDate) params.set('end_date', filters.endDate);
+        if (filters.qualification) params.set('qualification', filters.qualification);
+        if (filters.hasContractor !== null) params.set('has_contractor', String(filters.hasContractor));
+        if (filters.addedStartDate) params.set('added_start_date', filters.addedStartDate);
+        if (filters.addedEndDate) params.set('added_end_date', filters.addedEndDate);
         if (pagination.page > 1) params.set('page', pagination.page.toString());
         if (pagination.pageSize !== 25) params.set('pageSize', pagination.pageSize.toString());
         if (sorting.field !== 'issue_date') params.set('sort', sorting.field);
@@ -195,6 +221,19 @@ function PermitsPageContent() {
         router.push(`/dashboard/permits/${permit.id}`);
     }, [router]);
 
+    // Saved views — set only the workflow filters, preserving everything else.
+    const handleSelectView = useCallback((view: typeof SAVED_VIEWS[number]) => {
+        dispatch(setFilters({
+            qualification: view.qualification,
+            hasContractor: view.hasContractor,
+            isExcluded: null,
+        }));
+    }, [dispatch]);
+
+    const activeViewKey = SAVED_VIEWS.find(
+        (v) => v.qualification === filters.qualification && v.hasContractor === filters.hasContractor
+    )?.key ?? null;
+
     // Check if any filters are active (for empty state messaging)
     const hasActiveFilters = Boolean(
         filters.city ||
@@ -206,35 +245,27 @@ function PermitsPageContent() {
         filters.search ||
         filters.startDate ||
         filters.endDate ||
+        filters.addedStartDate ||
+        filters.addedEndDate ||
         filters.minCost ||
-        filters.maxCost
+        filters.maxCost ||
+        filters.qualification ||
+        filters.hasContractor != null
     );
 
-    // Outreach modal state
-    const [outreachPermit, setOutreachPermit] = useState<PermitRecord | null>(null);
-
-    const handleSendMessage = useCallback((permit: PermitRecord) => {
-        setOutreachPermit(permit);
-    }, []);
-
-    // Selection state for bulk delete
+    // Selection state for admin/super_admin explicit-ID delete. No filter-scoped
+    // "select all N across pages" escalation — deletion is limited to explicitly
+    // selected rows on the current page (see DELETE SAFETY note below).
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-    const [selectedAllPages, setSelectedAllPages] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
     const allSelected = permits.length > 0 && permits.every((p) => selectedIds.has(p.id));
-    const someSelected = selectedIds.size > 0 || selectedAllPages;
-    // True when the user has opted in to select every record matching the current filters
-    const totalMatchingRecords = pagination.totalRecords;
-    // Unfiltered totals are a planner estimate — prefix with ~ so the number isn't read as exact.
-    const totalMatchingLabel = `${pagination.totalIsEstimate ? '~' : ''}${totalMatchingRecords.toLocaleString()}`;
-    const hasMoreThanOnePage = totalMatchingRecords > pagination.pageSize;
+    const someSelected = selectedIds.size > 0;
 
     // Clear selection when filters/page/sorting change
     useEffect(() => {
         setSelectedIds(new Set());
-        setSelectedAllPages(false);
     }, [filters, pagination.page, pagination.pageSize, sorting]);
 
     const handleToggleSelect = useCallback((id: string) => {
@@ -255,29 +286,11 @@ function PermitsPageContent() {
     }, [allSelected, permits]);
 
     const handleBulkDelete = useCallback(async () => {
-        if (!selectedAllPages && selectedIds.size === 0) return;
+        if (selectedIds.size === 0) return;
         setIsDeleting(true);
         try {
-            if (selectedAllPages) {
-                // Delete all records matching the current active filters
-                const filterParams = {
-                    city: filters.city || undefined,
-                    state: filters.state || undefined,
-                    opportunity_category: filters.opportunityCategory || undefined,
-                    project_class: filters.projectClass || undefined,
-                    work_scope: filters.workScope || undefined,
-                    start_date: filters.startDate || undefined,
-                    end_date: filters.endDate || undefined,
-                    search: filters.search || undefined,
-                    min_cost: filters.minCost ?? undefined,
-                    max_cost: filters.maxCost ?? undefined,
-                };
-                await dispatch(bulkDeleteByFilter(filterParams)).unwrap();
-                setSelectedAllPages(false);
-            } else {
-                await dispatch(bulkDeletePermits(Array.from(selectedIds))).unwrap();
-                setSelectedIds(new Set());
-            }
+            await dispatch(bulkDeletePermits(Array.from(selectedIds))).unwrap();
+            setSelectedIds(new Set());
             setShowDeleteConfirm(false);
             dispatch(fetchPermits({ force: true }));
         } catch {
@@ -285,37 +298,54 @@ function PermitsPageContent() {
         } finally {
             setIsDeleting(false);
         }
-    }, [dispatch, selectedIds, selectedAllPages, filters]);
+    }, [dispatch, selectedIds]);
 
     const isLoading = status === 'loading';
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-[#F7F9FB] min-h-screen">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                    <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
                             <FileText size={20} />
                         </div>
                         Permit Records
                     </h1>
-                    <p className="text-gray-500 mt-1">
+                    <p className="text-[#5B6B7D] mt-1">
                         Browse and search building permits from multiple cities
                     </p>
                 </div>
                 <button
                     onClick={handleRefresh}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-black/4 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] transition-colors disabled:opacity-50"
                 >
                     <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
                     Refresh
                 </button>
             </div>
 
-            {/* Agent lead-bank quota (renders only for assigned outreach agents) */}
-            <MyLeadBankBanner />
+            {/* Saved Views */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {SAVED_VIEWS.map((view) => {
+                    const isActive = activeViewKey === view.key;
+                    return (
+                        <button
+                            key={view.key}
+                            onClick={() => handleSelectView(view)}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                                isActive
+                                    ? 'bg-[#00458B] text-white border-[#00458B]'
+                                    : 'bg-white text-[#0E2B5C] border-[#DFE6EE] hover:bg-[#F7F9FB]'
+                            }`}
+                        >
+                            {view.label}
+                        </button>
+                    );
+                })}
+            </div>
 
             {/* Search Bar */}
             <div className="max-w-md">
@@ -338,7 +368,7 @@ function PermitsPageContent() {
 
             {/* Error Banner */}
             {error && (
-                <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400">
+                <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
                     <AlertCircle size={20} />
                     <span>{error}</span>
                     <button
@@ -350,68 +380,49 @@ function PermitsPageContent() {
                 </div>
             )}
 
-            {/* Bulk Action Bar */}
-            {someSelected && (
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-4 px-4 py-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
-                        <span className="text-sm text-cyan-300 font-medium">
-                            {selectedAllPages
-                                ? `All ${totalMatchingLabel} matching records selected`
-                                : `${selectedIds.size} permit${selectedIds.size !== 1 ? 's' : ''} selected`}
-                        </span>
-                        <button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg text-red-400 text-sm font-medium transition-colors"
-                        >
-                            <Trash2 size={14} />
-                            Delete Selected
-                        </button>
-                        <button
-                            onClick={() => { setSelectedIds(new Set()); setSelectedAllPages(false); }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-black/4 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-500 dark:text-gray-400 text-sm transition-colors"
-                        >
-                            <X size={14} />
-                            Clear Selection
-                        </button>
-                    </div>
-                    {/* "Select all pages" banner — shown when the current page is fully selected but more records exist */}
-                    {allSelected && hasMoreThanOnePage && !selectedAllPages && (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm text-amber-300">
-                            <span>
-                                Only {permits.length} of {totalMatchingLabel} matching records are selected.
-                            </span>
-                            <button
-                                onClick={() => setSelectedAllPages(true)}
-                                className="underline hover:no-underline font-medium"
-                            >
-                                Select all {totalMatchingLabel} records
-                            </button>
-                        </div>
-                    )}
+            {/* Bulk Action Bar — admin/super_admin only, explicit selected-ID delete */}
+            {canDelete && someSelected && (
+                <div className="flex items-center gap-4 px-4 py-3 bg-[#00458B]/5 border border-[#00458B]/20 rounded-xl">
+                    <span className="text-sm text-[#00458B] font-medium">
+                        {selectedIds.size} permit{selectedIds.size !== 1 ? 's' : ''} selected
+                    </span>
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-red-700 text-sm font-medium transition-colors"
+                    >
+                        <Trash2 size={14} />
+                        Delete Selected
+                    </button>
+                    <button
+                        onClick={() => setSelectedIds(new Set())}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] text-sm transition-colors"
+                    >
+                        <X size={14} />
+                        Clear Selection
+                    </button>
                 </div>
             )}
 
             {/* Table */}
-            <div className="bg-black/2 dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <PermitTable
                     permits={permits}
                     isLoading={isLoading}
                     sorting={sorting}
                     onSort={handleSort}
                     onViewDetails={handleViewDetails}
-                    onSendMessage={handleSendMessage}
                     onResetFilters={handleResetFilters}
                     hasFilters={hasActiveFilters}
-                    selectedIds={selectedIds}
-                    onToggleSelect={handleToggleSelect}
-                    onToggleSelectAll={handleToggleSelectAll}
-                    allSelected={allSelected}
-                    someSelected={someSelected}
+                    selectedIds={canDelete ? selectedIds : undefined}
+                    onToggleSelect={canDelete ? handleToggleSelect : undefined}
+                    onToggleSelectAll={canDelete ? handleToggleSelectAll : undefined}
+                    allSelected={canDelete && allSelected}
+                    someSelected={canDelete && someSelected}
                 />
 
                 {/* Pagination */}
                 {permits.length > 0 && (
-                    <div className="border-t border-gray-200 dark:border-white/6">
+                    <div className="border-t border-[#DFE6EE]">
                         <PermitPagination
                             pagination={pagination}
                             onPageChange={handlePageChange}
@@ -421,48 +432,26 @@ function PermitsPageContent() {
                 )}
             </div>
 
-            {/* Contractor Outreach Modal */}
-            <AnimatePresence>
-                {outreachPermit && (
-                    <ContactOutreachModal
-                        permit={outreachPermit}
-                        onClose={() => setOutreachPermit(null)}
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* Delete Confirmation Dialog */}
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            {/* Delete Confirmation Dialog — admin/super_admin only */}
+            {canDelete && showDeleteConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white border border-[#DFE6EE] rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
-                                <Trash2 size={20} className="text-red-400" />
+                            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                                <Trash2 size={20} className="text-red-600" />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Permits</h3>
+                            <h3 className="text-lg font-semibold text-[#0E2B5C]">Delete Permits</h3>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">
-                            {selectedAllPages ? (
-                                <>
-                                    Permanently delete all{' '}
-                                    <span className="text-gray-900 dark:text-white font-medium">
-                                        {totalMatchingLabel}
-                                    </span>{' '}
-                                    records matching the current filters? This action cannot be undone.
-                                </>
-                            ) : (
-                                <>
-                                    Permanently delete{' '}
-                                    <span className="text-gray-900 dark:text-white font-medium">{selectedIds.size}</span>{' '}
-                                    permit{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
-                                </>
-                            )}
+                        <p className="text-[#5B6B7D] mb-6">
+                            Permanently delete{' '}
+                            <span className="text-[#0E2B5C] font-medium">{selectedIds.size}</span>{' '}
+                            permit{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
                         </p>
                         <div className="flex items-center gap-3 justify-end">
                             <button
                                 onClick={() => setShowDeleteConfirm(false)}
                                 disabled={isDeleting}
-                                className="px-4 py-2 bg-black/4 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 text-sm transition-colors disabled:opacity-50"
+                                className="px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -494,21 +483,21 @@ function PermitsPageContent() {
 // Loading fallback for Suspense
 function PermitsPageLoading() {
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-[#F7F9FB] min-h-screen">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
+                    <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
                             <FileText size={20} />
                         </div>
                         Permit Records
                     </h1>
-                    <p className="text-gray-500 mt-1">
+                    <p className="text-[#5B6B7D] mt-1">
                         Browse and search building permits from multiple cities
                     </p>
                 </div>
             </div>
-            <div className="bg-black/2 dark:bg-white/2 border border-gray-200 dark:border-white/6 rounded-xl overflow-hidden">
+            <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <PermitTableSkeleton rows={10} />
             </div>
         </div>
