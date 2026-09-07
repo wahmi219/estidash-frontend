@@ -48,6 +48,8 @@ interface NavItem {
     badge?: string | number;
     minRole?: Role;
     children?: NavItem[];
+    // MVP: hidden from nav, route stays functional — see estidash CLAUDE.md nav simplification plan
+    hidden?: boolean;
 }
 
 const mainNavItems: NavItem[] = [
@@ -71,6 +73,7 @@ const mainNavItems: NavItem[] = [
         icon: <Inbox size={20} />,
         href: '/dashboard/inbox',
         minRole: 'outreach',
+        hidden: true,
     },
     {
         id: 'outreach',
@@ -78,6 +81,7 @@ const mainNavItems: NavItem[] = [
         icon: <Users size={20} />,
         href: '/dashboard/outreach',
         minRole: 'admin',
+        hidden: true,
         children: [
             {
                 id: 'warmup',
@@ -101,6 +105,7 @@ const mainNavItems: NavItem[] = [
         icon: <MapPin size={20} />,
         href: '/dashboard/cbsa',
         minRole: 'admin',
+        hidden: true,
     },
     {
         id: 'permit-analytics',
@@ -108,6 +113,7 @@ const mainNavItems: NavItem[] = [
         icon: <BarChart3 size={20} />,
         href: '/dashboard/analytics',
         minRole: 'admin',
+        hidden: true,
     },
     {
         id: 'trade-signals',
@@ -115,6 +121,7 @@ const mainNavItems: NavItem[] = [
         icon: <Target size={20} />,
         href: '/dashboard/trades',
         minRole: 'admin',
+        hidden: true,
     },
     {
         id: 'data-sources',
@@ -152,6 +159,7 @@ const mainNavItems: NavItem[] = [
         icon: <TrendingUp size={20} />,
         href: '/dashboard/economic',
         minRole: 'admin',
+        hidden: true,
     },
 ];
 
@@ -162,6 +170,7 @@ const secondaryNavItems: NavItem[] = [
         icon: <MessageSquare size={20} />,
         href: '/dashboard/chat',
         minRole: 'admin',
+        hidden: true,
     },
     {
         id: 'agent-settings',
@@ -169,6 +178,7 @@ const secondaryNavItems: NavItem[] = [
         icon: <Bot size={20} />,
         href: '/dashboard/settings/agents',
         minRole: 'super_admin',
+        hidden: true,
     },
 ];
 
@@ -179,6 +189,7 @@ const bottomNavItems: NavItem[] = [
         icon: <Wallet size={20} />,
         href: '/dashboard/settings/lead-banks',
         minRole: 'super_admin',
+        hidden: true,
     },
     {
         id: 'permit-scoring',
@@ -186,6 +197,7 @@ const bottomNavItems: NavItem[] = [
         icon: <Gauge size={20} />,
         href: '/dashboard/settings/permit-scoring',
         minRole: 'super_admin',
+        hidden: true,
     },
     {
         id: 'user-management',
@@ -214,6 +226,7 @@ const bottomNavItems: NavItem[] = [
         icon: <HelpCircle size={20} />,
         href: '/dashboard/help',
         minRole: 'viewer',
+        hidden: true,
     },
 ];
 
@@ -246,7 +259,7 @@ export default function Sidebar() {
     };
 
     const canSee = (item: NavItem) =>
-        !item.minRole || hasRole(userRole, item.minRole);
+        !item.hidden && (!item.minRole || hasRole(userRole, item.minRole));
 
     async function handleLogout() {
         try {
