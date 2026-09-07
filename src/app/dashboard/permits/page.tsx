@@ -27,7 +27,6 @@ import {
 } from '@/store/slices/permitsSlice';
 import {
     PermitTable,
-    PermitSearch,
     PermitFiltersPanel,
     PermitPagination,
     PermitTableSkeleton,
@@ -303,39 +302,37 @@ function PermitsPageContent() {
     const isLoading = status === 'loading';
 
     return (
-        <div className="p-6 space-y-6 bg-[#F7F9FB] min-h-screen">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
-                            <FileText size={20} />
-                        </div>
-                        Permit Records
-                    </h1>
-                    <p className="text-[#5B6B7D] mt-1">
-                        Browse and search building permits from multiple cities
-                    </p>
-                </div>
+        <div className="p-6 space-y-3 bg-[#F7F9FB] min-h-screen">
+            {/* Header — pr-12 keeps Refresh clear of the fixed notification bell
+                (DashboardShell's NotificationBell is `fixed top-4 right-4`; the
+                shorter compact header here sits close enough to it that the
+                button needs the extra clearance). */}
+            <div className="flex items-center justify-between pr-12">
+                <h1 className="text-xl font-bold text-[#0E2B5C] flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#00458B] flex items-center justify-center text-white">
+                        <FileText size={16} />
+                    </div>
+                    Permit Records
+                </h1>
                 <button
                     onClick={handleRefresh}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
                 >
-                    <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                    <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
                     Refresh
                 </button>
             </div>
 
-            {/* Saved Views */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Saved Views — compact */}
+            <div className="flex items-center gap-1.5 flex-wrap">
                 {SAVED_VIEWS.map((view) => {
                     const isActive = activeViewKey === view.key;
                     return (
                         <button
                             key={view.key}
                             onClick={() => handleSelectView(view)}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                            className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
                                 isActive
                                     ? 'bg-[#00458B] text-white border-[#00458B]'
                                     : 'bg-white text-[#0E2B5C] border-[#DFE6EE] hover:bg-[#F7F9FB]'
@@ -347,23 +344,16 @@ function PermitsPageContent() {
                 })}
             </div>
 
-            {/* Search Bar */}
-            <div className="max-w-md">
-                <PermitSearch
-                    value={filters.search}
-                    onChange={handleSearchChange}
-                    onClear={handleSearchClear}
-                    placeholder="Search by address, permit #, description..."
-                />
-            </div>
-
-            {/* Filters */}
+            {/* Filters — compact toolbar (search + popover filters) */}
             <PermitFiltersPanel
                 filters={filters}
                 availableCities={availableCities}
                 availableCounties={availableCounties}
                 onFilterChange={handleFilterChange}
                 onReset={handleResetFilters}
+                searchValue={filters.search}
+                onSearchChange={handleSearchChange}
+                onSearchClear={handleSearchClear}
             />
 
             {/* Error Banner */}
@@ -483,19 +473,14 @@ function PermitsPageContent() {
 // Loading fallback for Suspense
 function PermitsPageLoading() {
     return (
-        <div className="p-6 space-y-6 bg-[#F7F9FB] min-h-screen">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
-                            <FileText size={20} />
-                        </div>
-                        Permit Records
-                    </h1>
-                    <p className="text-[#5B6B7D] mt-1">
-                        Browse and search building permits from multiple cities
-                    </p>
-                </div>
+        <div className="p-6 space-y-3 bg-[#F7F9FB] min-h-screen">
+            <div className="flex items-center justify-between pr-12">
+                <h1 className="text-xl font-bold text-[#0E2B5C] flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#00458B] flex items-center justify-center text-white">
+                        <FileText size={16} />
+                    </div>
+                    Permit Records
+                </h1>
             </div>
             <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <PermitTableSkeleton rows={10} />
