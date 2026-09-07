@@ -1,14 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import { RefreshCw } from 'lucide-react';
 import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard';
-import RecentPermitActivity from '@/components/dashboard/RecentPermitActivity';
 
 const LATEST_SYNC_LABELS = ['New Permits', 'Qualified New', 'Invalid / Excluded New'];
 
 const WORKFLOW_LABELS = ['Contractor Verification', 'Contact Info Needed', 'Ready for Lead Bank'];
+
+// Future columns for the Hot States to Work shell below. Kept in one place so
+// the header row and any later real implementation stay in sync.
+const HOT_STATES_COLUMNS = ['State', 'Qualified', 'Strategic / Strong', 'Contractor Verification', 'Contact Info Needed'];
 
 export default function DashboardPage() {
     return (
@@ -19,19 +21,8 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-8"
             >
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#0E2B5C]">Dashboard</h1>
-                        <p className="text-[#5B6B7D] mt-1">Permit and contractor activity</p>
-                    </div>
-
-                    <Link
-                        href="/dashboard/permits"
-                        className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#00458B] text-white text-sm font-semibold hover:bg-[#045CB4] transition-colors"
-                    >
-                        View Permits
-                    </Link>
-                </div>
+                <h1 className="text-2xl font-bold text-[#0E2B5C]">Dashboard</h1>
+                <p className="text-[#5B6B7D] mt-1">Permit and contractor activity</p>
             </motion.div>
 
             {/* Section 1 — Latest Sync. Sync Permit Sources stays a visual shell —
@@ -77,8 +68,37 @@ export default function DashboardPage() {
                 </p>
             </section>
 
-            {/* Section 3 — Recent Qualified Permits */}
-            <RecentPermitActivity />
+            {/* Section 3 — Hot States to Work. Shows which states currently
+                deserve the most contractor-research attention.
+
+                Future ranking rule (not implemented yet): initial ranking
+                should prioritize states by current qualified permit count.
+                Later weighting may incorporate Strategic + Strong count,
+                Contractor Verification backlog, Contact Info Needed backlog,
+                and qualified project value.
+
+                No client-side aggregation — this is a column shell only,
+                intentionally not loading permits to compute anything here.
+                Real values arrive once a backend aggregation endpoint exists. */}
+            <section>
+                <h2 className="text-xs font-semibold text-[#5B6B7D] uppercase tracking-wide mb-3">
+                    Hot States to Work
+                </h2>
+                <div className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-[#F7F9FB] text-left text-[11px] font-semibold text-[#5B6B7D] uppercase tracking-wider">
+                                {HOT_STATES_COLUMNS.map((label) => (
+                                    <th key={label} className="px-4 py-2.5">{label}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                    </table>
+                    <div className="px-4 py-8 text-center text-sm text-[#5B6B7D]">
+                        Hot-state metrics will populate after the production permit/workflow aggregation is connected.
+                    </div>
+                </div>
+            </section>
         </div>
     );
 }
