@@ -65,6 +65,7 @@ import {
     NameQualityFlag,
 } from '@/components/contractors';
 import { RegistryStatsCard, RegistryFiltersPanel, RegistryTable } from '@/components/registry';
+import PageHeader from '@/components/common/PageHeader';
 import { ContractorFilters, ContractorRecord, RegistryFilters } from '@/types';
 
 type ContractorsView = 'permit-contractors' | 'registry';
@@ -502,29 +503,22 @@ function ContractorsPageContent() {
     const selectedRegistrySource = registrySources.find((s) => s.source_key === registryFilters.sourceKey) ?? null;
 
     return (
-        <div className="p-6 space-y-4 bg-[#F7F9FB] min-h-screen">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
-                            <HardHat size={20} />
-                        </div>
-                        Contractors
-                    </h1>
-                    <p className="text-[#5B6B7D] mt-1">
-                        Browse and review permit-linked contractors
-                    </p>
-                </div>
-                <button
-                    onClick={view === 'registry' ? handleRegistryRefresh : handleRefresh}
-                    disabled={view === 'registry' ? isRegistryLoading : isLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw size={16} className={(view === 'registry' ? isRegistryLoading : isLoading) ? 'animate-spin' : ''} />
-                    Refresh
-                </button>
-            </div>
+        <div className="p-6 lg:p-8 space-y-4 bg-[#F7F9FB] min-h-screen">
+            <PageHeader
+                icon={HardHat}
+                title="Contractors"
+                subtitle="Browse and review permit-linked contractors"
+                actions={
+                    <button
+                        onClick={view === 'registry' ? handleRegistryRefresh : handleRefresh}
+                        disabled={view === 'registry' ? isRegistryLoading : isLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw size={16} className={(view === 'registry' ? isRegistryLoading : isLoading) ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
+                }
+            />
 
             {/* View switcher — "Permit Contractors" (permit-linked directory) vs
                 "Official Registry" (synced state license registries). Two
@@ -748,16 +742,12 @@ function ContractorsPageContent() {
 // Loading fallback
 function ContractorsPageLoading() {
     return (
-        <div className="p-6 space-y-4 bg-[#F7F9FB] min-h-screen">
-            <div>
-                <h1 className="text-2xl font-bold text-[#0E2B5C] flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#00458B] flex items-center justify-center text-white">
-                        <HardHat size={20} />
-                    </div>
-                    Contractors
-                </h1>
-                <p className="text-[#5B6B7D] mt-1">Browse and review permit-linked contractors</p>
-            </div>
+        <div className="p-6 lg:p-8 space-y-4 bg-[#F7F9FB] min-h-screen">
+            <PageHeader
+                icon={HardHat}
+                title="Contractors"
+                subtitle="Browse and review permit-linked contractors"
+            />
             <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <table className="w-full">
                     <tbody>

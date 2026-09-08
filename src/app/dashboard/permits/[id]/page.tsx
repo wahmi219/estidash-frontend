@@ -76,7 +76,6 @@ const BLUE = 'bg-blue-50 text-blue-700 border-blue-200';
 const YELLOW = 'bg-yellow-50 text-yellow-800 border-yellow-200';
 const ORANGE = 'bg-orange-50 text-orange-700 border-orange-200';
 const RED = 'bg-red-50 text-red-700 border-red-200';
-const PURPLE = 'bg-purple-50 text-purple-700 border-purple-200';
 const GRAY = 'bg-gray-100 text-[#5B6B7D] border-gray-200';
 
 const statusColors: Record<string, string> = {
@@ -96,7 +95,7 @@ const statusColors: Record<string, string> = {
     'ADDITIONAL INFO REQUESTED': ORANGE, 'CORRECTIONS REQUIRED': ORANGE, 'CORRECTIONS SUBMITTED': ORANGE,
     'AWAITING INFORMATION': ORANGE, 'AWAITING CLIENT REPLY': ORANGE, 'AWAITING REVISION ISSUANCE': ORANGE,
     'MORE INFORMATION REQUIRED': ORANGE, 'CALL NOTIFICATION RECEIVED': ORANGE,
-    'INSPECTION FOLLOWUP': PURPLE, 'INSPECTING': PURPLE, 'SYSTEM INSPECTION': PURPLE, 'READY_FOR_INSPECTIONS': PURPLE,
+    'INSPECTION FOLLOWUP': BLUE, 'INSPECTING': BLUE, 'SYSTEM INSPECTION': BLUE, 'READY_FOR_INSPECTIONS': BLUE,
     'CANCELLED': RED, 'VOID': RED, 'VOIDED': RED, 'DENIED': RED, 'REFUSED': RED, 'REVOKED': RED,
     'STOP WORK': RED, 'APPLICATION CANCELED': RED, 'WITHDRWN': RED, 'APPLICATION WITHDRAWN': RED, 'W/REFUND': RED,
     'HOLD': ORANGE, 'ON HOLD': ORANGE, 'HOLD - PENDING PLANS REVIEW': ORANGE, 'HOLD - PRESCREEN REVIEW': ORANGE,
@@ -108,7 +107,7 @@ const statusColors: Record<string, string> = {
 // Permit-level score bucket — secondary detail shown next to the qualification badge.
 const PERMIT_BUCKET_BADGE: Record<string, { label: string; cls: string }> = {
     strategic: { label: 'Strategic', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    strong: { label: 'Strong', cls: 'bg-teal-50 text-teal-700 border-teal-200' },
+    strong: { label: 'Strong', cls: 'bg-blue-100 text-[#00458B] border-blue-300' },
     core: { label: 'Core', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
     opportunistic: { label: 'Opportunistic', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
     no_send: { label: 'No Send', cls: 'bg-gray-100 text-[#5B6B7D] border-gray-200' },

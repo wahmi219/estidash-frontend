@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { FileText, RefreshCw, AlertCircle, Trash2, X } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/hooks/useAppDispatch';
 import { hasRole } from '@/lib/roles';
+import PageHeader from '@/components/common/PageHeader';
 import {
     fetchPermits,
     fetchPermitCities,
@@ -302,27 +303,22 @@ function PermitsPageContent() {
     const isLoading = status === 'loading';
 
     return (
-        <div className="p-6 space-y-3 bg-[#F7F9FB] min-h-screen">
-            {/* Header — pr-12 keeps Refresh clear of the fixed notification bell
-                (DashboardShell's NotificationBell is `fixed top-4 right-4`; the
-                shorter compact header here sits close enough to it that the
-                button needs the extra clearance). */}
-            <div className="flex items-center justify-between pr-12">
-                <h1 className="text-xl font-bold text-[#0E2B5C] flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#00458B] flex items-center justify-center text-white">
-                        <FileText size={16} />
-                    </div>
-                    Permit Records
-                </h1>
-                <button
-                    onClick={handleRefresh}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-                    Refresh
-                </button>
-            </div>
+        <div className="p-6 lg:p-8 space-y-3 bg-[#F7F9FB] min-h-screen">
+            <PageHeader
+                icon={FileText}
+                title="Permit Records"
+                subtitle="Browse, filter, and manage collected permits"
+                actions={
+                    <button
+                        onClick={handleRefresh}
+                        disabled={isLoading}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
+                }
+            />
 
             {/* Saved Views — compact */}
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -473,15 +469,12 @@ function PermitsPageContent() {
 // Loading fallback for Suspense
 function PermitsPageLoading() {
     return (
-        <div className="p-6 space-y-3 bg-[#F7F9FB] min-h-screen">
-            <div className="flex items-center justify-between pr-12">
-                <h1 className="text-xl font-bold text-[#0E2B5C] flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#00458B] flex items-center justify-center text-white">
-                        <FileText size={16} />
-                    </div>
-                    Permit Records
-                </h1>
-            </div>
+        <div className="p-6 lg:p-8 space-y-3 bg-[#F7F9FB] min-h-screen">
+            <PageHeader
+                icon={FileText}
+                title="Permit Records"
+                subtitle="Browse, filter, and manage collected permits"
+            />
             <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                 <PermitTableSkeleton rows={10} />
             </div>

@@ -19,7 +19,6 @@ const BLUE = 'bg-blue-50 text-blue-700 border-blue-200';
 const YELLOW = 'bg-yellow-50 text-yellow-800 border-yellow-200';
 const ORANGE = 'bg-orange-50 text-orange-700 border-orange-200';
 const RED = 'bg-red-50 text-red-700 border-red-200';
-const PURPLE = 'bg-purple-50 text-purple-700 border-purple-200';
 const GRAY = 'bg-gray-100 text-[#5B6B7D] border-gray-200';
 
 const statusColors: Record<string, string> = {
@@ -81,10 +80,10 @@ const statusColors: Record<string, string> = {
     'MORE INFORMATION REQUIRED': ORANGE,
     'CALL NOTIFICATION RECEIVED': ORANGE,
     // Inspection-related
-    'INSPECTION FOLLOWUP': PURPLE,
-    'INSPECTING': PURPLE,
-    'SYSTEM INSPECTION': PURPLE,
-    'READY_FOR_INSPECTIONS': PURPLE,
+    'INSPECTION FOLLOWUP': BLUE,
+    'INSPECTING': BLUE,
+    'SYSTEM INSPECTION': BLUE,
+    'READY_FOR_INSPECTIONS': BLUE,
     // Cancelled / Denied / Stopped
     'CANCELLED': RED,
     'VOID': RED,
@@ -153,12 +152,16 @@ function formatDateTime(dateStr: string): string {
     });
 }
 
-// Contractor-side lead score bucket (distinct from the permit-level qualification below)
+// Contractor-side lead score bucket (distinct taxonomy from the permit-level
+// qualification below, but sharing labels like "Strategic"/"Strong"/
+// "Opportunistic" — colors are kept aligned with PERMIT_BUCKET_BADGE below
+// wherever the label overlaps, so the same word never means a different
+// color on the same row.
 const BUCKET_BADGE: Record<string, { label: string; cls: string }> = {
-    strategic:     { label: 'Strategic',  cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-    strong:        { label: 'Strong',     cls: 'bg-green-50 text-green-700 border-green-200' },
-    volume_engine: { label: 'Volume',     cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-    opportunistic: { label: 'Opport.',    cls: 'bg-gray-100 text-[#5B6B7D] border-gray-200' },
+    strategic:     { label: 'Strategic',  cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    strong:        { label: 'Strong',     cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+    volume_engine: { label: 'Volume',     cls: 'bg-gray-100 text-[#5B6B7D] border-gray-200' },
+    opportunistic: { label: 'Opport.',    cls: 'bg-amber-50 text-amber-700 border-amber-200' },
     unqualified:   { label: 'Unqualif.',  cls: 'bg-red-50 text-red-700 border-red-200' },
 };
 
@@ -178,7 +181,7 @@ function ContractorScoreBadge({ bucket, score }: { bucket: string | null; score:
 // Permit-level score bucket (secondary detail under the business qualification state)
 const PERMIT_BUCKET_BADGE: Record<string, { label: string; cls: string }> = {
     strategic:     { label: 'Strategic', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    strong:        { label: 'Strong',    cls: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+    strong:        { label: 'Strong',    cls: 'bg-blue-100 text-[#00458B] border-blue-300' },
     core:          { label: 'Core',      cls: 'bg-blue-50 text-blue-700 border-blue-200' },
     opportunistic: { label: 'Opport.',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
     no_send:       { label: 'No Send',   cls: 'bg-gray-100 text-[#5B6B7D] border-gray-200' },
