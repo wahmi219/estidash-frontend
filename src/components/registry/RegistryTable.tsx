@@ -34,17 +34,17 @@ function SortableHeader({ field, label, currentSort, onSort, align = 'left' }: S
 
     return (
         <th
-            className={`px-4 py-3 font-medium cursor-pointer hover:bg-gray-100 dark:hover:bg-white/2 transition-colors select-none ${align === 'right' ? 'text-right' : ''}`}
+            className={`px-4 py-3 font-medium cursor-pointer hover:bg-gray-100 transition-colors select-none ${align === 'right' ? 'text-right' : ''}`}
             onClick={() => onSort(field)}
         >
             <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : ''}`}>
                 {label}
-                <span className="text-gray-500">
+                <span className="text-[#5B6B7D]">
                     {isActive ? (
                         currentSort.direction === 'asc' ? (
-                            <ChevronUp size={14} className="text-cyan-400" />
+                            <ChevronUp size={14} className="text-[#00458B]" />
                         ) : (
-                            <ChevronDown size={14} className="text-cyan-400" />
+                            <ChevronDown size={14} className="text-[#00458B]" />
                         )
                     ) : (
                         <ChevronsUpDown size={14} className="opacity-50" />
@@ -106,7 +106,7 @@ export default function RegistryTable({
             style={{ maxHeight: 'calc(100vh - 460px)' }}
         >
             <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-white/2 text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-white/6 sticky top-0 z-10">
+                <thead className="bg-[#F7F9FB] text-[#5B6B7D] border-b border-[#DFE6EE] sticky top-0 z-10">
                     <tr>
                         <SortableHeader field="business_name" label="Business Name" currentSort={sorting} onSort={onSort} />
                         <th className="px-4 py-3 font-medium">License #</th>
@@ -119,7 +119,7 @@ export default function RegistryTable({
                         <th className="px-4 py-3 font-medium text-center">Status</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/4">
+                <tbody className="divide-y divide-[#DFE6EE]">
                     {paddingTop > 0 && (
                         <tr aria-hidden>
                             <td colSpan={9} style={{ height: paddingTop, padding: 0 }} />

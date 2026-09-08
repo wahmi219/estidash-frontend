@@ -27,20 +27,20 @@ function CopyButton({ value }: { value: string }) {
         <button
             onClick={handleCopy}
             title="Copy to clipboard"
-            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shrink-0 text-gray-500 hover:text-cyan-400"
+            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shrink-0 text-[#5B6B7D] hover:text-[#00458B]"
         >
-            {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+            {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
         </button>
     );
 }
 
 const STATUS_STYLES: Record<string, string> = {
-    A: 'bg-green-500/15 text-green-400 border border-green-500/20',
+    A: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
 };
-const STATUS_DEFAULT = 'bg-gray-500/15 text-gray-400 border border-gray-500/20';
+const STATUS_DEFAULT = 'bg-gray-100 text-[#5B6B7D] border border-gray-200';
 
 function StatusBadge({ code, description }: { code: string | null; description: string | null }) {
-    if (!description) return <span className="text-gray-600 text-sm">—</span>;
+    if (!description) return <span className="text-gray-400 text-sm">—</span>;
     const classes = (code && STATUS_STYLES[code]) || STATUS_DEFAULT;
     return (
         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${classes}`}>
@@ -72,18 +72,18 @@ const RegistryRow = React.forwardRef<HTMLTableRowElement, RegistryRowProps>(func
         <tr
             ref={ref}
             onClick={() => router.push(`/dashboard/contractors/registry/${record.id}`)}
-            className="group border-b border-gray-100 dark:border-white/4 hover:bg-gray-50 dark:hover:bg-white/3 transition-colors cursor-pointer"
+            className="group border-b border-[#DFE6EE] hover:bg-[#F7F9FB] transition-colors cursor-pointer"
         >
             {/* Business name + principal */}
             <td className="px-4 py-3">
-                <div className="font-medium text-gray-700 dark:text-gray-200 truncate max-w-55" title={record.business_name ?? undefined}>
+                <div className="font-medium text-[#0E2B5C] truncate max-w-55" title={record.business_name ?? undefined}>
                     {record.business_name || '—'}
                 </div>
                 {record.primary_principal_name && (
-                    <div className="text-xs text-gray-500 mt-0.5 truncate max-w-55">{record.primary_principal_name}</div>
+                    <div className="text-xs text-[#5B6B7D] mt-0.5 truncate max-w-55">{record.primary_principal_name}</div>
                 )}
                 {showSource && record.source_display_name && (
-                    <div className="inline-flex mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/10 text-cyan-500 dark:text-cyan-400" title={record.source_display_name}>
+                    <div className="inline-flex mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700" title={record.source_display_name}>
                         {record.source_display_name}
                     </div>
                 )}
@@ -92,12 +92,12 @@ const RegistryRow = React.forwardRef<HTMLTableRowElement, RegistryRowProps>(func
             {/* License number */}
             <td className="px-4 py-3">
                 {record.license_number ? (
-                    <div className="flex items-center gap-1.5 font-mono text-sm text-gray-600 dark:text-gray-300">
+                    <div className="flex items-center gap-1.5 font-mono text-sm text-[#0E2B5C]">
                         {record.license_number}
                         <CopyButton value={record.license_number} />
                     </div>
                 ) : (
-                    <span className="text-gray-600 text-sm">—</span>
+                    <span className="text-gray-400 text-sm">—</span>
                 )}
             </td>
 
@@ -108,7 +108,7 @@ const RegistryRow = React.forwardRef<HTMLTableRowElement, RegistryRowProps>(func
 
             {/* Type */}
             <td className="px-4 py-3">
-                <span className="text-sm text-gray-600 dark:text-gray-300 truncate max-w-[160px] block" title={record.license_type_description ?? undefined}>
+                <span className="text-sm text-[#5B6B7D] truncate max-w-[160px] block" title={record.license_type_description ?? undefined}>
                     {record.license_type_description || '—'}
                 </span>
             </td>
@@ -116,45 +116,45 @@ const RegistryRow = React.forwardRef<HTMLTableRowElement, RegistryRowProps>(func
             {/* Phone */}
             <td className="px-4 py-3">
                 {record.phone ? (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                        <Phone size={13} className="shrink-0 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-sm text-[#5B6B7D]">
+                        <Phone size={13} className="shrink-0 text-[#5B6B7D]" />
                         {record.phone}
                         <CopyButton value={record.phone} />
                     </div>
                 ) : (
-                    <span className="text-gray-600 text-sm">—</span>
+                    <span className="text-gray-400 text-sm">—</span>
                 )}
             </td>
 
             {/* Email — only nyc_dob_license currently populates this */}
             <td className="px-4 py-3">
                 {record.email ? (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                        <Mail size={13} className="shrink-0 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-sm text-[#5B6B7D]">
+                        <Mail size={13} className="shrink-0 text-[#5B6B7D]" />
                         <span className="truncate max-w-45" title={record.email}>{record.email}</span>
                         <CopyButton value={record.email} />
                     </div>
                 ) : (
-                    <span className="text-gray-600 text-sm">—</span>
+                    <span className="text-gray-400 text-sm">—</span>
                 )}
             </td>
 
             {/* Location */}
             <td className="px-4 py-3">
                 {location ? (
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                        <MapPin size={13} className="shrink-0 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-sm text-[#5B6B7D]">
+                        <MapPin size={13} className="shrink-0 text-[#5B6B7D]" />
                         {location}
                         <CopyButton value={fullAddress} />
                     </div>
                 ) : (
-                    <span className="text-gray-600 text-sm">—</span>
+                    <span className="text-gray-400 text-sm">—</span>
                 )}
             </td>
 
             {/* Expiration */}
             <td className="px-4 py-3">
-                <span className="text-sm text-gray-500 dark:text-gray-400 font-mono tabular-nums">
+                <span className="text-sm text-[#5B6B7D] font-mono tabular-nums">
                     {record.license_expiration_date || '—'}
                 </span>
             </td>
@@ -162,11 +162,11 @@ const RegistryRow = React.forwardRef<HTMLTableRowElement, RegistryRowProps>(func
             {/* Current status */}
             <td className="px-4 py-3 text-center">
                 {record.is_current ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-cyan-500/10 text-cyan-400">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700">
                         Active
                     </span>
                 ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-500/10 text-gray-500">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-[#5B6B7D]">
                         Historic
                     </span>
                 )}

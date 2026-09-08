@@ -8,18 +8,22 @@ import {
     selectAvailableCities,
 } from '@/store/slices/permitsSlice';
 import { CityDataSourceCard } from '@/components/permits';
+import PageHeader from '@/components/common/PageHeader';
 import { apiService } from '@/services/api';
 import { CitySyncStatus, PermitCityInfo } from '@/types';
 
 // ─── adapter tab colours (shared with CitySyncPanel) ────────────────────────
+// Restrained Estimation Hub palette — blue / green / amber / gray only.
+// No purple/pink/cyan-neon; "ods" reuses a second blue tone since only four
+// hue families are allowed for five source types.
 
 const ADAPTER_COLORS: Record<string, { bg: string; text: string; activeBg: string; activeBorder: string }> = {
-    all:     { bg: 'bg-white/[0.04]',  text: 'text-gray-300',    activeBg: 'bg-indigo-500/15',  activeBorder: 'border-indigo-500/40'  },
-    socrata: { bg: 'bg-blue-500/8',    text: 'text-blue-400',    activeBg: 'bg-blue-500/15',    activeBorder: 'border-blue-500/40'    },
-    arcgis:  { bg: 'bg-emerald-500/8', text: 'text-emerald-400', activeBg: 'bg-emerald-500/15', activeBorder: 'border-emerald-500/40' },
-    ckan:    { bg: 'bg-amber-500/8',   text: 'text-amber-400',   activeBg: 'bg-amber-500/15',   activeBorder: 'border-amber-500/40'   },
-    csv:     { bg: 'bg-purple-500/8',  text: 'text-purple-400',  activeBg: 'bg-purple-500/15',  activeBorder: 'border-purple-500/40'  },
-    ods:     { bg: 'bg-pink-500/8',    text: 'text-pink-400',    activeBg: 'bg-pink-500/15',    activeBorder: 'border-pink-500/40'    },
+    all:     { bg: 'bg-white',      text: 'text-[#5B6B7D]',  activeBg: 'bg-[#00458B]/10', activeBorder: 'border-[#00458B]/40' },
+    socrata: { bg: 'bg-blue-50',    text: 'text-blue-700',    activeBg: 'bg-blue-100',     activeBorder: 'border-blue-400'     },
+    arcgis:  { bg: 'bg-emerald-50', text: 'text-emerald-700', activeBg: 'bg-emerald-100',  activeBorder: 'border-emerald-400'  },
+    ckan:    { bg: 'bg-amber-50',   text: 'text-amber-700',   activeBg: 'bg-amber-100',    activeBorder: 'border-amber-400'    },
+    csv:     { bg: 'bg-gray-100',   text: 'text-[#5B6B7D]',   activeBg: 'bg-gray-200',     activeBorder: 'border-gray-400'     },
+    ods:     { bg: 'bg-blue-50',    text: 'text-blue-800',    activeBg: 'bg-blue-100',     activeBorder: 'border-blue-500'     },
 };
 
 // ─── page ────────────────────────────────────────────────────────────────────
@@ -119,46 +123,39 @@ export default function DataSourcesPage() {
         : 'Never';
 
     return (
-        <div className="p-6 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                            <Database size={20} className="text-white" />
-                        </div>
-                        Data Sources
-                    </h1>
-                    <p className="text-gray-500 mt-1 text-sm">
-                        Manage city data feeds, sync permit records, and monitor data quality
-                    </p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleImportCrosswalk}
-                        disabled={importingCrosswalk}
-                        title="Import ZIP → County crosswalk from Census Bureau"
-                        className="flex items-center gap-2 px-3 py-2 bg-black/4 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 text-sm transition-colors disabled:opacity-50"
-                    >
-                        {importingCrosswalk
-                            ? <RefreshCw size={14} className="animate-spin" />
-                            : <Settings2 size={14} />}
-                        {importingCrosswalk ? 'Importing…' : 'Import ZIP Crosswalk'}
-                    </button>
-                    <button
-                        onClick={() => fetchStatuses(cities)}
-                        disabled={loadingStatuses}
-                        className="flex items-center gap-2 px-3 py-2 bg-black/4 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 text-sm transition-colors disabled:opacity-50"
-                    >
-                        <RefreshCw size={14} className={loadingStatuses ? 'animate-spin' : ''} />
-                        Refresh All
-                    </button>
-                </div>
-            </div>
+        <div className="p-6 lg:p-8 space-y-6">
+            <PageHeader
+                icon={Database}
+                title="Data Sources"
+                subtitle="Manage city data feeds, sync permit records, and monitor data quality"
+                actions={
+                    <>
+                        <button
+                            onClick={handleImportCrosswalk}
+                            disabled={importingCrosswalk}
+                            title="Import ZIP → County crosswalk from Census Bureau"
+                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
+                        >
+                            {importingCrosswalk
+                                ? <RefreshCw size={14} className="animate-spin" />
+                                : <Settings2 size={14} />}
+                            {importingCrosswalk ? 'Importing…' : 'Import ZIP Crosswalk'}
+                        </button>
+                        <button
+                            onClick={() => fetchStatuses(cities)}
+                            disabled={loadingStatuses}
+                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
+                        >
+                            <RefreshCw size={14} className={loadingStatuses ? 'animate-spin' : ''} />
+                            Refresh All
+                        </button>
+                    </>
+                }
+            />
 
             {/* Crosswalk status message */}
             {crosswalkMsg && (
-                <div className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400 text-sm">
+                <div className="px-4 py-2 bg-[#00458B]/5 border border-[#00458B]/20 rounded-lg text-[#00458B] text-sm">
                     {crosswalkMsg}
                 </div>
             )}
@@ -186,13 +183,13 @@ export default function DataSourcesPage() {
                                 border transition-all duration-150
                                 ${isActive
                                     ? `${colors.activeBg} ${colors.text} ${colors.activeBorder}`
-                                    : `${colors.bg} ${colors.text} border-transparent hover:border-white/10`}
+                                    : `${colors.bg} ${colors.text} border-transparent hover:border-[#DFE6EE]`}
                             `}
                         >
                             {adapter === 'all' ? 'All Sources' : adapter.toUpperCase()}
                             <span className={`
                                 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-semibold
-                                ${isActive ? 'bg-white/10' : 'bg-white/5'}
+                                ${isActive ? 'bg-black/10' : 'bg-black/5'}
                             `}>
                                 {count}
                             </span>
@@ -203,7 +200,7 @@ export default function DataSourcesPage() {
 
             {/* City card list (accordion) */}
             {filteredCities.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 text-sm">
+                <div className="text-center py-16 text-[#5B6B7D] text-sm">
                     {cities.length === 0 ? 'Loading cities…' : `No cities found for ${activeAdapter.toUpperCase()}`}
                 </div>
             ) : (
@@ -229,11 +226,11 @@ export default function DataSourcesPage() {
 
 function SummaryChip({ label, value, small }: { label: string; value: string; small?: boolean }) {
     return (
-        <div className="bg-black/2 dark:bg-white/3 border border-gray-200 dark:border-white/8 rounded-xl p-4">
-            <p className={`font-bold text-gray-900 dark:text-white ${small ? 'text-base' : 'text-2xl'}`}>
+        <div className="bg-white border border-[#DFE6EE] rounded-lg p-4">
+            <p className={`font-bold text-[#0E2B5C] ${small ? 'text-base' : 'text-2xl'}`}>
                 {value}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+            <p className="text-xs text-[#5B6B7D] mt-0.5">{label}</p>
         </div>
     );
 }

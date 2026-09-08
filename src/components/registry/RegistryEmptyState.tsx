@@ -11,13 +11,13 @@ interface RegistryEmptyStateProps {
 export default function RegistryEmptyState({ hasFilters = false, onResetFilters }: RegistryEmptyStateProps) {
     return (
         <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/[0.03] flex items-center justify-center mb-4">
-                <ShieldOff size={32} className="text-gray-500" />
+            <div className="w-16 h-16 rounded-full bg-[#F7F9FB] border border-[#DFE6EE] flex items-center justify-center mb-4">
+                <ShieldOff size={32} className="text-[#5B6B7D]" />
             </div>
-            <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <h3 className="text-lg font-medium text-[#0E2B5C] mb-2">
                 No registry records found
             </h3>
-            <p className="text-gray-500 text-center max-w-md mb-6">
+            <p className="text-[#5B6B7D] text-center max-w-md mb-6">
                 {hasFilters
                     ? 'No records match your current filters. Try adjusting your search criteria or reset filters.'
                     : 'No records have been synced for this registry source yet.'}
@@ -25,7 +25,7 @@ export default function RegistryEmptyState({ hasFilters = false, onResetFilters 
             {hasFilters && onResetFilters && (
                 <button
                     onClick={onResetFilters}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/[0.05] hover:bg-gray-200 dark:hover:bg-white/[0.08] border border-gray-200 dark:border-white/[0.1] rounded-lg text-gray-700 dark:text-gray-300 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
                 >
                     <RefreshCw size={16} />
                     Reset Filters

@@ -19,85 +19,67 @@ import {
 } from '@/types';
 
 // ─── adapter palette ──────────────────────────────────────────────────────────
+// Restrained Estimation Hub palette — blue / green / amber / gray only.
+// No gradients, no glow shadows, no purple/pink. "ods" reuses a second blue
+// tone since only four hue families are allowed for five source types.
 
 const ADAPTER: Record<string, {
     label: string;
-    gradient: string;
-    glow: string;
     text: string;
     chart: string;
-    chartAlt: string;
     border: string;
     borderAccent: string;
     badgeBg: string;
 }> = {
     arcgis:  {
         label: 'ArcGIS',
-        gradient: 'from-emerald-600/30 via-teal-600/10 to-transparent',
-        glow: 'hover:shadow-emerald-500/25',
-        text: 'text-emerald-400',
-        chart: '#10b981',
-        chartAlt: '#059669',
-        border: 'border-emerald-500/30',
+        text: 'text-emerald-700',
+        chart: '#059669',
+        border: 'border-emerald-200',
         borderAccent: 'border-l-emerald-500',
-        badgeBg: 'bg-emerald-500/15 text-emerald-400',
+        badgeBg: 'bg-emerald-50 text-emerald-700',
     },
     socrata: {
         label: 'Socrata',
-        gradient: 'from-blue-600/30 via-cyan-600/10 to-transparent',
-        glow: 'hover:shadow-blue-500/25',
-        text: 'text-blue-400',
-        chart: '#3b82f6',
-        chartAlt: '#2563eb',
-        border: 'border-blue-500/30',
+        text: 'text-blue-700',
+        chart: '#00458B',
+        border: 'border-blue-200',
         borderAccent: 'border-l-blue-500',
-        badgeBg: 'bg-blue-500/15 text-blue-400',
+        badgeBg: 'bg-blue-50 text-blue-700',
     },
     ckan: {
         label: 'CKAN',
-        gradient: 'from-amber-600/30 via-orange-600/10 to-transparent',
-        glow: 'hover:shadow-amber-500/25',
-        text: 'text-amber-400',
-        chart: '#f59e0b',
-        chartAlt: '#d97706',
-        border: 'border-amber-500/30',
+        text: 'text-amber-700',
+        chart: '#d97706',
+        border: 'border-amber-200',
         borderAccent: 'border-l-amber-500',
-        badgeBg: 'bg-amber-500/15 text-amber-400',
+        badgeBg: 'bg-amber-50 text-amber-700',
     },
     csv: {
         label: 'CSV',
-        gradient: 'from-purple-600/30 via-violet-600/10 to-transparent',
-        glow: 'hover:shadow-purple-500/25',
-        text: 'text-purple-400',
-        chart: '#a855f7',
-        chartAlt: '#9333ea',
-        border: 'border-purple-500/30',
-        borderAccent: 'border-l-purple-500',
-        badgeBg: 'bg-purple-500/15 text-purple-400',
+        text: 'text-[#5B6B7D]',
+        chart: '#6b7280',
+        border: 'border-gray-300',
+        borderAccent: 'border-l-gray-400',
+        badgeBg: 'bg-gray-100 text-[#5B6B7D]',
     },
     ods: {
         label: 'ODS',
-        gradient: 'from-pink-600/30 via-rose-600/10 to-transparent',
-        glow: 'hover:shadow-pink-500/25',
-        text: 'text-pink-400',
-        chart: '#ec4899',
-        chartAlt: '#db2777',
-        border: 'border-pink-500/30',
-        borderAccent: 'border-l-pink-500',
-        badgeBg: 'bg-pink-500/15 text-pink-400',
+        text: 'text-blue-800',
+        chart: '#045CB4',
+        border: 'border-blue-300',
+        borderAccent: 'border-l-blue-600',
+        badgeBg: 'bg-blue-50 text-blue-800',
     },
 };
 
 const DEFAULT_ADAPTER = {
     label: 'API',
-    gradient: 'from-gray-600/20 via-gray-600/8 to-transparent',
-    glow: 'hover:shadow-gray-500/20',
-    text: 'text-gray-400',
+    text: 'text-[#5B6B7D]',
     chart: '#6b7280',
-    chartAlt: '#4b5563',
-    border: 'border-gray-500/20',
-    borderAccent: 'border-l-gray-500',
-    badgeBg: 'bg-gray-500/15 text-gray-400',
+    border: 'border-gray-200',
+    borderAccent: 'border-l-gray-300',
+    badgeBg: 'bg-gray-100 text-[#5B6B7D]',
 };
 
 function palette(source: string) {
@@ -107,13 +89,13 @@ function palette(source: string) {
 // ─── freshness ────────────────────────────────────────────────────────────────
 
 function freshnessInfo(lastSyncAt: string | null | undefined) {
-    if (!lastSyncAt) return { label: 'Never synced', color: 'text-gray-500', dot: 'bg-gray-600' };
+    if (!lastSyncAt) return { label: 'Never synced', color: 'text-[#5B6B7D]', dot: 'bg-gray-300' };
     const days = Math.floor((Date.now() - new Date(lastSyncAt).getTime()) / 86_400_000);
-    if (days === 0) return { label: 'Today',        color: 'text-emerald-400', dot: 'bg-emerald-400' };
-    if (days === 1) return { label: 'Yesterday',    color: 'text-emerald-400', dot: 'bg-emerald-400' };
-    if (days <= 7)  return { label: `${days}d ago`, color: 'text-emerald-400', dot: 'bg-emerald-400' };
-    if (days <= 30) return { label: `${days}d ago`, color: 'text-amber-400',   dot: 'bg-amber-400'   };
-    return             { label: `${days}d ago`, color: 'text-red-400',     dot: 'bg-red-400'     };
+    if (days === 0) return { label: 'Today',        color: 'text-emerald-700', dot: 'bg-emerald-500' };
+    if (days === 1) return { label: 'Yesterday',    color: 'text-emerald-700', dot: 'bg-emerald-500' };
+    if (days <= 7)  return { label: `${days}d ago`, color: 'text-emerald-700', dot: 'bg-emerald-500' };
+    if (days <= 30) return { label: `${days}d ago`, color: 'text-amber-700',   dot: 'bg-amber-500'   };
+    return             { label: `${days}d ago`, color: 'text-red-700',     dot: 'bg-red-500'     };
 }
 
 // ─── custom tooltip ───────────────────────────────────────────────────────────
@@ -127,14 +109,14 @@ function CustomTooltip({ active, payload, label, chartColor }: {
     if (!active || !payload?.length) return null;
     return (
         <div
-            className="bg-gray-900/98 rounded-xl px-3.5 py-2.5 shadow-2xl backdrop-blur-sm"
-            style={{ border: `1px solid ${chartColor ?? '#6b7280'}40` }}
+            className="bg-white rounded-lg px-3.5 py-2.5 shadow-md border border-[#DFE6EE]"
+            style={{ borderColor: chartColor ? `${chartColor}40` : undefined }}
         >
-            <p className="text-[10px] text-gray-400 mb-1">{label}</p>
-            <p className="text-base font-mono font-bold text-white tabular-nums">
+            <p className="text-[10px] text-[#5B6B7D] mb-1">{label}</p>
+            <p className="text-base font-mono font-bold text-[#0E2B5C] tabular-nums">
                 {payload[0].value.toLocaleString()}
             </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">permits</p>
+            <p className="text-[10px] text-[#5B6B7D] mt-0.5">permits</p>
         </div>
     );
 }
@@ -143,10 +125,10 @@ function CustomTooltip({ active, payload, label, chartColor }: {
 
 function SyncDot({ status }: { status: string | null | undefined }) {
     const color =
-        status === 'success' ? 'bg-emerald-400' :
-        status === 'failed'  ? 'bg-red-400'     :
-        status === 'running' ? 'bg-yellow-400 animate-pulse' :
-        'bg-gray-600';
+        status === 'success' ? 'bg-emerald-500' :
+        status === 'failed'  ? 'bg-red-500'     :
+        status === 'running' ? 'bg-amber-500 animate-pulse' :
+        'bg-gray-300';
     return <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${color}`} />;
 }
 
@@ -329,32 +311,28 @@ export function CityDataSourceCard({
         <motion.div
             layout
             className={`
-                relative overflow-hidden rounded-2xl border-l-2 border transition-all duration-300
+                relative overflow-hidden rounded-lg border-l-4 border transition-all duration-300 bg-white
                 ${isExpanded
-                    ? `${pal.borderAccent} ${pal.border} shadow-xl ${pal.glow.replace('hover:', '')}`
-                    : `border-l-transparent border-white/[0.08] hover:border-white/[0.14] hover:shadow-lg ${pal.glow}`
+                    ? `${pal.borderAccent} ${pal.border} shadow-sm`
+                    : `border-l-transparent border-[#DFE6EE] hover:border-l-gray-200`
                 }
-                bg-gray-950/80 backdrop-blur-sm
             `}
         >
-            {/* Top accent gradient line */}
-            <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${pal.gradient}`} />
-
             {/* ── Header / collapsed row ──────────────────────────────────── */}
             <button
                 onClick={onToggle}
-                className="w-full flex items-center gap-4 px-5 py-4 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded-t-2xl"
+                className="w-full flex items-center gap-4 px-5 py-4 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00458B]/30 rounded-t-lg"
             >
                 {/* City info */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2.5 mb-1.5">
                         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${freshness.dot}`} />
-                        <span className="font-semibold text-white text-sm leading-none tracking-tight">{city.name}</span>
+                        <span className="font-semibold text-[#0E2B5C] text-sm leading-none tracking-tight">{city.name}</span>
                         {city.stale && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold tracking-wide bg-yellow-500/15 text-yellow-400 uppercase">Stale</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold tracking-wide bg-amber-50 text-amber-700 uppercase">Stale</span>
                         )}
                         {city.irrelevant && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold tracking-wide bg-gray-500/20 text-gray-500 uppercase">Irrelevant</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-md font-bold tracking-wide bg-gray-100 text-[#5B6B7D] uppercase">Irrelevant</span>
                         )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -362,13 +340,13 @@ export function CityDataSourceCard({
                             {pal.label}
                         </span>
                         {city.state_code && (
-                            <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                            <span className="flex items-center gap-1 text-[10px] text-[#5B6B7D]">
                                 <MapPin size={9} />
                                 {city.state_code}
                             </span>
                         )}
                         {city.metro_name && (
-                            <span className="text-[10px] text-gray-600 truncate hidden sm:block">{city.metro_name}</span>
+                            <span className="text-[10px] text-[#5B6B7D] truncate hidden sm:block">{city.metro_name}</span>
                         )}
                     </div>
                 </div>
@@ -377,19 +355,19 @@ export function CityDataSourceCard({
                 <div className="flex items-center gap-3 flex-shrink-0">
                     {/* Total records */}
                     <div className="hidden md:block text-right">
-                        <p className="text-sm font-mono font-bold text-white tabular-nums leading-none">
+                        <p className="text-sm font-mono font-bold text-[#0E2B5C] tabular-nums leading-none">
                             {syncStatus?.total_records != null
                                 ? syncStatus.total_records.toLocaleString()
-                                : <span className="text-gray-600">—</span>}
+                                : <span className="text-gray-300">—</span>}
                         </p>
-                        <p className="text-[10px] text-gray-600 mt-0.5 uppercase tracking-wider">records</p>
+                        <p className="text-[10px] text-[#5B6B7D] mt-0.5 uppercase tracking-wider">records</p>
                     </div>
 
                     {/* Delta badge */}
                     {latestInserted != null && latestInserted > 0 && (
-                        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                            <ArrowUpRight size={11} className="text-emerald-400" />
-                            <span className="text-xs font-mono font-bold text-emerald-400 tabular-nums">
+                        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
+                            <ArrowUpRight size={11} className="text-emerald-700" />
+                            <span className="text-xs font-mono font-bold text-emerald-700 tabular-nums">
                                 +{latestInserted.toLocaleString()}
                             </span>
                         </div>
@@ -397,9 +375,9 @@ export function CityDataSourceCard({
 
                     {/* Trend icon */}
                     {monthly.length >= 2 && (
-                        trendDir === 'up'   ? <TrendingUp  size={15} className="text-emerald-400" /> :
-                        trendDir === 'down' ? <TrendingDown size={15} className="text-red-400" />   :
-                        <Minus size={15} className="text-gray-600" />
+                        trendDir === 'up'   ? <TrendingUp  size={15} className="text-emerald-600" /> :
+                        trendDir === 'down' ? <TrendingDown size={15} className="text-red-600" />   :
+                        <Minus size={15} className="text-gray-300" />
                     )}
 
                     {/* Freshness */}
@@ -407,16 +385,16 @@ export function CityDataSourceCard({
                         <p className={`text-xs font-mono font-medium ${freshness.color} leading-none tabular-nums`}>
                             {freshness.label}
                         </p>
-                        <p className="text-[10px] text-gray-600 mt-0.5 uppercase tracking-wider">last sync</p>
+                        <p className="text-[10px] text-[#5B6B7D] mt-0.5 uppercase tracking-wider">last sync</p>
                     </div>
 
                     {/* Animated chevron */}
                     <motion.div
                         animate={{ rotate: isExpanded ? 180 : 0 }}
                         transition={shouldReduce ? { duration: 0 } : { duration: 0.25, ease: 'easeInOut' }}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/[0.05] group-hover:bg-white/[0.08] transition-colors"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#F7F9FB] group-hover:bg-gray-100 transition-colors"
                     >
-                        <ChevronDown size={15} className="text-gray-400" />
+                        <ChevronDown size={15} className="text-[#5B6B7D]" />
                     </motion.div>
                 </div>
             </button>
@@ -432,7 +410,7 @@ export function CityDataSourceCard({
                         transition={bodyTransition}
                         className="overflow-hidden"
                     >
-                        <div className="px-5 pb-6 space-y-5 border-t border-white/[0.06]">
+                        <div className="px-5 pb-6 space-y-5 border-t border-[#DFE6EE]">
 
                             {/* ── KPI row (staggered) ──────────────────────── */}
                             <motion.div
@@ -452,7 +430,7 @@ export function CityDataSourceCard({
                                     icon={<Zap size={13} />}
                                     label="New This Sync"
                                     value={latestInserted != null ? `+${latestInserted.toLocaleString()}` : '—'}
-                                    accent={latestInserted ? 'text-emerald-400' : 'text-gray-500'}
+                                    accent={latestInserted ? 'text-emerald-700' : 'text-[#5B6B7D]'}
                                     shouldReduce={shouldReduce ?? false}
                                 />
                                 <KpiChip
@@ -467,10 +445,10 @@ export function CityDataSourceCard({
                                     label="Success Rate"
                                     value={syncRate != null ? `${syncRate}%` : '—'}
                                     accent={
-                                        syncRate == null ? 'text-gray-500' :
-                                        syncRate >= 80   ? 'text-emerald-400' :
-                                        syncRate >= 50   ? 'text-amber-400' :
-                                        'text-red-400'
+                                        syncRate == null ? 'text-[#5B6B7D]' :
+                                        syncRate >= 80   ? 'text-emerald-700' :
+                                        syncRate >= 50   ? 'text-amber-700' :
+                                        'text-red-700'
                                     }
                                     shouldReduce={shouldReduce ?? false}
                                 />
@@ -479,33 +457,33 @@ export function CityDataSourceCard({
                             {/* Domain */}
                             {city.domain && (
                                 <div className="flex items-center gap-1.5 -mt-2">
-                                    <Globe2 size={11} className="text-gray-600" />
-                                    <span className="text-[11px] text-gray-600">{city.domain}</span>
+                                    <Globe2 size={11} className="text-[#5B6B7D]" />
+                                    <span className="text-[11px] text-[#5B6B7D]">{city.domain}</span>
                                 </div>
                             )}
 
                             {/* ── Error / delete confirm ───────────────────── */}
                             {syncError && (
-                                <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/8 border border-red-500/20 rounded-xl text-red-400 text-xs">
+                                <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
                                     <AlertCircle size={13} className="flex-shrink-0" />
                                     {syncError}
                                 </div>
                             )}
 
                             {deleteResult && confirmDelete && (
-                                <div className="px-3 py-3 bg-amber-500/8 border border-amber-500/20 rounded-xl text-xs">
-                                    <p className="text-amber-300 font-semibold mb-1">Confirm permanent deletion</p>
-                                    <p className="text-amber-400/70 mb-2">
+                                <div className="px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg text-xs">
+                                    <p className="text-amber-800 font-semibold mb-1">Confirm permanent deletion</p>
+                                    <p className="text-amber-700 mb-2">
                                         {deleteResult.agencies?.map(a => `${a.permit_count.toLocaleString()} permits`).join(', ') || 'No records found'}
                                     </p>
                                     <div className="flex gap-2">
                                         <button onClick={handleDelete} disabled={isDeleting}
-                                            className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none">
+                                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none">
                                             {isDeleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                                             Delete All
                                         </button>
                                         <button onClick={() => { setConfirmDelete(false); setDeleteResult(null); }}
-                                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 rounded-lg text-xs transition-colors focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none">
+                                            className="px-3 py-1.5 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] text-[#5B6B7D] rounded-lg text-xs transition-colors focus-visible:ring-2 focus-visible:ring-[#00458B]/30 focus-visible:outline-none">
                                             Cancel
                                         </button>
                                     </div>
@@ -513,7 +491,7 @@ export function CityDataSourceCard({
                             )}
 
                             {/* ── Tab bar ─────────────────────────────────── */}
-                            <div className="flex gap-1 p-1 bg-white/[0.03] rounded-xl border border-white/[0.05]">
+                            <div className="flex gap-1 p-1 bg-[#F7F9FB] rounded-lg border border-[#DFE6EE]">
                                 {[
                                     { id: 'chart',   icon: <BarChart2 size={12} />,  label: '6-Month Trend' },
                                     { id: 'history', icon: <History size={12} />,    label: 'Sync History'  },
@@ -523,11 +501,11 @@ export function CityDataSourceCard({
                                         key={tab.id}
                                         onClick={() => tab.id === 'zip' ? handleTabZip() : setActiveTab(tab.id as typeof activeTab)}
                                         className={`
-                                            flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200
-                                            focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none
+                                            flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200
+                                            focus-visible:ring-2 focus-visible:ring-[#00458B]/30 focus-visible:outline-none
                                             ${activeTab === tab.id
-                                                ? `bg-white/[0.08] ${pal.text} shadow-sm`
-                                                : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                                                ? `bg-white ${pal.text} shadow-sm border border-[#DFE6EE]`
+                                                : 'text-[#5B6B7D] hover:text-[#0E2B5C] hover:bg-white/60'
                                             }
                                         `}
                                     >
@@ -546,8 +524,8 @@ export function CityDataSourceCard({
                                         </div>
                                     ) : monthly.length === 0 ? (
                                         <div className="h-full flex flex-col items-center justify-center gap-2">
-                                            <BarChart2 size={28} className="text-gray-700" />
-                                            <p className="text-xs text-gray-600">No dated permit records yet</p>
+                                            <BarChart2 size={28} className="text-gray-300" />
+                                            <p className="text-xs text-[#5B6B7D]">No dated permit records yet</p>
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height="100%">
@@ -557,25 +535,25 @@ export function CityDataSourceCard({
                                             >
                                                 <defs>
                                                     <linearGradient id={`grad-${gradientId}`} x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%"   stopColor={pal.chart} stopOpacity={0.60} />
-                                                        <stop offset="65%"  stopColor={pal.chart} stopOpacity={0.12} />
+                                                        <stop offset="0%"   stopColor={pal.chart} stopOpacity={0.35} />
+                                                        <stop offset="65%"  stopColor={pal.chart} stopOpacity={0.08} />
                                                         <stop offset="100%" stopColor={pal.chart} stopOpacity={0.02} />
                                                     </linearGradient>
                                                 </defs>
                                                 <CartesianGrid
                                                     vertical={false}
                                                     strokeDasharray="3 3"
-                                                    stroke="rgba(255,255,255,0.05)"
+                                                    stroke="#DFE6EE"
                                                 />
                                                 <XAxis
                                                     dataKey="label"
-                                                    tick={{ fontSize: 10, fill: '#4b5563', fontFamily: 'var(--font-geist-mono)' }}
+                                                    tick={{ fontSize: 10, fill: '#5B6B7D', fontFamily: 'var(--font-geist-mono)' }}
                                                     tickLine={false}
                                                     axisLine={false}
                                                     tickFormatter={(v: string) => v.split(' ')[0]}
                                                 />
                                                 <YAxis
-                                                    tick={{ fontSize: 10, fill: '#4b5563', fontFamily: 'var(--font-geist-mono)' }}
+                                                    tick={{ fontSize: 10, fill: '#5B6B7D', fontFamily: 'var(--font-geist-mono)' }}
                                                     tickLine={false}
                                                     axisLine={false}
                                                     width={40}
@@ -597,7 +575,7 @@ export function CityDataSourceCard({
                                                     activeDot={{
                                                         fill: pal.chart,
                                                         strokeWidth: 2,
-                                                        stroke: 'rgba(255,255,255,0.5)',
+                                                        stroke: '#ffffff',
                                                         r: 5,
                                                     }}
                                                     isAnimationActive={!shouldReduce}
@@ -617,14 +595,14 @@ export function CityDataSourceCard({
                                         </div>
                                     ) : history.length === 0 ? (
                                         <div className="h-32 flex flex-col items-center justify-center gap-2">
-                                            <History size={24} className="text-gray-700" />
-                                            <p className="text-xs text-gray-600">No sync history yet</p>
+                                            <History size={24} className="text-gray-300" />
+                                            <p className="text-xs text-[#5B6B7D]">No sync history yet</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-0 relative">
                                             {/* Spine line */}
                                             <div
-                                                className="absolute left-[7px] top-3 bottom-3 w-px opacity-20"
+                                                className="absolute left-[7px] top-3 bottom-3 w-px opacity-25"
                                                 style={{ background: pal.chart }}
                                             />
                                             {history.map((h, i) => (
@@ -637,7 +615,7 @@ export function CityDataSourceCard({
                                                     </div>
                                                     <div className="flex-1 pb-3.5 min-w-0">
                                                         <div className="flex items-center justify-between gap-2">
-                                                            <span className="text-[11px] font-mono text-gray-500 tabular-nums">
+                                                            <span className="text-[11px] font-mono text-[#5B6B7D] tabular-nums">
                                                                 {new Date(h.started_at).toLocaleDateString('en-US', {
                                                                     month: 'short', day: 'numeric',
                                                                     hour: '2-digit', minute: '2-digit',
@@ -654,17 +632,17 @@ export function CityDataSourceCard({
                                                                 )}
                                                                 <span className={`
                                                                     text-[10px] font-medium px-1.5 py-0.5 rounded-md
-                                                                    ${h.status === 'success' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                                      h.status === 'failed'  ? 'bg-red-500/10 text-red-400' :
-                                                                      'bg-gray-500/10 text-gray-500'}
+                                                                    ${h.status === 'success' ? 'bg-emerald-50 text-emerald-700' :
+                                                                      h.status === 'failed'  ? 'bg-red-50 text-red-700' :
+                                                                      'bg-gray-100 text-[#5B6B7D]'}
                                                                 `}>{h.status}</span>
                                                             </div>
                                                         </div>
                                                         {h.status === 'failed' && h.error_message && (
-                                                            <p className="text-[10px] text-red-400/60 mt-0.5 truncate">{h.error_message}</p>
+                                                            <p className="text-[10px] text-red-600 mt-0.5 truncate">{h.error_message}</p>
                                                         )}
                                                         {h.status === 'success' && (
-                                                            <p className="text-[10px] font-mono text-gray-600 mt-0.5 tabular-nums">
+                                                            <p className="text-[10px] font-mono text-[#5B6B7D] mt-0.5 tabular-nums">
                                                                 {h.records_fetched.toLocaleString()} fetched
                                                                 {h.records_updated > 0 && ` · ${h.records_updated.toLocaleString()} updated`}
                                                             </p>
@@ -686,8 +664,8 @@ export function CityDataSourceCard({
                                         </div>
                                     ) : zipRows.length === 0 ? (
                                         <div className="h-32 flex flex-col items-center justify-center gap-2">
-                                            <MapPin size={24} className="text-gray-700" />
-                                            <p className="text-xs text-gray-600">No ZIP data — run a sync first</p>
+                                            <MapPin size={24} className="text-gray-300" />
+                                            <p className="text-xs text-[#5B6B7D]">No ZIP data — run a sync first</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
@@ -697,11 +675,11 @@ export function CityDataSourceCard({
                                                     : 0;
                                                 return (
                                                     <div key={i} className="flex items-center gap-3">
-                                                        <span className="text-xs font-mono text-gray-400 w-12 flex-shrink-0 text-right tabular-nums">
+                                                        <span className="text-xs font-mono text-[#5B6B7D] w-12 flex-shrink-0 text-right tabular-nums">
                                                             {z.zip_code}
                                                         </span>
                                                         <div className="flex-1 relative h-6 flex items-center">
-                                                            <div className="absolute inset-y-0 left-0 rounded-md bg-white/[0.04] w-full" />
+                                                            <div className="absolute inset-y-0 left-0 rounded-md bg-[#F7F9FB] w-full" />
                                                             <motion.div
                                                                 className="absolute inset-y-0 left-0 rounded-md"
                                                                 style={{ background: `${pal.chart}35` }}
@@ -709,12 +687,12 @@ export function CityDataSourceCard({
                                                                 animate={{ width: `${pct * 100}%` }}
                                                                 transition={{ duration: 0.55, delay: i * 0.05, ease: 'easeOut' }}
                                                             />
-                                                            <span className="relative text-[11px] text-gray-400 pl-2.5 truncate">
+                                                            <span className="relative text-[11px] text-[#0E2B5C] pl-2.5 truncate">
                                                                 {z.county_name ?? '—'}
-                                                                {z.state_code && <span className="text-gray-600"> · {z.state_code}</span>}
+                                                                {z.state_code && <span className="text-[#5B6B7D]"> · {z.state_code}</span>}
                                                             </span>
                                                         </div>
-                                                        <span className="text-xs font-mono tabular-nums text-gray-500 flex-shrink-0">
+                                                        <span className="text-xs font-mono tabular-nums text-[#5B6B7D] flex-shrink-0">
                                                             {z.permit_count.toLocaleString()}
                                                         </span>
                                                     </div>
@@ -727,10 +705,10 @@ export function CityDataSourceCard({
 
                             {/* ── Sync controls (collapsible) ──────────────── */}
                             {!city.stale && !city.irrelevant && (
-                                <div className="border-t border-white/[0.05] pt-4">
+                                <div className="border-t border-[#DFE6EE] pt-4">
                                     <button
                                         onClick={() => setShowControls(v => !v)}
-                                        className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors mb-3 focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none rounded"
+                                        className="flex items-center gap-2 text-xs text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors mb-3 focus-visible:ring-2 focus-visible:ring-[#00458B]/30 focus-visible:outline-none rounded"
                                     >
                                         <Settings size={12} />
                                         Sync Controls
@@ -754,17 +732,17 @@ export function CityDataSourceCard({
                                                 {/* Date range */}
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="block text-[10px] text-gray-600 mb-1 uppercase tracking-wider">From</label>
+                                                        <label className="block text-[10px] text-[#5B6B7D] mb-1 uppercase tracking-wider">From</label>
                                                         <input type="date" value={dateRange.startDate}
                                                             onChange={e => setDateRange(r => ({ ...r, startDate: e.target.value }))}
-                                                            className="w-full px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs text-white focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                                                            className="w-full px-2.5 py-1.5 bg-white border border-[#DFE6EE] rounded-lg text-xs text-[#0E2B5C] focus:border-[#00458B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00458B]/30"
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-[10px] text-gray-600 mb-1 uppercase tracking-wider">To</label>
+                                                        <label className="block text-[10px] text-[#5B6B7D] mb-1 uppercase tracking-wider">To</label>
                                                         <input type="date" value={dateRange.endDate}
                                                             onChange={e => setDateRange(r => ({ ...r, endDate: e.target.value }))}
-                                                            className="w-full px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs text-white focus:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                                                            className="w-full px-2.5 py-1.5 bg-white border border-[#DFE6EE] rounded-lg text-xs text-[#0E2B5C] focus:border-[#00458B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00458B]/30"
                                                         />
                                                     </div>
                                                 </div>
@@ -774,23 +752,23 @@ export function CityDataSourceCard({
                                                     <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                                         <input type="checkbox" checked={fetchAll}
                                                             onChange={e => setFetchAll(e.target.checked)}
-                                                            className="w-3.5 h-3.5 accent-indigo-500"
+                                                            className="w-3.5 h-3.5 accent-[#00458B]"
                                                         />
-                                                        <span className="text-xs text-gray-400">Fetch All</span>
+                                                        <span className="text-xs text-[#5B6B7D]">Fetch All</span>
                                                     </label>
                                                     {!fetchAll && (
                                                         <input type="number" placeholder="1000" min={100} max={10000}
                                                             value={recordLimit}
                                                             onChange={e => setRecordLimit(Math.min(Math.max(parseInt(e.target.value) || 1000, 100), 10000))}
-                                                            className="w-24 px-2.5 py-1.5 bg-white/[0.04] border border-white/[0.08] rounded-lg text-xs font-mono text-white focus:outline-none"
+                                                            className="w-24 px-2.5 py-1.5 bg-white border border-[#DFE6EE] rounded-lg text-xs font-mono text-[#0E2B5C] focus:outline-none focus:border-[#00458B]"
                                                         />
                                                     )}
                                                     <div className="flex items-center gap-2 ml-auto">
                                                         <button onClick={handleSync} disabled={isSyncing || isDeleting}
-                                                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none min-h-[44px] ${
+                                                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[#00458B]/40 focus-visible:outline-none min-h-[44px] ${
                                                                 isSyncing || isDeleting
-                                                                    ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                                                                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40'
+                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                    : 'bg-[#00458B] hover:bg-[#045CB4] text-white'
                                                             }`}>
                                                             {isSyncing
                                                                 ? <><Loader2 size={14} className="animate-spin" /> Syncing…</>
@@ -798,10 +776,10 @@ export function CityDataSourceCard({
                                                         </button>
                                                         <button onClick={handleDelete} disabled={isSyncing || isDeleting}
                                                             title="Delete all records for this city"
-                                                            className={`p-2.5 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none ${
+                                                            className={`p-2.5 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none ${
                                                                 isSyncing || isDeleting
-                                                                    ? 'text-gray-700 cursor-not-allowed'
-                                                                    : 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'
+                                                                    ? 'text-gray-300 cursor-not-allowed'
+                                                                    : 'text-[#5B6B7D] hover:text-red-700 hover:bg-red-50'
                                                             }`}>
                                                             {isDeleting
                                                                 ? <Loader2 size={14} className="animate-spin" />
@@ -817,13 +795,13 @@ export function CityDataSourceCard({
 
                             {/* Stale / irrelevant notice */}
                             {city.stale && (
-                                <div className="flex items-center gap-2 px-3 py-2.5 bg-yellow-500/[0.06] border border-yellow-500/15 rounded-xl text-xs text-yellow-500/70">
+                                <div className="flex items-center gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
                                     <AlertCircle size={12} className="flex-shrink-0" />
                                     Data source is no longer updated — sync unavailable
                                 </div>
                             )}
                             {city.irrelevant && (
-                                <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-500/[0.08] border border-gray-500/15 rounded-xl text-xs text-gray-500">
+                                <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-100 border border-gray-200 rounded-lg text-xs text-[#5B6B7D]">
                                     <AlertCircle size={12} className="flex-shrink-0" />
                                     Not construction-relevant — sync disabled
                                 </div>
@@ -848,14 +826,14 @@ function KpiChip({ icon, label, value, accent, shouldReduce }: {
     return (
         <motion.div
             variants={shouldReduce ? {} : kpiItemVariants}
-            className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5 space-y-2 hover:bg-white/[0.06] transition-colors group"
+            className="bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg p-3.5 space-y-2 hover:bg-gray-100 transition-colors group"
         >
             <div className={`flex items-center gap-1.5 ${accent}`}>
                 {icon}
                 <span className="text-[10px] font-medium uppercase tracking-widest">{label}</span>
             </div>
             <p className={`text-2xl font-mono font-bold leading-none tabular-nums ${
-                accent !== 'text-gray-500' ? accent : 'text-gray-400'
+                accent !== 'text-[#5B6B7D]' ? accent : 'text-[#5B6B7D]'
             }`}>
                 {value}
             </p>

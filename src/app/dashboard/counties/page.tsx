@@ -5,56 +5,45 @@ import { LandPlot, RefreshCw, AlertCircle, ArrowUpDown, SortAsc } from 'lucide-r
 import { apiService } from '@/services/api';
 import { PermitCounty, CountyCoverageGap } from '@/types';
 import { CountyAnalyticsCard } from '@/components/permits';
+import PageHeader from '@/components/common/PageHeader';
 
-// Rotating palette — cycles through these colors for dynamically discovered states.
+// Rotating palette for the dynamically-discovered state tabs — restrained
+// blue / green / amber / gray family only, no purple/pink/neon.
 const TAB_PALETTE = [
-    { activeBg: 'bg-blue-500/15',    activeBorder: 'border-blue-500/40',    text: 'text-blue-400'    },
-    { activeBg: 'bg-amber-500/15',   activeBorder: 'border-amber-500/40',   text: 'text-amber-400'   },
-    { activeBg: 'bg-purple-500/15',  activeBorder: 'border-purple-500/40',  text: 'text-purple-400'  },
-    { activeBg: 'bg-cyan-500/15',    activeBorder: 'border-cyan-500/40',    text: 'text-cyan-400'    },
-    { activeBg: 'bg-orange-500/15',  activeBorder: 'border-orange-500/40',  text: 'text-orange-400'  },
-    { activeBg: 'bg-pink-500/15',    activeBorder: 'border-pink-500/40',    text: 'text-pink-400'    },
-    { activeBg: 'bg-violet-500/15',  activeBorder: 'border-violet-500/40',  text: 'text-violet-400'  },
-    { activeBg: 'bg-teal-500/15',    activeBorder: 'border-teal-500/40',    text: 'text-teal-400'    },
-    { activeBg: 'bg-rose-500/15',    activeBorder: 'border-rose-500/40',    text: 'text-rose-400'    },
-    { activeBg: 'bg-lime-500/15',    activeBorder: 'border-lime-500/40',    text: 'text-lime-400'    },
-    { activeBg: 'bg-sky-500/15',     activeBorder: 'border-sky-500/40',     text: 'text-sky-400'     },
-    { activeBg: 'bg-fuchsia-500/15', activeBorder: 'border-fuchsia-500/40', text: 'text-fuchsia-400' },
+    { activeBg: 'bg-blue-100',    activeBorder: 'border-blue-400',    text: 'text-blue-700'    },
+    { activeBg: 'bg-amber-100',   activeBorder: 'border-amber-400',   text: 'text-amber-700'   },
+    { activeBg: 'bg-emerald-100', activeBorder: 'border-emerald-400', text: 'text-emerald-700' },
+    { activeBg: 'bg-gray-200',    activeBorder: 'border-gray-400',    text: 'text-[#5B6B7D]'   },
 ];
 
-const ALL_COLOR = { activeBg: 'bg-emerald-500/15', activeBorder: 'border-emerald-500/40', text: 'text-emerald-400' };
+const ALL_COLOR = { activeBg: 'bg-[#00458B]/10', activeBorder: 'border-[#00458B]/40', text: 'text-[#00458B]' };
 
 function stateColor(index: number) {
     return TAB_PALETTE[index % TAB_PALETTE.length];
 }
 
-const GAP_DOT: Record<string, string> = {
-    green: 'bg-emerald-400',
-    amber: 'bg-amber-400',
-    red:   'bg-red-400 animate-pulse',
+// Coverage status — semantic only: green=adequate, amber=low, red=missing.
+const GAP_BADGE: Record<string, string> = {
+    green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200',
+    red:   'bg-red-50 text-red-700 border-red-200',
 };
 
 const GAP_LABEL: Record<string, string> = {
     green: 'Adequate',
     amber: 'Low Coverage',
-    red:   'No Data',
-};
-
-const GAP_TEXT: Record<string, string> = {
-    green: 'text-emerald-400',
-    amber: 'text-amber-400',
-    red:   'text-red-400',
+    red:   'Missing Data',
 };
 
 // ─── summary chip ─────────────────────────────────────────────────────────────
 
 function SummaryChip({ label, value, accent }: { label: string; value: string; accent?: string }) {
     return (
-        <div className="bg-black/2 dark:bg-white/3 border border-gray-200 dark:border-white/8 rounded-xl p-4">
-            <p className={`text-2xl font-bold font-mono tabular-nums ${accent ?? 'text-gray-900 dark:text-white'}`}>
+        <div className="bg-white border border-[#DFE6EE] rounded-lg p-4">
+            <p className={`text-2xl font-bold font-mono tabular-nums ${accent ?? 'text-[#0E2B5C]'}`}>
                 {value}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+            <p className="text-xs text-[#5B6B7D] mt-0.5">{label}</p>
         </div>
     );
 }
@@ -132,33 +121,26 @@ export default function CountiesPage() {
     }, [counties]);
 
     return (
-        <div className="p-6 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                            <LandPlot size={20} className="text-white" />
-                        </div>
-                        County Coverage
-                    </h1>
-                    <p className="text-gray-500 mt-1 text-sm">
-                        Validate permit coverage by county — identify data gaps across key metros
-                    </p>
-                </div>
-                <button
-                    onClick={fetchData}
-                    disabled={loading}
-                    className="flex items-center gap-2 px-3 py-2 bg-black/4 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/8 border border-gray-200 dark:border-white/10 rounded-lg text-gray-600 dark:text-gray-300 text-sm transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                    Refresh
-                </button>
-            </div>
+        <div className="p-6 lg:p-8 space-y-6">
+            <PageHeader
+                icon={LandPlot}
+                title="County Coverage"
+                subtitle="Validate permit coverage by county — identify data gaps across key metros"
+                actions={
+                    <button
+                        onClick={fetchData}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
+                }
+            />
 
             {/* Crosswalk warning */}
             {crosswalkEmpty && (
-                <div className="flex items-start gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 text-sm">
+                <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
                     <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
                     <span>
                         ZIP → County crosswalk is not populated — county names cannot be resolved.
@@ -169,7 +151,7 @@ export default function CountiesPage() {
 
             {/* Error */}
             {error && (
-                <div className="flex items-center gap-3 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                     <AlertCircle size={16} />
                     {error}
                 </div>
@@ -178,20 +160,20 @@ export default function CountiesPage() {
             {/* Summary chips */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <SummaryChip label="Counties in DB"  value={loading ? '—' : totalCounties.toString()} />
-                <SummaryChip label="Adequate (≥500)" value={loading ? '—' : adequateCount.toString()} accent="text-emerald-400" />
-                <SummaryChip label="Low Coverage"    value={loading ? '—' : gaps.filter(g => g.status === 'amber').length.toString()} accent="text-amber-400" />
-                <SummaryChip label="Missing Data"    value={loading ? '—' : missingCount.toString()} accent="text-red-400" />
+                <SummaryChip label="Adequate (≥500)" value={loading ? '—' : adequateCount.toString()} accent="text-emerald-700" />
+                <SummaryChip label="Low Coverage"    value={loading ? '—' : gaps.filter(g => g.status === 'amber').length.toString()} accent="text-amber-700" />
+                <SummaryChip label="Missing Data"    value={loading ? '—' : missingCount.toString()} accent="text-red-700" />
             </div>
 
             {/* Coverage Gaps — Known Key Counties */}
             {gaps.length > 0 && (
-                <div className="bg-black/2 dark:bg-white/[0.02] border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 space-y-3">
+                <div className="bg-white border border-[#DFE6EE] rounded-lg p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <LandPlot size={14} className="text-emerald-400" />
+                        <h2 className="text-sm font-semibold text-[#0E2B5C] flex items-center gap-2">
+                            <LandPlot size={14} className="text-[#00458B]" />
                             Key County Validation
                         </h2>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-[#5B6B7D]">
                             {adequateCount}/{gaps.length} adequate
                         </p>
                     </div>
@@ -199,24 +181,23 @@ export default function CountiesPage() {
                         {gaps.map(g => (
                             <div
                                 key={`${g.county_name}-${g.state_code}`}
-                                className="flex items-center gap-2.5 px-3 py-2 bg-white/[0.02] border border-white/[0.05] rounded-lg"
+                                className="flex items-center gap-2.5 px-3 py-2.5 bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg"
                             >
-                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${GAP_DOT[g.status]}`} />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs text-gray-300 truncate leading-none">
+                                    <p className="text-sm font-medium text-[#0E2B5C] truncate leading-none">
                                         {g.county_name}
                                     </p>
-                                    <p className="text-[10px] text-gray-600 mt-0.5">
+                                    <p className="text-[11px] text-[#5B6B7D] mt-1">
                                         {g.metro} · {g.state_code}
                                     </p>
                                 </div>
-                                <div className="text-right flex-shrink-0">
-                                    <p className="text-xs font-mono tabular-nums text-gray-400">
+                                <div className="text-right flex-shrink-0 space-y-1">
+                                    <p className="text-xs font-mono tabular-nums text-[#5B6B7D]">
                                         {g.permit_count.toLocaleString()}
                                     </p>
-                                    <p className={`text-[10px] ${GAP_TEXT[g.status]}`}>
+                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${GAP_BADGE[g.status]}`}>
                                         {GAP_LABEL[g.status]}
-                                    </p>
+                                    </span>
                                 </div>
                             </div>
                         ))}
@@ -239,11 +220,11 @@ export default function CountiesPage() {
                                     'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150',
                                     isActive
                                         ? `${colors.activeBg} ${colors.text} ${colors.activeBorder}`
-                                        : 'bg-white/[0.04] text-gray-400 border-transparent hover:border-white/10',
+                                        : 'bg-white text-[#5B6B7D] border-[#DFE6EE] hover:border-[#00458B]/30',
                                 ].join(' ')}
                             >
                                 {s === 'All' ? 'All States' : s}
-                                <span className={`inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-semibold ${isActive ? 'bg-white/10' : 'bg-white/5'}`}>
+                                <span className={`inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-semibold ${isActive ? 'bg-black/10' : 'bg-black/5'}`}>
                                     {count}
                                 </span>
                             </button>
@@ -252,17 +233,17 @@ export default function CountiesPage() {
                 </div>
 
                 {/* Sort toggle */}
-                <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg p-1">
                     <button
                         onClick={() => setSortMode('count')}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${sortMode === 'count' ? 'bg-emerald-500/15 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${sortMode === 'count' ? 'bg-white text-[#00458B] shadow-sm' : 'text-[#5B6B7D] hover:text-[#0E2B5C]'}`}
                     >
                         <ArrowUpDown size={11} />
                         Count
                     </button>
                     <button
                         onClick={() => setSortMode('alpha')}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${sortMode === 'alpha' ? 'bg-emerald-500/15 text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors ${sortMode === 'alpha' ? 'bg-white text-[#00458B] shadow-sm' : 'text-[#5B6B7D] hover:text-[#0E2B5C]'}`}
                     >
                         <SortAsc size={11} />
                         A–Z
@@ -274,11 +255,11 @@ export default function CountiesPage() {
             {loading ? (
                 <div className="space-y-2">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-14 rounded-xl bg-white/[0.02] border border-white/[0.05] animate-pulse" />
+                        <div key={i} className="h-14 rounded-lg bg-[#F7F9FB] border border-[#DFE6EE] animate-pulse" />
                     ))}
                 </div>
             ) : filteredCounties.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 text-sm">
+                <div className="text-center py-16 text-[#5B6B7D] text-sm">
                     {counties.length === 0
                         ? 'No county data yet — import the ZIP crosswalk and sync a data source first.'
                         : `No counties found for ${activeState}.`}
