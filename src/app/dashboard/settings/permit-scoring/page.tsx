@@ -25,6 +25,7 @@ import {
     ExternalLink,
 } from 'lucide-react';
 import { apiService } from '@/services/api';
+import PageHeader from '@/components/common/PageHeader';
 import type { ScoringRubricDetail, ScoringStats, SampleScoreResult, CostEstimateStats } from '@/types';
 
 type Status = 'idle' | 'saving' | 'saved' | 'error';
@@ -40,12 +41,15 @@ function setByPath(obj: Record<string, unknown>, path: (string | number)[], valu
     return next;
 }
 
+// Restrained Estimation Hub palette — blue / green / amber / gray only, no
+// teal/cyan/purple. "strong" is a darker blue-100 shade so it stays visually
+// distinct from "core" (blue-50) without introducing a new hue family.
 const BUCKET_COLORS: Record<string, string> = {
-    strategic: 'text-emerald-400 bg-emerald-500/15',
-    strong: 'text-cyan-400 bg-cyan-500/15',
-    core: 'text-blue-400 bg-blue-500/15',
-    opportunistic: 'text-amber-400 bg-amber-500/15',
-    no_send: 'text-gray-400 bg-gray-500/15',
+    strategic: 'text-emerald-700 bg-emerald-50',
+    strong: 'text-[#00458B] bg-blue-100',
+    core: 'text-blue-700 bg-blue-50',
+    opportunistic: 'text-amber-700 bg-amber-50',
+    no_send: 'text-[#5B6B7D] bg-gray-100',
 };
 
 // Small numeric input used throughout the editor.
@@ -61,7 +65,7 @@ function NumField({ value, onChange, step = 1, width = 'w-20' }: {
             step={step}
             value={value ?? 0}
             onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-            className={`${width} px-2.5 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 text-sm font-mono tabular-nums focus:border-cyan-500/50 focus:outline-none`}
+            className={`${width} px-2.5 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] text-sm font-mono tabular-nums focus:border-[#00458B] focus:ring-2 focus:ring-[#00458B]/30 focus:outline-none`}
         />
     );
 }
@@ -70,13 +74,13 @@ function SectionCard({ icon, title, cap, children }: {
     icon: React.ReactNode; title: string; cap?: string; children: React.ReactNode;
 }) {
     return (
-        <div className="rounded-2xl border border-gray-200 dark:border-white/8 bg-black/2 dark:bg-white/2 overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-200 dark:border-white/6 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-linear-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+        <div className="rounded-lg border border-[#DFE6EE] bg-white overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#DFE6EE] flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#F7F9FB] border border-[#DFE6EE] flex items-center justify-center">
                     {icon}
                 </div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex-1">{title}</h2>
-                {cap && <span className="text-[10px] uppercase tracking-widest text-gray-500 font-mono">{cap}</span>}
+                <h2 className="text-sm font-semibold text-[#0E2B5C] flex-1">{title}</h2>
+                {cap && <span className="text-[11px] uppercase tracking-widest text-[#5B6B7D] font-mono">{cap}</span>}
             </div>
             <div className="px-5 py-4 space-y-3">{children}</div>
         </div>
@@ -85,7 +89,7 @@ function SectionCard({ icon, title, cap, children }: {
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex items-center justify-between gap-4">
-        <span className="text-sm text-gray-600 dark:text-gray-300">{label}</span>
+        <span className="text-sm text-[#0E2B5C]">{label}</span>
         <div className="flex items-center gap-2">{children}</div>
     </div>
 );
@@ -149,28 +153,33 @@ function CostBackfillCard() {
     const busy = running || !!stats?.running;
 
     return (
-        <div className="mb-6 rounded-2xl border border-gray-200 dark:border-white/8 bg-black/2 dark:bg-white/2 p-5">
+        <div className="mb-6 rounded-lg border border-[#DFE6EE] bg-white p-5">
             <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
-                        <DollarSign size={15} className="text-emerald-400" /> Step 1 · Fill missing costs (AI)
+                    <h2 className="text-sm font-semibold text-[#0E2B5C] flex items-center gap-1.5">
+                        <DollarSign size={15} className="text-emerald-600" /> Step 1 · Fill missing costs (AI)
                     </h2>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[#5B6B7D]">
                         Estimates cost for permits missing one — grounded on similar permits in our DB — and
                         re-scores each one inline (no separate re-score needed). Targets non-excluded permits
                         scoring ≥ {minScore}.
-                        {stats
+                        {/* Defensive: GET /agents/estimate-cost/stats currently collides with
+                            agent_config.py's generic GET /agents/{agent_id}/stats route (FastAPI
+                            matches "estimate-cost" as an agent_id and returns agent-observability
+                            shape instead) -- guard on a field this response actually has so a
+                            malformed payload never crashes the page. See report for the backend fix. */}
+                        {stats && typeof stats.total_permits === 'number'
                             ? <> {stats.ai_estimated_count.toLocaleString()} AI-estimated · {stats.remaining_unestimated.toLocaleString()} still missing of {stats.missing_real_cost.toLocaleString()} no-cost permits.</>
-                            : loading && <span className="text-gray-600"> Loading…</span>}
+                            : loading && <span className="text-[#5B6B7D]"> Loading…</span>}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={() => setShowOpts((v) => !v)}
-                        className="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 hover:border-gray-400 dark:hover:border-white/20">
+                        className="px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-white border border-[#DFE6EE] text-[#5B6B7D] hover:bg-[#F7F9FB] hover:text-[#0E2B5C]">
                         {showOpts ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Options
                     </button>
                     <button onClick={run} disabled={busy}
-                        className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-lg shadow-emerald-500/20 disabled:opacity-60">
+                        className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 bg-[#00458B] hover:bg-[#045CB4] text-white disabled:opacity-60">
                         {busy ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
                         {busy ? 'Estimating…' : 'Fill costs now'}
                     </button>
@@ -179,70 +188,70 @@ function CostBackfillCard() {
             <AnimatePresence>
                 {showOpts && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                        className="mt-3 pt-3 border-t border-gray-200 dark:border-white/6 flex items-center gap-4 flex-wrap text-xs text-gray-500">
+                        className="mt-3 pt-3 border-t border-[#DFE6EE] flex items-center gap-4 flex-wrap text-xs text-[#5B6B7D]">
                         <label className="flex items-center gap-2">
                             <span>Target score ≥</span>
                             <input type="number" min={0} max={100} value={minScore}
                                 onChange={(e) => setMinScore(parseInt(e.target.value) || 0)}
-                                className="w-16 px-2 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 font-mono tabular-nums focus:border-emerald-500/50 focus:outline-none" />
+                                className="w-16 px-2 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] font-mono tabular-nums focus:border-[#00458B] focus:ring-2 focus:ring-[#00458B]/30 focus:outline-none" />
                         </label>
                         <label className="flex items-center gap-2">
                             <span>Concurrency</span>
                             <input type="number" min={1} max={12} value={concurrency}
                                 onChange={(e) => setConcurrency(Math.min(12, Math.max(1, parseInt(e.target.value) || 1)))}
-                                className="w-16 px-2 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 font-mono tabular-nums focus:border-emerald-500/50 focus:outline-none" />
+                                className="w-16 px-2 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] font-mono tabular-nums focus:border-[#00458B] focus:ring-2 focus:ring-[#00458B]/30 focus:outline-none" />
                         </label>
                         <label className="flex items-center gap-2">
                             <span>Max this run</span>
                             <input type="number" min={1} placeholder="all" value={maxTotal}
                                 onChange={(e) => setMaxTotal(e.target.value === '' ? '' : parseInt(e.target.value) || '')}
-                                className="w-24 px-2 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 font-mono tabular-nums focus:border-emerald-500/50 focus:outline-none placeholder-gray-500" />
+                                className="w-24 px-2 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] font-mono tabular-nums focus:border-[#00458B] focus:ring-2 focus:ring-[#00458B]/30 focus:outline-none placeholder-gray-400" />
                         </label>
                     </motion.div>
                 )}
             </AnimatePresence>
-            {msg && <p className="mt-2 text-xs text-gray-500">{msg}</p>}
+            {msg && <p className="mt-2 text-xs text-[#5B6B7D]">{msg}</p>}
         </div>
     );
 }
 
 function SampleResultsTable({ results }: { results: SampleScoreResult[] }) {
     return (
-        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-white/8 max-h-[480px] overflow-y-auto">
+        <div className="overflow-x-auto rounded-lg border border-[#DFE6EE] max-h-[480px] overflow-y-auto">
             <table className="w-full text-sm border-collapse">
-                <thead className="sticky top-0 z-10 bg-gray-100 dark:bg-gray-900">
+                <thead className="sticky top-0 z-10 bg-[#F7F9FB]">
                     <tr>
-                        <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest text-gray-500 font-medium">Permit</th>
-                        <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest text-gray-500 font-medium">Scope</th>
-                        <th className="px-3 py-2 text-center text-[10px] uppercase tracking-widest text-gray-500 font-medium">Score</th>
-                        <th className="px-3 py-2 text-left text-[10px] uppercase tracking-widest text-gray-500 font-medium">Sections (T · C · Tr · Co · V · S)</th>
+                        <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-[#5B6B7D] font-medium">Permit</th>
+                        <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-[#5B6B7D] font-medium">Scope</th>
+                        <th className="px-3 py-2 text-center text-[11px] uppercase tracking-widest text-[#5B6B7D] font-medium">Score</th>
+                        <th className="px-3 py-2 text-left text-[11px] uppercase tracking-widest text-[#5B6B7D] font-medium">Sections (T · C · Tr · Co · V · S)</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                <tbody className="divide-y divide-[#DFE6EE]">
                     {results.map((r) => (
-                        <tr key={r.permit_id} className="hover:bg-black/2 dark:hover:bg-white/2 transition-colors">
+                        <tr key={r.permit_id} className="hover:bg-[#F7F9FB] transition-colors">
                             <td className="px-3 py-2 whitespace-nowrap">
                                 {r.permit_number ? (
                                     <a href={`/dashboard/permits/${r.permit_id}`} target="_blank" rel="noreferrer"
-                                        className="flex items-center gap-1 font-mono text-xs text-cyan-400 hover:text-cyan-300">
+                                        className="flex items-center gap-1 font-mono text-xs text-[#00458B] hover:text-[#045CB4]">
                                         {r.permit_number} <ExternalLink size={10} />
                                     </a>
                                 ) : (
-                                    <span className="font-mono text-xs text-gray-500">{r.permit_id.slice(0, 8)}…</span>
+                                    <span className="font-mono text-xs text-[#5B6B7D]">{r.permit_id.slice(0, 8)}…</span>
                                 )}
                             </td>
                             <td className="px-3 py-2 max-w-[260px]">
-                                <span className="text-xs text-gray-400 line-clamp-2 leading-snug">{r.work_description || '—'}</span>
+                                <span className="text-xs text-[#5B6B7D] line-clamp-2 leading-snug">{r.work_description || '—'}</span>
                             </td>
                             <td className="px-3 py-2 text-center whitespace-nowrap">
                                 {r.excluded ? (
-                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-500/15 text-red-400 uppercase tracking-wide">
+                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-50 text-red-700 uppercase tracking-wide">
                                         {r.exclude_reason?.replace(/_/g, ' ') ?? 'excluded'}
                                     </span>
                                 ) : (
                                     <div className="flex flex-col items-center gap-0.5">
-                                        <span className="font-mono font-bold text-white text-sm tabular-nums">{r.total}</span>
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide ${BUCKET_COLORS[r.bucket ?? ''] ?? 'text-gray-400 bg-gray-500/15'}`}>
+                                        <span className="font-mono font-bold text-[#0E2B5C] text-sm tabular-nums">{r.total}</span>
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide ${BUCKET_COLORS[r.bucket ?? ''] ?? 'text-[#5B6B7D] bg-gray-100'}`}>
                                             {r.bucket ?? '—'}
                                         </span>
                                     </div>
@@ -250,9 +259,9 @@ function SampleResultsTable({ results }: { results: SampleScoreResult[] }) {
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap">
                                 {r.excluded ? (
-                                    <span className="text-xs text-gray-600">—</span>
+                                    <span className="text-xs text-gray-400">—</span>
                                 ) : (
-                                    <span className="font-mono text-xs text-gray-400 tabular-nums">
+                                    <span className="font-mono text-xs text-[#5B6B7D] tabular-nums">
                                         {SECTION_KEYS.map(({ key, short }) => {
                                             const pts = r.sections[key]?.points ?? 0;
                                             return `${short}:${pts}`;
@@ -419,7 +428,7 @@ export default function PermitScoringPage() {
         return (
             <div className="p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                    className="w-10 h-10 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full" />
+                    className="w-10 h-10 border-2 border-[#DFE6EE] border-t-[#00458B] rounded-full" />
             </div>
         );
     }
@@ -430,56 +439,48 @@ export default function PermitScoringPage() {
 
     return (
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-            {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-linear-to-br from-orange-500/20 to-red-500/20">
-                            <Gauge className="w-6 h-6 text-orange-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Permit Scoring</h1>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                Tune the lead-scoring rubric — changes apply on next scoring run, no redeploy.
-                                <span className="ml-2 font-mono text-gray-400">v{rubric?.version ?? 0}</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
+            <PageHeader
+                icon={Gauge}
+                title="Permit Qualification"
+                subtitle={`Tune the lead-scoring rubric — changes apply on next scoring run, no redeploy · v${rubric?.version ?? 0}`}
+                actions={
+                    <>
                         <button onClick={openVersions}
-                            className="px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2 bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-cyan-500/30">
+                            className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-white border border-[#DFE6EE] text-[#5B6B7D] hover:bg-[#F7F9FB] hover:text-[#0E2B5C]">
                             <History size={14} /> History
                         </button>
                         <button onClick={handleReset}
-                            className="px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2 bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:border-amber-500/30">
+                            className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-white border border-[#DFE6EE] text-[#5B6B7D] hover:bg-[#F7F9FB] hover:text-[#0E2B5C]">
                             <RotateCcw size={14} /> Reset
                         </button>
                         <button onClick={handleSave} disabled={!dirty || status === 'saving'}
-                            className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${dirty
-                                ? 'bg-linear-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-cyan-500/20'
-                                : 'bg-black/4 dark:bg-white/4 text-gray-500 cursor-not-allowed border border-gray-200 dark:border-white/6'}`}>
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${dirty
+                                ? 'bg-[#00458B] hover:bg-[#045CB4] text-white'
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-[#DFE6EE]'}`}>
                             {status === 'saving' ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
                             Save Version
                         </button>
-                    </div>
-                </div>
+                    </>
+                }
+            />
 
-                {/* validity / status line */}
-                <div className="mt-3 flex items-center gap-3 flex-wrap text-sm">
-                    <span className={`px-2.5 py-1 rounded-lg font-mono ${capsSum === maxScore ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+            {/* validity / status line */}
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-6 -mt-3">
+                <div className="flex items-center gap-3 flex-wrap text-sm">
+                    <span className={`px-2.5 py-1 rounded-lg font-mono ${capsSum === maxScore ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
                         Section caps: {capsSum} / {maxScore}
                     </span>
                     {capsSum !== maxScore && (
-                        <span className="text-red-400 flex items-center gap-1"><AlertCircle size={13} /> Caps must sum to {maxScore} to save</span>
+                        <span className="text-red-700 flex items-center gap-1"><AlertCircle size={13} /> Caps must sum to {maxScore} to save</span>
                     )}
                     <AnimatePresence>
                         {status === 'saved' && (
                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                className="flex items-center gap-1.5 text-emerald-400"><CheckCircle2 size={14} /> Saved as new version</motion.span>
+                                className="flex items-center gap-1.5 text-emerald-700"><CheckCircle2 size={14} /> Saved as new version</motion.span>
                         )}
                         {status === 'error' && (
                             <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                className="flex items-center gap-1.5 text-red-400"><AlertCircle size={14} /> {errorMsg}</motion.span>
+                                className="flex items-center gap-1.5 text-red-700"><AlertCircle size={14} /> {errorMsg}</motion.span>
                         )}
                     </AnimatePresence>
                 </div>
@@ -489,24 +490,24 @@ export default function PermitScoringPage() {
             <AnimatePresence>
                 {showVersions && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                        className="mb-6 rounded-2xl border border-gray-200 dark:border-white/8 bg-black/2 dark:bg-white/2 overflow-hidden">
-                        <div className="px-5 py-3 border-b border-gray-200 dark:border-white/6 text-sm font-semibold text-gray-900 dark:text-white">Version history</div>
-                        <div className="divide-y divide-gray-200 dark:divide-white/6 max-h-64 overflow-y-auto">
+                        className="mb-6 rounded-lg border border-[#DFE6EE] bg-white overflow-hidden">
+                        <div className="px-5 py-3 border-b border-[#DFE6EE] text-sm font-semibold text-[#0E2B5C]">Version history</div>
+                        <div className="divide-y divide-[#DFE6EE] max-h-64 overflow-y-auto">
                             {versions.map((v) => (
                                 <div key={v.id} className="px-5 py-2.5 flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-3">
-                                        <span className="font-mono text-gray-400">v{v.version}</span>
-                                        {v.is_active && <span className="text-[10px] uppercase tracking-widest text-emerald-400">Active</span>}
-                                        <span className="text-gray-500">{v.created_by}</span>
-                                        {v.notes && <span className="text-gray-500 italic truncate max-w-xs">{v.notes}</span>}
+                                        <span className="font-mono text-[#5B6B7D]">v{v.version}</span>
+                                        {v.is_active && <span className="text-[11px] uppercase tracking-widest text-emerald-700">Active</span>}
+                                        <span className="text-[#5B6B7D]">{v.created_by}</span>
+                                        {v.notes && <span className="text-[#5B6B7D] italic truncate max-w-xs">{v.notes}</span>}
                                     </div>
                                     {!v.is_active && v.id && (
                                         <button onClick={() => activateVersion(v.id!)}
-                                            className="px-2.5 py-1 rounded-lg text-xs bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20">Activate</button>
+                                            className="px-2.5 py-1 rounded-lg text-xs bg-blue-50 text-blue-700 hover:bg-blue-100">Activate</button>
                                     )}
                                 </div>
                             ))}
-                            {versions.length === 0 && <div className="px-5 py-4 text-gray-500 text-sm">No saved versions yet.</div>}
+                            {versions.length === 0 && <div className="px-5 py-4 text-[#5B6B7D] text-sm">No saved versions yet.</div>}
                         </div>
                     </motion.div>
                 )}
@@ -516,26 +517,26 @@ export default function PermitScoringPage() {
             <CostBackfillCard />
 
             {/* Run + stats banner */}
-            <div className="mb-6 rounded-2xl border border-gray-200 dark:border-white/8 bg-black/2 dark:bg-white/2 p-5">
+            <div className="mb-6 rounded-lg border border-[#DFE6EE] bg-white p-5">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div>
-                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Step 2 · Backfill / re-score</h2>
-                        <p className="text-xs text-gray-500">
+                        <h2 className="text-sm font-semibold text-[#0E2B5C]">Step 2 · Backfill / re-score</h2>
+                        <p className="text-xs text-[#5B6B7D]">
                             Permits are scored automatically on sync. Use this only to backfill existing
                             permits or re-score after a rubric change — it scores rows not yet on the active
                             rubric (v{stats?.rubric_version ?? rubric?.version ?? 0}).
                             {stats
                                 ? <> {stats.scored.toLocaleString()} scored · {stats.excluded.toLocaleString()} excluded of {stats.total_permits.toLocaleString()} total.</>
-                                : statsLoading && <span className="text-gray-600"> Loading totals…</span>}
+                                : statsLoading && <span className="text-[#5B6B7D]"> Loading totals…</span>}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setShowAdvanced((v) => !v)}
-                            className="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 hover:border-gray-400 dark:hover:border-white/20">
+                            className="px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-white border border-[#DFE6EE] text-[#5B6B7D] hover:bg-[#F7F9FB] hover:text-[#0E2B5C]">
                             {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Options
                         </button>
                         <button onClick={handleRun} disabled={running || !!stats?.scoring_active}
-                            className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 bg-linear-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white shadow-lg shadow-orange-500/20 disabled:opacity-60">
+                            className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 bg-[#00458B] hover:bg-[#045CB4] text-white disabled:opacity-60">
                             {(running || stats?.scoring_active) ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
                             {(running || stats?.scoring_active) ? 'Scoring…' : 'Run scoring now'}
                         </button>
@@ -544,8 +545,8 @@ export default function PermitScoringPage() {
                 <AnimatePresence>
                     {showAdvanced && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                            className="mt-3 pt-3 border-t border-gray-200 dark:border-white/6 flex items-center gap-4 flex-wrap">
-                            <label className="flex items-center gap-2 text-xs text-gray-500">
+                            className="mt-3 pt-3 border-t border-[#DFE6EE] flex items-center gap-4 flex-wrap">
+                            <label className="flex items-center gap-2 text-xs text-[#5B6B7D]">
                                 <span className="w-10 text-right">Limit</span>
                                 <input
                                     type="number"
@@ -553,18 +554,18 @@ export default function PermitScoringPage() {
                                     placeholder="all"
                                     value={runLimit}
                                     onChange={(e) => setRunLimit(e.target.value === '' ? '' : parseInt(e.target.value) || '')}
-                                    className="w-24 px-2.5 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 text-sm font-mono tabular-nums focus:border-orange-500/50 focus:outline-none placeholder-gray-500"
+                                    className="w-24 px-2.5 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] text-sm font-mono tabular-nums focus:border-[#00458B] focus:ring-2 focus:ring-[#00458B]/30 focus:outline-none placeholder-gray-400"
                                 />
-                                <span className="text-gray-600">permits (leave blank to score all)</span>
+                                <span className="text-[#5B6B7D]">permits (leave blank to score all)</span>
                             </label>
                         </motion.div>
                     )}
                 </AnimatePresence>
-                {runMsg && <p className="mt-2 text-xs text-gray-500">{runMsg}</p>}
+                {runMsg && <p className="mt-2 text-xs text-[#5B6B7D]">{runMsg}</p>}
                 {stats && (
                     <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                         {content.buckets.map((b: { key: string; label: string }) => (
-                            <div key={b.key} className={`px-3 py-2 rounded-xl ${BUCKET_COLORS[b.key] || 'bg-gray-500/10 text-gray-400'}`}>
+                            <div key={b.key} className={`px-3 py-2 rounded-lg ${BUCKET_COLORS[b.key] || 'bg-gray-100 text-[#5B6B7D]'}`}>
                                 <p className="text-[10px] uppercase tracking-widest opacity-80">{b.label}</p>
                                 <p className="text-xl font-mono font-bold tabular-nums">{(stats.by_bucket[b.key] || 0).toLocaleString()}</p>
                             </div>
@@ -572,7 +573,7 @@ export default function PermitScoringPage() {
                     </div>
                 )}
                 {stats && Object.keys(stats.by_tier).length > 0 && (
-                    <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                    <div className="mt-2 flex items-center gap-3 text-xs text-[#5B6B7D]">
                         <span>Tiers:</span>
                         {Object.entries(stats.by_tier).map(([t, n]) => (
                             <span key={t} className="font-mono">Tier {t}: {n.toLocaleString()}</span>
@@ -582,19 +583,19 @@ export default function PermitScoringPage() {
             </div>
 
             {/* Test Sample panel */}
-            <div className="mb-6 rounded-2xl border border-gray-200 dark:border-white/8 bg-black/2 dark:bg-white/2 overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-gray-200 dark:border-white/6 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-linear-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center">
-                        <FlaskConical size={16} className="text-purple-400" />
+            <div className="mb-6 rounded-lg border border-[#DFE6EE] bg-white overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[#DFE6EE] flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#F7F9FB] border border-[#DFE6EE] flex items-center justify-center">
+                        <FlaskConical size={16} className="text-[#00458B]" />
                     </div>
                     <div className="flex-1">
-                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Test Sample — score without saving</h2>
-                        <p className="text-xs text-gray-500 mt-0.5">Runs the active rubric against N recent permits in memory. No DB writes — instant feedback for rubric changes.</p>
+                        <h2 className="text-sm font-semibold text-[#0E2B5C]">Test Sample — score without saving</h2>
+                        <p className="text-xs text-[#5B6B7D] mt-0.5">Runs the active rubric against N recent permits in memory. No DB writes — instant feedback for rubric changes.</p>
                     </div>
                 </div>
                 <div className="px-5 py-4 space-y-4">
                     <div className="flex items-center gap-4 flex-wrap">
-                        <label className="flex items-center gap-2 text-sm text-gray-500">
+                        <label className="flex items-center gap-2 text-sm text-[#5B6B7D]">
                             <span>Sample</span>
                             <input
                                 type="number"
@@ -602,29 +603,29 @@ export default function PermitScoringPage() {
                                 max={500}
                                 value={sampleN}
                                 onChange={(e) => setSampleN(Math.min(500, Math.max(1, parseInt(e.target.value) || 1)))}
-                                className="w-20 px-2.5 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 text-sm font-mono tabular-nums focus:border-purple-500/50 focus:outline-none"
+                                className="w-20 px-2.5 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] text-sm font-mono tabular-nums focus:border-[#00458B] focus:ring-2 focus:ring-[#00458B]/30 focus:outline-none"
                             />
                             <span>permits</span>
                         </label>
-                        <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer select-none">
+                        <label className="flex items-center gap-2 text-sm text-[#5B6B7D] cursor-pointer select-none">
                             <input type="checkbox" checked={sampleOnlyUnscored}
                                 onChange={(e) => setSampleOnlyUnscored(e.target.checked)}
-                                className="w-4 h-4 accent-purple-500 rounded" />
+                                className="w-4 h-4 accent-[#00458B] rounded" />
                             Only unscored
                         </label>
                         <button onClick={handleSample} disabled={sampleRunning}
-                            className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 bg-linear-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white shadow-lg shadow-purple-500/20 disabled:opacity-60">
+                            className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 bg-[#00458B] hover:bg-[#045CB4] text-white disabled:opacity-60">
                             {sampleRunning ? <RefreshCw size={14} className="animate-spin" /> : <FlaskConical size={14} />}
                             {sampleRunning ? 'Sampling…' : 'Run test sample'}
                         </button>
                         {sampleResults && (
                             <button onClick={() => setSampleResults(null)}
-                                className="text-xs text-gray-500 hover:text-gray-300 underline underline-offset-2">
+                                className="text-xs text-[#5B6B7D] hover:text-[#0E2B5C] underline underline-offset-2">
                                 Clear
                             </button>
                         )}
                     </div>
-                    {sampleError && <p className="text-xs text-red-400">{sampleError}</p>}
+                    {sampleError && <p className="text-xs text-red-700">{sampleError}</p>}
                     {sampleResults && <SampleResultsTable results={sampleResults} />}
                 </div>
             </div>
@@ -632,14 +633,14 @@ export default function PermitScoringPage() {
             {/* Editor grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* 01 Timing & Stage — bands carry base points; edit the base. */}
-                <SectionCard icon={<Clock size={16} className="text-cyan-400" />} title="01 · Timing & Stage" cap={`/ ${content.timing?.max ?? 0}`}>
+                <SectionCard icon={<Clock size={16} className="text-[#00458B]" />} title="01 · Timing & Stage" cap={`/ ${content.timing?.max ?? 0}`}>
                     {Object.entries(content.timing?.bands || {}).map(([k, b]) => (
                         <Row key={k} label={(b as { label?: string }).label || k.replace(/_/g, ' ')}>
                             <NumField value={(b as { base?: number }).base} onChange={(v) => set(['timing', 'bands', k, 'base'], v)} />
                         </Row>
                     ))}
-                    <div className="pt-2 border-t border-gray-200 dark:border-white/6 space-y-3">
-                        <p className="text-[10px] uppercase tracking-widest text-gray-500">Modifiers (added on top)</p>
+                    <div className="pt-2 border-t border-[#DFE6EE] space-y-3">
+                        <p className="text-[11px] uppercase tracking-widest text-[#5B6B7D]">Modifiers (added on top)</p>
                         {Object.keys(content.timing?.modifiers || {}).map((k) => (
                             <Row key={k} label={k.replace(/_/g, ' ')}>
                                 <NumField value={content.timing.modifiers[k]} onChange={(v) => set(['timing', 'modifiers', k], v)} />
@@ -650,15 +651,15 @@ export default function PermitScoringPage() {
                 </SectionCard>
 
                 {/* 02 Project Complexity */}
-                <SectionCard icon={<Building2 size={16} className="text-cyan-400" />} title="02 · Project Complexity" cap={`/ ${content.project_complexity?.max ?? 0}`}>
+                <SectionCard icon={<Building2 size={16} className="text-[#00458B]" />} title="02 · Project Complexity" cap={`/ ${content.project_complexity?.max ?? 0}`}>
                     {(content.project_complexity?.rules || []).map((r: { key: string; base: number }, i: number) => (
                         <Row key={r.key} label={r.key.replace(/_/g, ' ')}>
                             <NumField value={r.base} onChange={(v) => set(['project_complexity', 'rules', i, 'base'], v)} />
                         </Row>
                     ))}
                     <Row label="Default (no match)"><NumField value={content.project_complexity?.default?.base} onChange={(v) => set(['project_complexity', 'default', 'base'], v)} /></Row>
-                    <div className="pt-2 border-t border-gray-200 dark:border-white/6 space-y-3">
-                        <p className="text-[10px] uppercase tracking-widest text-gray-500">Add-once modifiers</p>
+                    <div className="pt-2 border-t border-[#DFE6EE] space-y-3">
+                        <p className="text-[11px] uppercase tracking-widest text-[#5B6B7D]">Add-once modifiers</p>
                         {Object.entries(content.project_complexity?.modifiers || {}).map(([k, m]) => (
                             <Row key={k} label={k.replace(/_/g, ' ')}>
                                 <NumField value={(m as { points?: number }).points} onChange={(v) => set(['project_complexity', 'modifiers', k, 'points'], v)} />
@@ -669,7 +670,7 @@ export default function PermitScoringPage() {
                 </SectionCard>
 
                 {/* 03 Trade Scope Fit — by distinct strong-trade count */}
-                <SectionCard icon={<Wrench size={16} className="text-cyan-400" />} title="03 · Trade Scope Fit" cap={`/ ${content.trade_scope?.max ?? 0}`}>
+                <SectionCard icon={<Wrench size={16} className="text-[#00458B]" />} title="03 · Trade Scope Fit" cap={`/ ${content.trade_scope?.max ?? 0}`}>
                     {Object.entries(content.trade_scope?.bands || {}).map(([k, b]) => (
                         <Row key={k} label={(b as { label?: string }).label || k.replace(/_/g, ' ')}>
                             <NumField value={(b as { base?: number }).base} onChange={(v) => set(['trade_scope', 'bands', k, 'base'], v)} />
@@ -679,18 +680,18 @@ export default function PermitScoringPage() {
                 </SectionCard>
 
                 {/* 04 Contractor / Contact Data */}
-                <SectionCard icon={<Users size={16} className="text-cyan-400" />} title="04 · Contractor / Contact" cap={`/ ${content.contractor_contact?.max ?? 0}`}>
+                <SectionCard icon={<Users size={16} className="text-[#00458B]" />} title="04 · Contractor / Contact" cap={`/ ${content.contractor_contact?.max ?? 0}`}>
                     {Object.entries(content.contractor_contact?.bands || {}).map(([k, b]) => (
                         <Row key={k} label={(b as { label?: string }).label || k.replace(/_/g, ' ')}>
                             <NumField value={(b as { base?: number }).base} onChange={(v) => set(['contractor_contact', 'bands', k, 'base'], v)} />
                         </Row>
                     ))}
-                    <p className="text-xs text-gray-500 pt-1">Contact quality only — owner / homeowner score low but are never excluded.</p>
+                    <p className="text-xs text-[#5B6B7D] pt-1">Contact quality only — owner / homeowner score low but are never excluded.</p>
                     <Row label="Section cap"><NumField value={content.contractor_contact?.max} onChange={(v) => set(['contractor_contact', 'max'], v)} /></Row>
                 </SectionCard>
 
                 {/* 05 Valuation */}
-                <SectionCard icon={<DollarSign size={16} className="text-cyan-400" />} title="05 · Valuation" cap={`/ ${content.valuation?.max ?? 0}`}>
+                <SectionCard icon={<DollarSign size={16} className="text-[#00458B]" />} title="05 · Valuation" cap={`/ ${content.valuation?.max ?? 0}`}>
                     {(content.valuation?.brackets || []).map((b: { label: string; base: number }, i: number) => (
                         <Row key={i} label={b.label}>
                             <NumField value={b.base} onChange={(v) => set(['valuation', 'brackets', i, 'base'], v)} />
@@ -700,12 +701,12 @@ export default function PermitScoringPage() {
                     <Row label="Use AI cost fallback">
                         <input type="checkbox" checked={!!content.valuation?.use_ai_cost_fallback}
                             onChange={(e) => set(['valuation', 'use_ai_cost_fallback'], e.target.checked)}
-                            className="w-4 h-4 accent-cyan-500" />
+                            className="w-4 h-4 accent-[#00458B]" />
                     </Row>
                     <Row label="Min AI confidence">
                         <select value={content.valuation?.ai_cost_min_confidence}
                             onChange={(e) => set(['valuation', 'ai_cost_min_confidence'], e.target.value)}
-                            className="px-2.5 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-700 dark:text-gray-200">
+                            className="px-2.5 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-sm text-[#0E2B5C]">
                             <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
                         </select>
                     </Row>
@@ -713,7 +714,7 @@ export default function PermitScoringPage() {
                 </SectionCard>
 
                 {/* 06 Jurisdiction / Site Context */}
-                <SectionCard icon={<ShieldAlert size={16} className="text-cyan-400" />} title="06 · Site Context" cap={`/ ${content.site_context?.max ?? 0}`}>
+                <SectionCard icon={<ShieldAlert size={16} className="text-[#00458B]" />} title="06 · Site Context" cap={`/ ${content.site_context?.max ?? 0}`}>
                     {(content.site_context?.rules || []).map((r: { key: string; label?: string; base: number; requires_verified_source?: boolean }, i: number) => (
                         <Row key={r.key} label={(r.label || r.key.replace(/_/g, ' ')) + (r.requires_verified_source ? ' (needs data)' : '')}>
                             <NumField value={r.base} onChange={(v) => set(['site_context', 'rules', i, 'base'], v)} />
@@ -724,7 +725,7 @@ export default function PermitScoringPage() {
                 </SectionCard>
 
                 {/* Auto-excludes */}
-                <SectionCard icon={<Ban size={16} className="text-red-400" />} title="Auto-Exclude Gates">
+                <SectionCard icon={<Ban size={16} className="text-red-600" />} title="Auto-Exclude Gates">
                     {Object.keys(content.excludes).map((k) => (
                         <Row key={k} label={k.replace(/_/g, ' ')}>
                             {'max_value' in content.excludes[k] && (
@@ -733,29 +734,29 @@ export default function PermitScoringPage() {
                             )}
                             <input type="checkbox" checked={!!content.excludes[k].enabled}
                                 onChange={(e) => set(['excludes', k, 'enabled'], e.target.checked)}
-                                className="w-4 h-4 accent-red-500" />
+                                className="w-4 h-4 accent-red-600" />
                         </Row>
                     ))}
-                    <p className="text-xs text-gray-500 pt-1">Excluded permits are flagged and kept, but never assigned to agents.</p>
+                    <p className="text-xs text-[#5B6B7D] pt-1">Excluded permits are flagged and kept, but never assigned to agents.</p>
                 </SectionCard>
 
                 {/* Buckets + tiers */}
-                <SectionCard icon={<Layers size={16} className="text-cyan-400" />} title="Score Buckets → Tiers">
+                <SectionCard icon={<Layers size={16} className="text-[#00458B]" />} title="Score Buckets → Tiers">
                     {content.buckets.map((b: { key: string; label: string; min_score: number }, i: number) => (
                         <div key={b.key} className="flex items-center justify-between gap-3">
-                            <span className={`text-sm px-2 py-0.5 rounded-md ${BUCKET_COLORS[b.key] || 'text-gray-400'}`}>{b.label}</span>
+                            <span className={`text-sm px-2 py-0.5 rounded-md ${BUCKET_COLORS[b.key] || 'text-[#5B6B7D]'}`}>{b.label}</span>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500">≥</span>
+                                <span className="text-xs text-[#5B6B7D]">≥</span>
                                 <NumField value={b.min_score} onChange={(v) => set(['buckets', i, 'min_score'], v)} />
                                 <select value={content.bucket_tiers[b.key] ?? ''}
                                     onChange={(e) => set(['bucket_tiers', b.key], e.target.value || null)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-black/4 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-700 dark:text-gray-200">
+                                    className="px-2.5 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-sm text-[#0E2B5C]">
                                     <option value="">—</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option>
                                 </select>
                             </div>
                         </div>
                     ))}
-                    <p className="text-xs text-gray-500 pt-1">Buckets must stay ordered by descending cutoff. Tier drives the downstream lead-bank split.</p>
+                    <p className="text-xs text-[#5B6B7D] pt-1">Buckets must stay ordered by descending cutoff. Tier drives the downstream lead-bank split.</p>
                 </SectionCard>
             </div>
         </div>
