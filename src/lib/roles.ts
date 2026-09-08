@@ -29,7 +29,11 @@ export const PAGE_MIN_ROLES: Record<string, Role> = {
     "/dashboard/counties": "admin",
     "/dashboard/trades": "admin",
     "/dashboard/datasources": "admin",
-    "/dashboard/settings": "admin",
+    // /dashboard/settings now does nothing but redirect straight to
+    // /dashboard/settings/permit-scoring (the only real MVP settings area) --
+    // gated at the same super_admin level as that destination so an admin
+    // (non-super-admin) never passes through it only to be bounced back out.
+    "/dashboard/settings": "super_admin",
     "/dashboard/settings/lead-banks": "super_admin",
     "/dashboard/settings/permit-scoring": "super_admin",
     "/dashboard/settings/users": "super_admin",

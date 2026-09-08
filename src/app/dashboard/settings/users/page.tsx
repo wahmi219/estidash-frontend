@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, FormEvent } from 'react';
+import { useState, useEffect, useCallback, Suspense, FormEvent } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Users,
@@ -27,6 +28,8 @@ import type { RootState } from '@/store/store';
 import { hasRole } from '@/lib/roles';
 import { apiService } from '@/services/api';
 import type { UserRecord, SendingDomain } from '@/types';
+import PageHeader from '@/components/common/PageHeader';
+import TrustedDevicesPanel from '@/components/settings/TrustedDevicesPanel';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -34,18 +37,20 @@ import type { UserRecord, SendingDomain } from '@/types';
 
 const ROLES = ['viewer', 'outreach', 'admin', 'super_admin'] as const;
 
+// Restrained Estimation Hub palette — blue / green / amber / gray only.
+// Super Admin uses the Estimation Hub primary blue, never purple.
 const ROLE_META: Record<string, { label: string; color: string; bg: string }> = {
-    super_admin: { label: 'Super Admin', color: 'text-purple-400', bg: 'bg-purple-500/15 border-purple-500/20' },
-    admin:       { label: 'Admin',       color: 'text-cyan-400',   bg: 'bg-cyan-500/15 border-cyan-500/20'   },
-    outreach:    { label: 'Outreach',    color: 'text-amber-400',  bg: 'bg-amber-500/15 border-amber-500/20' },
-    analyst:     { label: 'Analyst',     color: 'text-blue-400',   bg: 'bg-blue-500/15 border-blue-500/20'   },
-    viewer:      { label: 'Viewer',      color: 'text-gray-400',   bg: 'bg-gray-500/15 border-gray-500/20'   },
+    super_admin: { label: 'Super Admin', color: 'text-[#00458B]', bg: 'bg-blue-100 border-blue-300'    },
+    admin:       { label: 'Admin',       color: 'text-blue-700',  bg: 'bg-blue-50 border-blue-200'    },
+    outreach:    { label: 'Outreach',    color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200'  },
+    analyst:     { label: 'Analyst',     color: 'text-[#5B6B7D]', bg: 'bg-gray-100 border-gray-200'   },
+    viewer:      { label: 'Viewer',      color: 'text-[#5B6B7D]', bg: 'bg-gray-100 border-gray-200'   },
 };
 
 const STATUS_META: Record<string, { label: string; color: string; dot: string }> = {
-    active:   { label: 'Active',   color: 'text-emerald-400', dot: 'bg-emerald-400' },
-    inactive: { label: 'Inactive', color: 'text-gray-500',    dot: 'bg-gray-500'    },
-    pending:  { label: 'Pending',  color: 'text-amber-400',   dot: 'bg-amber-400'   },
+    active:   { label: 'Active',   color: 'text-emerald-700', dot: 'bg-emerald-500' },
+    inactive: { label: 'Inactive', color: 'text-[#5B6B7D]',   dot: 'bg-gray-400'    },
+    pending:  { label: 'Pending',  color: 'text-amber-700',   dot: 'bg-amber-500'   },
 };
 
 function initials(name: string) {
@@ -77,7 +82,7 @@ function formatRelative(iso: string | null) {
 function DeviceChip({ device }: { device: UserRecord['current_device'] }) {
     if (!device) {
         return (
-            <span className="inline-flex items-center gap-1 text-[10px] text-gray-600 px-2 py-0.5 rounded-md bg-gray-800/60 border border-white/[0.04]">
+            <span className="inline-flex items-center gap-1 text-[10px] text-[#5B6B7D] px-2 py-0.5 rounded-md bg-[#F7F9FB] border border-[#DFE6EE]">
                 <Monitor size={9} />
                 No active device
             </span>
@@ -91,14 +96,14 @@ function DeviceChip({ device }: { device: UserRecord['current_device'] }) {
     return (
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
             {/* Platform */}
-            <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400 px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20">
+            <span className="inline-flex items-center gap-1 text-[10px] text-blue-700 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200">
                 <Monitor size={9} />
                 {device.platform ?? 'Unknown'}{device.device_name ? ` · ${device.device_name}` : ''}
             </span>
 
             {/* Location */}
             {location && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-gray-400 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06]">
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#5B6B7D] px-2 py-0.5 rounded-md bg-[#F7F9FB] border border-[#DFE6EE]">
                     <MapPin size={9} />
                     {location}
                 </span>
@@ -106,7 +111,7 @@ function DeviceChip({ device }: { device: UserRecord['current_device'] }) {
 
             {/* ISP */}
             {device.isp && (
-                <span className="hidden lg:inline-flex items-center gap-1 text-[10px] text-gray-500 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04]">
+                <span className="hidden lg:inline-flex items-center gap-1 text-[10px] text-[#5B6B7D] px-2 py-0.5 rounded-md bg-[#F7F9FB] border border-[#DFE6EE]">
                     <Wifi size={9} />
                     {device.isp.length > 22 ? device.isp.slice(0, 22) + '…' : device.isp}
                 </span>
@@ -114,7 +119,7 @@ function DeviceChip({ device }: { device: UserRecord['current_device'] }) {
 
             {/* Last seen */}
             {relTime && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-gray-600 px-2 py-0.5 rounded-md">
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#5B6B7D] px-2 py-0.5 rounded-md">
                     <Clock size={9} />
                     {relTime}
                 </span>
@@ -181,7 +186,7 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/40"
                 onClick={onClose}
             />
             <motion.div
@@ -189,53 +194,53 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 12 }}
                 transition={{ duration: 0.2 }}
-                className="relative w-full max-w-md bg-gray-950 border border-white/8 rounded-2xl shadow-2xl"
+                className="relative w-full max-w-md bg-white border border-[#DFE6EE] rounded-lg shadow-lg"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-[#DFE6EE]">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-cyan-500/15">
-                            {mode === 'create' ? <Plus size={16} className="text-cyan-400" /> : <Pencil size={16} className="text-cyan-400" />}
+                        <div className="p-2 rounded-lg bg-blue-50">
+                            {mode === 'create' ? <Plus size={16} className="text-[#00458B]" /> : <Pencil size={16} className="text-[#00458B]" />}
                         </div>
-                        <h2 className="text-lg font-semibold text-white">
+                        <h2 className="text-lg font-semibold text-[#0E2B5C]">
                             {mode === 'create' ? 'Create User' : 'Edit User'}
                         </h2>
                     </div>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-300 transition-colors focus-visible:ring-2 focus-visible:ring-cyan-500 rounded">
+                    <button onClick={onClose} className="text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors focus-visible:ring-2 focus-visible:ring-[#00458B]/30 rounded">
                         <X size={20} />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     <div>
-                        <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">Full Name</label>
+                        <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">Full Name</label>
                         <input
                             type="text"
                             value={fullName}
                             onChange={e => setFullName(e.target.value)}
                             required
                             placeholder="Jane Smith"
-                            className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-white/8 text-white placeholder-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                            className="w-full px-4 py-3 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B] transition-all"
                         />
                     </div>
 
                     {mode === 'create' && (
                         <div>
-                            <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">Email</label>
+                            <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">Email</label>
                             <input
                                 type="email"
                                 value={email}
                                 onChange={e => setEmail(e.target.value)}
                                 required
                                 placeholder="jane@company.com"
-                                className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-white/8 text-white placeholder-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                                className="w-full px-4 py-3 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B] transition-all"
                             />
                         </div>
                     )}
 
                     {mode === 'create' && (
                         <div>
-                            <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">Password</label>
+                            <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">Password</label>
                             <div className="relative">
                                 <input
                                     type={showPass ? 'text' : 'password'}
@@ -244,12 +249,12 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
                                     required
                                     minLength={8}
                                     placeholder="Min. 8 characters"
-                                    className="w-full px-4 py-3 pr-12 rounded-xl bg-gray-900 border border-white/8 text-white placeholder-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                                    className="w-full px-4 py-3 pr-12 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B] transition-all"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPass(v => !v)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
                                     aria-label={showPass ? 'Hide' : 'Show'}
                                 >
                                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -259,17 +264,17 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
                     )}
 
                     <div>
-                        <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">Role</label>
+                        <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">Role</label>
                         <div className="grid grid-cols-2 gap-2">
                             {availableRoles.map(r => (
                                 <button
                                     key={r}
                                     type="button"
                                     onClick={() => setRole(r)}
-                                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                                    className={`px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
                                         role === r
-                                            ? `${ROLE_META[r].bg} ${ROLE_META[r].color} border-current`
-                                            : 'border-white/8 text-gray-400 hover:border-white/20'
+                                            ? `${ROLE_META[r].bg} ${ROLE_META[r].color}`
+                                            : 'border-[#DFE6EE] text-[#5B6B7D] hover:border-[#00458B]/40 hover:bg-[#F7F9FB]'
                                     }`}
                                 >
                                     {ROLE_META[r].label}
@@ -280,24 +285,24 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
 
                     {mode === 'edit' && (
                         <div>
-                            <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">Status</label>
+                            <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">Status</label>
                             <div className="flex gap-2">
                                 {(['active', 'inactive', 'pending'] as const).map(s => (
                                     <button
                                         key={s}
                                         type="button"
                                         onClick={() => setUserStatus(s)}
-                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border text-sm font-medium transition-all ${
                                             userStatus === s
                                                 ? s === 'active'
-                                                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                                     : s === 'inactive'
-                                                        ? 'bg-gray-500/15 text-gray-400 border-gray-500/30'
-                                                        : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                                                : 'border-white/8 text-gray-500 hover:border-white/20'
+                                                        ? 'bg-gray-100 text-[#5B6B7D] border-gray-200'
+                                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                : 'border-[#DFE6EE] text-[#5B6B7D] hover:border-[#00458B]/40'
                                         }`}
                                     >
-                                        <span className={`w-2 h-2 rounded-full ${userStatus === s ? STATUS_META[s].dot : 'bg-gray-600'}`} />
+                                        <span className={`w-2 h-2 rounded-full ${userStatus === s ? STATUS_META[s].dot : 'bg-gray-300'}`} />
                                         {STATUS_META[s].label}
                                     </button>
                                 ))}
@@ -307,8 +312,8 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
 
                     {mode === 'edit' && (
                         <div>
-                            <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">
-                                Set New Password <span className="text-gray-600 normal-case tracking-normal">(leave blank to keep current)</span>
+                            <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">
+                                Set New Password <span className="text-gray-400 normal-case tracking-normal">(leave blank to keep current)</span>
                             </label>
                             <div className="relative">
                                 <input
@@ -318,12 +323,12 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
                                     minLength={8}
                                     placeholder="Min. 8 characters"
                                     autoComplete="new-password"
-                                    className="w-full px-4 py-3 pr-12 rounded-xl bg-gray-900 border border-white/8 text-white placeholder-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                                    className="w-full px-4 py-3 pr-12 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B] transition-all"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowNewPass(v => !v)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
                                     aria-label={showNewPass ? 'Hide' : 'Show'}
                                 >
                                     {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -336,7 +341,7 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
                         <motion.div
                             initial={{ opacity: 0, y: -4 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+                            className="flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
                         >
                             <AlertCircle size={14} />
                             {error}
@@ -347,14 +352,14 @@ function UserModal({ mode, user, isSuperAdmin, onClose, onSuccess }: UserModalPr
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-3 rounded-xl border border-white/8 text-gray-400 text-sm font-medium hover:border-white/20 transition-colors"
+                            className="flex-1 px-4 py-3 rounded-lg border border-[#DFE6EE] text-[#5B6B7D] text-sm font-medium hover:bg-[#F7F9FB] transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={saving}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-cyan-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-all"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#00458B] hover:bg-[#045CB4] text-white text-sm font-semibold disabled:opacity-50 transition-all"
                         >
                             {saving && <RefreshCw size={14} className="animate-spin" />}
                             {saving ? 'Saving…' : mode === 'create' ? 'Create User' : 'Save Changes'}
@@ -423,7 +428,7 @@ function DomainAssignModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/40"
                 onClick={onClose}
             />
             <motion.div
@@ -431,21 +436,21 @@ function DomainAssignModal({
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 12 }}
                 transition={{ duration: 0.2 }}
-                className="relative w-full max-w-lg bg-gray-950 border border-white/8 rounded-2xl shadow-2xl flex flex-col max-h-[80vh]"
+                className="relative w-full max-w-lg bg-white border border-[#DFE6EE] rounded-lg shadow-lg flex flex-col max-h-[80vh]"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 shrink-0">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-[#DFE6EE] shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-amber-500/15">
-                            <Globe size={16} className="text-amber-400" />
+                        <div className="p-2 rounded-lg bg-amber-50">
+                            <Globe size={16} className="text-amber-700" />
                         </div>
                         <div>
-                            <h2 className="text-base font-semibold text-white">Assign Domains</h2>
-                            <p className="text-[11px] text-gray-500">{user.full_name} · Outreach</p>
+                            <h2 className="text-base font-semibold text-[#0E2B5C]">Assign Domains</h2>
+                            <p className="text-[11px] text-[#5B6B7D]">{user.full_name} · Outreach</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-300 transition-colors">
+                    <button onClick={onClose} className="text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -454,12 +459,12 @@ function DomainAssignModal({
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
                     {loading ? (
                         <div className="flex items-center justify-center py-12">
-                            <div className="w-8 h-8 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+                            <div className="w-8 h-8 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
                         </div>
                     ) : (
                         <>
                             {error && (
-                                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
                                     <AlertCircle size={14} />
                                     {error}
                                 </div>
@@ -468,7 +473,7 @@ function DomainAssignModal({
                             {/* Assigned to this user */}
                             {myDomains.length > 0 && (
                                 <div>
-                                    <p className="text-[10px] uppercase tracking-widest text-amber-400 mb-2 font-medium">Assigned to {user.full_name.split(' ')[0]}</p>
+                                    <p className="text-[10px] uppercase tracking-widest text-amber-700 mb-2 font-medium">Assigned to {user.full_name.split(' ')[0]}</p>
                                     <div className="space-y-2">
                                         {myDomains.map(d => (
                                             <DomainRow
@@ -486,12 +491,12 @@ function DomainAssignModal({
                             {/* Primary domain (read-only) */}
                             {primaryDomain && (
                                 <div>
-                                    <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-2 font-medium">Primary Domain (not assignable)</p>
-                                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.06] opacity-50">
-                                        <Crown size={14} className="text-amber-400 shrink-0" />
+                                    <p className="text-[10px] uppercase tracking-widest text-[#5B6B7D] mb-2 font-medium">Primary Domain (not assignable)</p>
+                                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#F7F9FB] border border-[#DFE6EE] opacity-70">
+                                        <Crown size={14} className="text-amber-600 shrink-0" />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-mono text-white truncate">{primaryDomain.domain}</p>
-                                            <p className="text-[10px] text-gray-500">Reserved for replies — never used for outreach</p>
+                                            <p className="text-sm font-mono text-[#0E2B5C] truncate">{primaryDomain.domain}</p>
+                                            <p className="text-[10px] text-[#5B6B7D]">Reserved for replies — never used for outreach</p>
                                         </div>
                                     </div>
                                 </div>
@@ -500,7 +505,7 @@ function DomainAssignModal({
                             {/* Available / assigned to others */}
                             {otherDomains.length > 0 && (
                                 <div>
-                                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-2 font-medium">
+                                    <p className="text-[10px] uppercase tracking-widest text-[#5B6B7D] mb-2 font-medium">
                                         {myDomains.length > 0 ? 'Other Domains' : 'Available Domains'}
                                     </p>
                                     <div className="space-y-2">
@@ -519,9 +524,9 @@ function DomainAssignModal({
 
                             {domains.length === 0 && (
                                 <div className="text-center py-10">
-                                    <Globe size={36} className="mx-auto mb-3 text-gray-700" />
-                                    <p className="text-gray-500 text-sm">No sending domains registered yet</p>
-                                    <p className="text-gray-600 text-xs mt-1">Go to Outreach → Domains to add domains first</p>
+                                    <Globe size={36} className="mx-auto mb-3 text-gray-300" />
+                                    <p className="text-[#5B6B7D] text-sm">No sending domains registered yet</p>
+                                    <p className="text-gray-400 text-xs mt-1">Go to Outreach → Domains to add domains first</p>
                                 </div>
                             )}
                         </>
@@ -529,9 +534,9 @@ function DomainAssignModal({
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-white/8 shrink-0">
-                    <p className="text-[11px] text-gray-600">
-                        Assigned domains appear exclusively in this user's Threads tab. Changes take effect immediately.
+                <div className="px-6 py-4 border-t border-[#DFE6EE] shrink-0">
+                    <p className="text-[11px] text-[#5B6B7D]">
+                        Assigned domains appear exclusively in this user&apos;s Threads tab. Changes take effect immediately.
                     </p>
                 </div>
             </motion.div>
@@ -549,31 +554,31 @@ function DomainRow({
     onToggle: () => void;
 }) {
     const statusColor =
-        domain.warmup_status === 'ready'    ? 'bg-emerald-400' :
-        domain.warmup_status === 'warming'  ? 'bg-blue-400' :
-        domain.warmup_status === 'degraded' ? 'bg-amber-400' :
-                                              'bg-gray-600';
+        domain.warmup_status === 'ready'    ? 'bg-emerald-500' :
+        domain.warmup_status === 'warming'  ? 'bg-blue-500' :
+        domain.warmup_status === 'degraded' ? 'bg-amber-500' :
+                                              'bg-gray-300';
 
     return (
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
-            checked ? 'bg-amber-500/8 border-amber-500/20' : 'bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12]'
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors ${
+            checked ? 'bg-amber-50 border-amber-200' : 'bg-white border-[#DFE6EE] hover:border-[#00458B]/30'
         }`}>
-            <Globe size={14} className={checked ? 'text-amber-400' : 'text-gray-500'} />
+            <Globe size={14} className={checked ? 'text-amber-700' : 'text-[#5B6B7D]'} />
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                    <p className="text-sm font-mono text-white truncate">{domain.domain}</p>
+                    <p className="text-sm font-mono text-[#0E2B5C] truncate">{domain.domain}</p>
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusColor}`} title={domain.warmup_status} />
-                    <span className="text-[10px] text-gray-600 capitalize hidden sm:block">{domain.warmup_status}</span>
+                    <span className="text-[10px] text-[#5B6B7D] capitalize hidden sm:block">{domain.warmup_status}</span>
                 </div>
                 {assignedTo && (
-                    <p className="text-[11px] text-gray-500 mt-0.5">Assigned to {assignedTo}</p>
+                    <p className="text-[11px] text-[#5B6B7D] mt-0.5">Assigned to {assignedTo}</p>
                 )}
             </div>
             <button
                 onClick={onToggle}
                 disabled={saving}
                 className={`relative w-9 h-5 rounded-full transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-amber-400 ${
-                    checked ? 'bg-amber-500' : 'bg-gray-700 hover:bg-gray-600'
+                    checked ? 'bg-amber-500' : 'bg-gray-200 hover:bg-gray-300'
                 } disabled:opacity-50`}
             >
                 <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
@@ -608,33 +613,33 @@ function DeleteDialog({ user, onClose, onConfirm }: { user: UserRecord; onClose:
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/40"
                 onClick={onClose}
             />
             <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96 }}
-                className="relative w-full max-w-sm bg-gray-950 border border-white/8 rounded-2xl shadow-2xl p-6"
+                className="relative w-full max-w-sm bg-white border border-[#DFE6EE] rounded-lg shadow-lg p-6"
                 onClick={e => e.stopPropagation()}
             >
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-xl bg-red-500/15">
-                        <Trash2 size={16} className="text-red-400" />
+                    <div className="p-2 rounded-lg bg-red-50">
+                        <Trash2 size={16} className="text-red-700" />
                     </div>
-                    <h2 className="text-lg font-semibold text-white">Delete User</h2>
+                    <h2 className="text-lg font-semibold text-[#0E2B5C]">Delete User</h2>
                 </div>
-                <p className="text-sm text-gray-400 mb-6">
-                    Permanently delete <span className="text-white font-medium">{user.full_name}</span>? This cannot be undone.
+                <p className="text-sm text-[#5B6B7D] mb-6">
+                    Permanently delete <span className="text-[#0E2B5C] font-medium">{user.full_name}</span>? This cannot be undone.
                 </p>
                 <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-xl border border-white/8 text-gray-400 text-sm hover:border-white/20 transition-colors">
+                    <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-[#DFE6EE] text-[#5B6B7D] text-sm hover:bg-[#F7F9FB] transition-colors">
                         Cancel
                     </button>
                     <button
                         onClick={handleDelete}
                         disabled={deleting}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/80 hover:bg-red-500 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
                     >
                         {deleting ? <RefreshCw size={14} className="animate-spin" /> : <Trash2 size={14} />}
                         Delete
@@ -649,7 +654,7 @@ function DeleteDialog({ user, onClose, onConfirm }: { user: UserRecord; onClose:
 // Main Page
 // ---------------------------------------------------------------------------
 
-export default function UsersPage() {
+function UsersTab() {
     const { user: me } = useSelector((s: RootState) => s.auth);
     const isSuperAdmin = hasRole(me?.role ?? 'viewer', 'super_admin');
 
@@ -734,30 +739,18 @@ export default function UsersPage() {
     }
 
     return (
-        <div className="p-6 lg:p-8">
-            {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-purple-500/20">
-                            <Users className="w-6 h-6 text-purple-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">User Management</h1>
-                            <p className="text-gray-500 dark:text-gray-400">Create accounts, assign roles, and monitor active sessions</p>
-                        </div>
-                    </div>
-                    {isSuperAdmin && (
-                        <button
-                            onClick={openCreate}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#00458B] hover:bg-[#045CB4] text-white text-sm font-semibold active:scale-[0.98] transition-all shrink-0"
-                        >
-                            <Plus size={16} />
-                            New User
-                        </button>
-                    )}
+        <div>
+            {isSuperAdmin && (
+                <div className="flex justify-end mb-5">
+                    <button
+                        onClick={openCreate}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#00458B] hover:bg-[#045CB4] text-white text-sm font-semibold active:scale-[0.98] transition-all shrink-0"
+                    >
+                        <Plus size={16} />
+                        New User
+                    </button>
                 </div>
-            </motion.div>
+            )}
 
             {/* Stats Row */}
             <motion.div
@@ -766,14 +759,14 @@ export default function UsersPage() {
                 transition={{ delay: 0.05 }}
                 className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8"
             >
-                <div className="col-span-2 md:col-span-1 bg-gray-950/80 backdrop-blur-sm border border-white/8 rounded-2xl p-4">
-                    <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Total Users</p>
-                    <p className="text-3xl font-mono font-bold text-white">{stats.total}</p>
-                    <p className="text-xs text-emerald-400 mt-1">{stats.active} active</p>
+                <div className="col-span-2 md:col-span-1 bg-white border border-[#DFE6EE] rounded-lg p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-[#5B6B7D] mb-1">Total Users</p>
+                    <p className="text-3xl font-mono font-bold text-[#0E2B5C]">{stats.total}</p>
+                    <p className="text-xs text-emerald-700 mt-1">{stats.active} active</p>
                 </div>
                 {ROLES.map(r => (
-                    <div key={r} className="bg-gray-950/80 backdrop-blur-sm border border-white/8 rounded-2xl p-4">
-                        <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">{ROLE_META[r].label}</p>
+                    <div key={r} className="bg-white border border-[#DFE6EE] rounded-lg p-4">
+                        <p className="text-[10px] uppercase tracking-widest text-[#5B6B7D] mb-1">{ROLE_META[r].label}</p>
                         <p className={`text-2xl font-mono font-bold ${ROLE_META[r].color}`}>{stats.byRole[r] ?? 0}</p>
                     </div>
                 ))}
@@ -787,19 +780,19 @@ export default function UsersPage() {
                 className="flex items-center gap-3 mb-6"
             >
                 <div className="relative flex-1">
-                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                    <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5B6B7D]" />
                     <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Search by name, email, or role…"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-gray-950/80 border border-white/8 text-white placeholder-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                        className="w-full pl-10 pr-4 py-3 rounded-lg bg-white border border-[#DFE6EE] text-[#0E2B5C] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B] transition-all"
                     />
                 </div>
                 <button
                     onClick={load}
                     disabled={loading}
-                    className="p-3 rounded-xl bg-white/5 border border-white/8 text-gray-400 hover:text-white hover:bg-white/8 transition-all disabled:opacity-50"
+                    className="p-3 rounded-lg bg-white border border-[#DFE6EE] text-[#5B6B7D] hover:text-[#0E2B5C] hover:bg-[#F7F9FB] transition-all disabled:opacity-50"
                     title="Refresh"
                 >
                     <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
@@ -812,13 +805,13 @@ export default function UsersPage() {
                     <motion.div
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                        className="w-10 h-10 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full"
+                        className="w-10 h-10 border-2 border-[#DFE6EE] border-t-[#00458B] rounded-full"
                     />
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="text-center py-24">
-                    <Users size={48} className="mx-auto mb-4 text-gray-700" />
-                    <p className="text-gray-500">No users found</p>
+                    <Users size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p className="text-[#5B6B7D]">No users found</p>
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -833,23 +826,23 @@ export default function UsersPage() {
                                 initial={{ opacity: 0, y: 12 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.04 }}
-                                className="px-5 py-4 bg-gray-950/80 backdrop-blur-sm border border-white/8 rounded-2xl hover:border-white/[0.12] transition-colors"
+                                className="px-5 py-4 bg-white border border-[#DFE6EE] rounded-lg hover:bg-[#F7F9FB] transition-colors"
                             >
                                 <div className="flex items-start gap-4">
                                     {/* Avatar */}
-                                    <div className="w-10 h-10 rounded-full bg-linear-to-br from-cyan-500/30 to-purple-600/30 border border-white/8 flex items-center justify-center shrink-0 mt-0.5">
-                                        <span className="text-sm font-bold text-white">{initials(u.full_name)}</span>
+                                    <div className="w-10 h-10 rounded-full bg-[#F7F9FB] border border-[#DFE6EE] flex items-center justify-center shrink-0 mt-0.5">
+                                        <span className="text-sm font-bold text-[#00458B]">{initials(u.full_name)}</span>
                                     </div>
 
                                     {/* Name / email / device */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <p className="text-sm font-medium text-white truncate">{u.full_name}</p>
+                                            <p className="text-sm font-medium text-[#0E2B5C] truncate">{u.full_name}</p>
                                             {isMe && (
-                                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 font-mono shrink-0">you</span>
+                                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-mono shrink-0">you</span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-gray-500 truncate">{u.email}</p>
+                                        <p className="text-xs text-[#5B6B7D] truncate">{u.email}</p>
                                         <DeviceChip device={u.current_device} />
                                     </div>
 
@@ -862,15 +855,15 @@ export default function UsersPage() {
                                         </span>
 
                                         {/* Status badge */}
-                                        <span className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-900 text-xs ${statusMeta.color}`}>
+                                        <span className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F7F9FB] border border-[#DFE6EE] text-xs">
                                             <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
-                                            {statusMeta.label}
+                                            <span className={statusMeta.color}>{statusMeta.label}</span>
                                         </span>
 
                                         {/* Last login */}
                                         <div className="hidden lg:block text-right shrink-0">
-                                            <p className="text-[10px] uppercase tracking-widest text-gray-600">Last login</p>
-                                            <p className="text-xs font-mono text-gray-400">{formatDate(u.last_login)}</p>
+                                            <p className="text-[10px] uppercase tracking-widest text-[#5B6B7D]">Last login</p>
+                                            <p className="text-xs font-mono text-[#5B6B7D]">{formatDate(u.last_login)}</p>
                                         </div>
 
                                         {/* Actions */}
@@ -879,7 +872,7 @@ export default function UsersPage() {
                                             {u.role === 'outreach' && isSuperAdmin && (
                                                 <button
                                                     onClick={() => setDomainAssignUser(u)}
-                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 transition-colors"
+                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors"
                                                     title="Manage domain assignments"
                                                 >
                                                     <Globe size={13} />
@@ -888,7 +881,7 @@ export default function UsersPage() {
                                             )}
                                             <button
                                                 onClick={() => openEdit(u)}
-                                                className="p-2 rounded-lg text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors"
+                                                className="p-2 rounded-lg text-[#5B6B7D] hover:text-[#00458B] hover:bg-blue-50 transition-colors"
                                                 title="Edit user"
                                             >
                                                 <Pencil size={15} />
@@ -896,7 +889,7 @@ export default function UsersPage() {
                                             {isSuperAdmin && !isMe && (
                                                 <button
                                                     onClick={() => setDeletingUser(u)}
-                                                    className="p-2 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                                    className="p-2 rounded-lg text-[#5B6B7D] hover:text-red-700 hover:bg-red-50 transition-colors"
                                                     title="Delete user"
                                                 >
                                                     <Trash2 size={15} />
@@ -955,10 +948,10 @@ export default function UsersPage() {
                         initial={{ opacity: 0, y: 24, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 24, scale: 0.95 }}
-                        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
+                        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-lg shadow-lg text-sm font-medium border ${
                             toast.type === 'success'
-                                ? 'bg-emerald-500/15 border border-emerald-500/20 text-emerald-400'
-                                : 'bg-red-500/15 border border-red-500/20 text-red-400'
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                : 'bg-red-50 border-red-200 text-red-700'
                         }`}
                     >
                         {toast.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
@@ -967,5 +960,81 @@ export default function UsersPage() {
                 )}
             </AnimatePresence>
         </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// User Management — tabbed shell (Users / Trusted Devices)
+// ---------------------------------------------------------------------------
+
+type ManagementTab = 'users' | 'devices';
+
+const TABS: { key: ManagementTab; label: string }[] = [
+    { key: 'users', label: 'Users' },
+    { key: 'devices', label: 'Trusted Devices' },
+];
+
+function UserManagementContent() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const tabParam = searchParams.get('tab');
+    const activeTab: ManagementTab = tabParam === 'devices' ? 'devices' : 'users';
+
+    function selectTab(tab: ManagementTab) {
+        const params = new URLSearchParams(searchParams.toString());
+        if (tab === 'users') {
+            params.delete('tab');
+        } else {
+            params.set('tab', tab);
+        }
+        const query = params.toString();
+        router.push(query ? `${pathname}?${query}` : pathname);
+    }
+
+    return (
+        <div className="p-6 lg:p-8">
+            <PageHeader
+                icon={Users}
+                title="User Management"
+                subtitle="Manage user accounts, roles, access, and trusted devices"
+            />
+
+            <div className="flex items-center gap-1 p-1 bg-white border border-[#DFE6EE] rounded-lg w-fit mb-6">
+                {TABS.map(t => (
+                    <button
+                        key={t.key}
+                        onClick={() => selectTab(t.key)}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === t.key
+                                ? 'bg-blue-50 text-[#00458B] border border-[#00458B]/30'
+                                : 'text-[#5B6B7D] border border-transparent hover:bg-[#F7F9FB]'
+                        }`}
+                    >
+                        {t.key === 'users' ? <Users size={15} /> : <Monitor size={15} />}
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {activeTab === 'users' ? <UsersTab /> : <TrustedDevicesPanel />}
+        </div>
+    );
+}
+
+export default function UserManagementPage() {
+    return (
+        <Suspense fallback={
+            <div className="p-6 lg:p-8">
+                <PageHeader
+                    icon={Users}
+                    title="User Management"
+                    subtitle="Manage user accounts, roles, access, and trusted devices"
+                />
+            </div>
+        }>
+            <UserManagementContent />
+        </Suspense>
     );
 }

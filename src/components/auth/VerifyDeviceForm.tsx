@@ -87,20 +87,20 @@ export default function VerifyDeviceForm() {
         >
             {/* Icon */}
             <div className="flex flex-col items-center mb-8">
-                <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-cyan-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-cyan-500/20">
-                    <ShieldCheck size={26} className="text-white" />
+                <div className="w-14 h-14 rounded-2xl bg-[#F7F9FB] border border-[#DFE6EE] flex items-center justify-center mb-4">
+                    <ShieldCheck size={26} className="text-[#00458B]" />
                 </div>
-                <h1 className="text-2xl font-bold text-white">Device Verification</h1>
-                <p className="text-sm text-gray-400 mt-1 text-center max-w-xs">
+                <h1 className="text-2xl font-bold text-[#0E2B5C]">Device Verification</h1>
+                <p className="text-sm text-[#5B6B7D] mt-1 text-center max-w-xs">
                     This device isn&apos;t recognised. Your admin has been sent a one-time code — ask them for it.
                 </p>
             </div>
 
-            <div className="bg-gray-950/80 backdrop-blur-sm border border-white/8 rounded-2xl p-8 shadow-xl">
+            <div className="bg-white border border-[#DFE6EE] rounded-2xl p-8 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* OTP */}
                     <div>
-                        <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">
+                        <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">
                             6-Digit Code
                         </label>
                         <input
@@ -113,24 +113,24 @@ export default function VerifyDeviceForm() {
                             onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
                             required
                             placeholder="000000"
-                            className="w-full px-4 py-3 rounded-xl bg-gray-900 border border-white/8 text-white placeholder-gray-600 text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                            className="w-full px-4 py-3 rounded-xl bg-white border border-[#DFE6EE] text-[#0E2B5C] placeholder-gray-400 text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B] transition-all"
                         />
                     </div>
 
                     {/* Device name (optional) */}
                     <div>
-                        <label className="block text-[11px] uppercase tracking-widest text-gray-500 mb-2">
-                            Device Name <span className="normal-case tracking-normal text-gray-600">(optional)</span>
+                        <label className="block text-[11px] uppercase tracking-widest text-[#5B6B7D] mb-2">
+                            Device Name <span className="normal-case tracking-normal text-gray-400">(optional)</span>
                         </label>
                         <div className="relative">
-                            <Laptop size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                            <Laptop size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5B6B7D]" />
                             <input
                                 type="text"
                                 value={deviceName}
                                 onChange={e => setDeviceName(e.target.value)}
                                 placeholder="My Work Laptop"
                                 maxLength={100}
-                                className="w-full pl-9 pr-4 py-3 rounded-xl bg-gray-900 border border-white/8 text-white placeholder-gray-600 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all"
+                                className="w-full pl-9 pr-4 py-3 rounded-xl bg-white border border-[#DFE6EE] text-[#0E2B5C] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B] transition-all"
                             />
                         </div>
                     </div>
@@ -140,7 +140,7 @@ export default function VerifyDeviceForm() {
                         <motion.p
                             initial={{ opacity: 0, y: -4 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3"
+                            className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3"
                         >
                             {errorMsg}
                         </motion.p>
@@ -149,7 +149,7 @@ export default function VerifyDeviceForm() {
                         <motion.p
                             initial={{ opacity: 0, y: -4 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-4 py-3"
+                            className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3"
                         >
                             {successMsg}
                         </motion.p>
@@ -159,7 +159,7 @@ export default function VerifyDeviceForm() {
                     <button
                         type="submit"
                         disabled={isLoading || otp.length !== 6}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-linear-to-r from-cyan-500 to-purple-600 text-white font-semibold text-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-cyan-500 shadow-lg shadow-cyan-500/20"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#00458B] hover:bg-[#045CB4] text-white font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#00458B]/40"
                     >
                         {isLoading ? (
                             <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -179,7 +179,7 @@ export default function VerifyDeviceForm() {
                         type="button"
                         onClick={handleResend}
                         disabled={isResending || resendCooldown > 0}
-                        className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-cyan-500 rounded"
+                        className="inline-flex items-center gap-1.5 text-xs text-[#5B6B7D] hover:text-[#00458B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-[#00458B]/30 rounded"
                     >
                         <RefreshCw size={11} className={isResending ? 'animate-spin' : ''} />
                         {resendCooldown > 0
@@ -195,7 +195,7 @@ export default function VerifyDeviceForm() {
                     <button
                         type="button"
                         onClick={() => { sessionStorage.removeItem('pendingDeviceUserId'); router.replace('/login'); }}
-                        className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                        className="text-xs text-gray-400 hover:text-[#5B6B7D] transition-colors"
                     >
                         Back to sign in
                     </button>
