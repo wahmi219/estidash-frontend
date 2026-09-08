@@ -15,10 +15,10 @@
   --brand-amber: #f59e0b;
   --brand-rose: #f43f5e;
 
-  /* Accent (single blue/indigo family — Phase 1 light shell) */
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-soft: rgba(79, 70, 229, 0.08);
+  /* Accent — Estimation Hub brand blue */
+  --accent: #00458B;
+  --accent-hover: #045CB4;
+  --accent-soft: rgba(0, 69, 139, 0.08);
 
   /* Status Colors */
   --status-expanding: #10b981;

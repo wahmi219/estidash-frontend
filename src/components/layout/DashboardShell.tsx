@@ -12,9 +12,9 @@ import type { RootState } from '@/store/store';
 // ── Notification Bell ────────────────────────────────────────────────────────
 
 const INTENT_COLOR: Record<string, string> = {
-    hot_lead: 'text-emerald-400',
-    soft:     'text-cyan-400',
-    not_now:  'text-amber-400',
+    hot_lead: 'text-emerald-600',
+    soft:     'text-[#00458B]',
+    not_now:  'text-amber-600',
     no:       'text-gray-500',
 };
 
@@ -61,9 +61,9 @@ function NotificationBell() {
                 onClick={toggle}
                 className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300 transition-all shadow-sm"
             >
-                <Bell className={`w-4 h-4 ${unreadCount > 0 ? 'text-indigo-600' : ''}`} />
+                <Bell className={`w-4 h-4 ${unreadCount > 0 ? 'text-[#00458B]' : ''}`} />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-indigo-600 text-[9px] font-bold text-white">
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 flex items-center justify-center rounded-full bg-[#00458B] text-[9px] font-bold text-white">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
@@ -82,7 +82,7 @@ function NotificationBell() {
                         {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                             <div className="flex items-center gap-2">
-                                <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                                <Mail className="w-3.5 h-3.5 text-[#00458B]" />
                                 <span className="text-xs font-semibold text-gray-900">New Emails</span>
                                 {notifications.length > 0 && (
                                     <span className="text-[9px] font-mono text-gray-500 bg-gray-100 rounded px-1">{notifications.length}</span>
@@ -106,8 +106,8 @@ function NotificationBell() {
                             ) : (
                                 notifications.map(n => (
                                     <div key={n.id} className="group relative flex gap-3 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <div className="mt-0.5 w-7 h-7 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
-                                            <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                                        <div className="mt-0.5 w-7 h-7 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                                            <Mail className="w-3.5 h-3.5 text-[#00458B]" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between gap-1 mb-0.5">

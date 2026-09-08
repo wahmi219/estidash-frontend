@@ -25,10 +25,8 @@ import {
     ShieldCheck,
     Database,
     LandPlot,
-    Monitor,
     LogOut,
     Wallet,
-    Gauge,
     Inbox,
     Flame,
 } from 'lucide-react';
@@ -192,14 +190,6 @@ const bottomNavItems: NavItem[] = [
         hidden: true,
     },
     {
-        id: 'permit-scoring',
-        label: 'Permit Scoring',
-        icon: <Gauge size={20} />,
-        href: '/dashboard/settings/permit-scoring',
-        minRole: 'super_admin',
-        hidden: true,
-    },
-    {
         id: 'user-management',
         label: 'User Management',
         icon: <Users size={20} />,
@@ -207,18 +197,15 @@ const bottomNavItems: NavItem[] = [
         minRole: 'super_admin',
     },
     {
-        id: 'trusted-devices',
-        label: 'Trusted Devices',
-        icon: <Monitor size={20} />,
-        href: '/dashboard/settings/devices',
-        minRole: 'super_admin',
-    },
-    {
+        // MVP: Settings has exactly one real configuration area (Permit
+        // Qualification), so this links straight there rather than to a
+        // multi-card hub. /dashboard/settings itself still exists as a
+        // redirect for anyone with that URL saved/linked.
         id: 'settings',
         label: 'Settings',
         icon: <Settings size={20} />,
-        href: '/dashboard/settings',
-        minRole: 'admin',
+        href: '/dashboard/settings/permit-scoring',
+        minRole: 'super_admin',
     },
     {
         id: 'help',
@@ -262,6 +249,7 @@ export default function Sidebar() {
         !item.hidden && (!item.minRole || hasRole(userRole, item.minRole));
 
     const visibleSecondaryNavItems = secondaryNavItems.filter(canSee);
+    const visibleBottomNavItems = bottomNavItems.filter(canSee);
 
     async function handleLogout() {
         try {
@@ -281,7 +269,7 @@ export default function Sidebar() {
             className="fixed left-0 top-0 h-screen bg-white border-r border-gray-200 z-50 flex flex-col"
         >
             {/* Logo */}
-            <div className="p-4 border-b border-gray-200 dark:border-white/8">
+            <div className="pt-4 pr-4 pb-4 pl-2 border-b border-[#DFE6EE]">
                 <Link href="/dashboard" className="flex flex-col items-start">
                     {isCollapsed ? (
                         // Collapsed: a cropped window into the same wordmark asset,
@@ -316,8 +304,8 @@ export default function Sidebar() {
                 {/* Primary Nav */}
                 <div className="space-y-1">
                     {!isCollapsed && (
-                        <p className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Analytics
+                        <p className="px-3 py-2 text-xs font-medium text-[#5B6B7D] uppercase tracking-wider">
+                            Main
                         </p>
                     )}
                     {mainNavItems.filter(canSee).map((item) => {
@@ -392,14 +380,14 @@ export default function Sidebar() {
                     has a visible item for this role, otherwise it's an orphan
                     rule with nothing under it. */}
                 {visibleSecondaryNavItems.length > 0 && (
-                    <div className="my-4 border-t border-gray-200 dark:border-white/8" />
+                    <div className="my-4 border-t border-[#DFE6EE]" />
                 )}
 
                 {/* AI Assistant — only shown to admin+ */}
                 {visibleSecondaryNavItems.length > 0 && (
                     <div className="space-y-1">
                         {!isCollapsed && (
-                            <p className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <p className="px-3 py-2 text-xs font-medium text-[#5B6B7D] uppercase tracking-wider">
                                 AI Assistant
                             </p>
                         )}
@@ -417,7 +405,7 @@ export default function Sidebar() {
                                     {item.icon}
                                     <Sparkles
                                         size={10}
-                                        className="absolute -top-1 -right-1 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute -top-1 -right-1 text-[#00458B] opacity-0 group-hover:opacity-100 transition-opacity"
                                     />
                                 </span>
                                 <AnimatePresence>
@@ -439,8 +427,13 @@ export default function Sidebar() {
             </nav>
 
             {/* Bottom Navigation */}
-            <div className="p-3 border-t border-gray-200 dark:border-white/8 space-y-1">
-                {bottomNavItems.filter(canSee).map((item) => (
+            <div className="p-3 border-t border-[#DFE6EE] space-y-1">
+                {visibleBottomNavItems.length > 0 && !isCollapsed && (
+                    <p className="px-3 py-2 text-xs font-medium text-[#5B6B7D] uppercase tracking-wider">
+                        Admin
+                    </p>
+                )}
+                {visibleBottomNavItems.map((item) => (
                     <Link
                         key={item.id}
                         href={item.href}
@@ -472,7 +465,7 @@ export default function Sidebar() {
                         'flex items-center gap-3 px-3 py-2 mt-1',
                         isCollapsed && 'justify-center'
                     )}>
-                        <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 text-white text-xs font-bold">
+                        <div className="w-7 h-7 rounded-full bg-[#00458B] flex items-center justify-center shrink-0 text-white text-xs font-bold">
                             {user.full_name.charAt(0).toUpperCase()}
                         </div>
                         <AnimatePresence>
@@ -483,8 +476,8 @@ export default function Sidebar() {
                                     exit={{ opacity: 0 }}
                                     className="flex-1 min-w-0"
                                 >
-                                    <p className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate">{user.full_name}</p>
-                                    <p className="text-[10px] uppercase tracking-widest text-gray-500">{user.role.replace('_', ' ')}</p>
+                                    <p className="text-xs font-medium text-[#0E2B5C] truncate">{user.full_name}</p>
+                                    <p className="text-[11px] uppercase tracking-widest text-[#5B6B7D]">{user.role.replace('_', ' ')}</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -496,7 +489,7 @@ export default function Sidebar() {
                                     exit={{ opacity: 0 }}
                                     onClick={handleLogout}
                                     title="Sign out"
-                                    className="text-gray-500 hover:text-red-400 transition-colors focus-visible:ring-2 focus-visible:ring-red-400 rounded"
+                                    className="text-[#5B6B7D] hover:text-red-600 transition-colors focus-visible:ring-2 focus-visible:ring-red-400 rounded"
                                 >
                                     <LogOut size={15} />
                                 </motion.button>

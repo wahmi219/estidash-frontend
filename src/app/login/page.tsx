@@ -38,17 +38,7 @@ export default function LoginPage() {
                 />
 
                 <div className="flex-1 flex flex-col justify-center pb-16">
-                    <h1
-                        className="text-[32px] font-bold leading-tight tracking-tight whitespace-nowrap"
-                        style={{
-                            backgroundImage:
-                                'linear-gradient(100deg, #0e2b5c 0%, #00458b 38%, #045cb4 68%, #3ed1c7 100%)',
-                            WebkitBackgroundClip: 'text',
-                            backgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            color: '#0e2b5c',
-                        }}
-                    >
+                    <h1 className="text-[32px] font-bold leading-tight tracking-tight whitespace-nowrap text-[#0E2B5C]">
                         Market Intelligence Platform
                     </h1>
                     <div className="mt-3 w-12 h-[3px] bg-[#00458B]" aria-hidden="true" />
