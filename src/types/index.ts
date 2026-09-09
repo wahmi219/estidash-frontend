@@ -681,6 +681,72 @@ export interface SyncResponse {
     error?: string;
 }
 
+// ─── Data Sources health (Phase 2C) ────────────────────────────────────────
+// Mirrors app/routers/data_sources.py's response models 1:1.
+
+export type SourceHealthState =
+    | 'HEALTHY'
+    | 'WARNING'
+    | 'FAILED'
+    | 'STUCK'
+    | 'NEEDS_AUTH'
+    | 'DISABLED'
+    | 'NEVER_VERIFIED';
+
+export interface DataSourceSummary {
+    agency_id: string;
+    city_key: string;
+    source: string;   // "City, ST"
+    state: string;
+    connector: string;
+    last_success: string | null;
+    latest_permit: string | null;
+    next_sync: string | null;
+    health: SourceHealthState;
+    health_reason: string;
+    records: number;
+    enabled: boolean;
+    disabled_reason: string | null;
+    currently_running: boolean;
+}
+
+export interface RecentSyncEntry {
+    id: string;
+    started_at: string | null;
+    completed_at: string | null;
+    status: string;
+    records_fetched: number;
+    records_inserted: number;
+    records_updated: number;
+    records_skipped: number;
+    records_failed: number;
+    records_quarantined: number;
+    duration_seconds: number | null;
+    error_message: string | null;
+}
+
+export interface DataSourceDetail extends DataSourceSummary {
+    cadence_minutes: number;
+    lookback_hours: number;
+    watermark: string | null;
+    consecutive_failure_count: number;
+    last_error_summary: string | null;
+    recent_syncs: RecentSyncEntry[];
+}
+
+export interface DataSourceHealthSummary {
+    configured: number;
+    active: number;
+    disabled: number;
+    needs_auth: number;
+    retired: number;
+    healthy: number;
+    warning: number;
+    failed: number;
+    stuck: number;
+    never_verified: number;
+}
+
 export interface DeleteCityResponse {
     status: 'dry_run' | 'deleted' | 'nothing_to_delete';
     city: string;

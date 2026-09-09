@@ -84,6 +84,9 @@ import {
     ScoringStats,
     SampleScoreResponse,
     CostEstimateStats,
+    DataSourceSummary,
+    DataSourceDetail,
+    DataSourceHealthSummary,
 } from '@/types';
 
 export type WarmupDailyEntry = { date: string; sent: number; received: number; landed_inbox: number; landed_spam: number };
@@ -1491,6 +1494,27 @@ class ApiService {
 
     async getTotalPermitCount(): Promise<{ total: number }> {
         const response = await this.client.get<{ total: number }>('/permits/count');
+        return response.data;
+    }
+
+    // =========================================================================
+    // Data Sources health (Phase 2C)
+    // =========================================================================
+
+    async getDataSources(health?: string): Promise<DataSourceSummary[]> {
+        const response = await this.client.get<DataSourceSummary[]>('/data-sources', {
+            params: health ? { health } : undefined,
+        });
+        return response.data;
+    }
+
+    async getDataSourceDetail(agencyId: string): Promise<DataSourceDetail> {
+        const response = await this.client.get<DataSourceDetail>(`/data-sources/${agencyId}`);
+        return response.data;
+    }
+
+    async getDataSourcesHealthSummary(): Promise<DataSourceHealthSummary> {
+        const response = await this.client.get<DataSourceHealthSummary>('/data-sources/health-summary');
         return response.data;
     }
 

@@ -1,9 +1,13 @@
 'use client';
 
-import { LayoutDashboard, RefreshCw, Activity, ListChecks, Flame, FileText, CheckCircle2, XCircle, ShieldAlert, Phone, Wallet } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { LayoutDashboard, RefreshCw, Activity, ListChecks, Flame, FileText, CheckCircle2, XCircle, ShieldAlert, Phone, Wallet, AlertTriangle, Lock, Clock } from 'lucide-react';
 import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard';
 import PageHeader from '@/components/common/PageHeader';
 import SectionHeading from '@/components/common/SectionHeading';
+import { apiService } from '@/services/api';
+import type { DataSourceHealthSummary } from '@/types';
 
 const LATEST_SYNC_METRICS = [
     { label: 'New Permits', icon: FileText, accent: 'blue' as const },
@@ -22,6 +26,18 @@ const WORKFLOW_METRICS = [
 const PRIORITY_STATES_COLUMNS = ['State', 'Coverage', 'Qualified Rate', 'Strategic / Strong', 'Contractor Backlog', 'Priority'];
 
 export default function DashboardPage() {
+    const [health, setHealth] = useState<DataSourceHealthSummary | null>(null);
+    const [healthLoading, setHealthLoading] = useState(true);
+
+    useEffect(() => {
+        apiService.getDataSourcesHealthSummary()
+            .then(setHealth)
+            .catch(() => setHealth(null))
+            .finally(() => setHealthLoading(false));
+    }, []);
+
+    const needsAttention = health ? health.warning + health.failed + health.stuck + health.needs_auth : 0;
+
     return (
         <div className="p-6 lg:p-8">
             <PageHeader
@@ -29,6 +45,38 @@ export default function DashboardPage() {
                 title="Dashboard"
                 subtitle="Permit and contractor activity"
             />
+
+            {/* Section 0 — Permit Source Health. Compact summary only (not a
+                source list — that's Data Sources' job). Real counts from
+                GET /api/v1/data-sources/health-summary (Phase 2C). Clicking
+                through goes to Data Sources, filtered to whichever state
+                needs attention when there's a clear one to jump to. */}
+            <section className="mb-8">
+                <div className="flex items-center justify-between mb-3">
+                    <SectionHeading icon={Activity}>Permit Source Health</SectionHeading>
+                    <Link
+                        href={needsAttention > 0 ? '/dashboard/datasources?health=failed' : '/dashboard/datasources'}
+                        className="text-xs font-medium text-[#00458B] hover:text-[#045CB4] transition-colors"
+                    >
+                        View Data Sources →
+                    </Link>
+                </div>
+                <Link href="/dashboard/datasources" className="block">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                        <DashboardMetricCard label="Healthy" value={healthLoading ? undefined : health?.healthy} icon={CheckCircle2} accent="green" />
+                        <DashboardMetricCard label="Warning" value={healthLoading ? undefined : health?.warning} icon={AlertTriangle} accent="amber" />
+                        <DashboardMetricCard label="Failed" value={healthLoading ? undefined : health?.failed} icon={XCircle} accent="red" />
+                        <DashboardMetricCard label="Stuck" value={healthLoading ? undefined : health?.stuck} icon={Clock} accent="red" />
+                        <DashboardMetricCard label="Needs Auth" value={healthLoading ? undefined : health?.needs_auth} icon={Lock} accent="amber" />
+                    </div>
+                </Link>
+                {health && (
+                    <p className="text-xs text-[#5B6B7D] mt-2">
+                        {health.active} active of {health.configured} configured sources
+                        {health.disabled > 0 && ` · ${health.disabled} disabled/retired`}
+                    </p>
+                )}
+            </section>
 
             {/* Section 1 — Latest Sync. Sync Permit Sources stays a visual shell —
                 real SyncRun wiring comes later after the production DB/scheduler

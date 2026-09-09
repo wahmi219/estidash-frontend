@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { LandPlot, RefreshCw, AlertCircle, ArrowUpDown, SortAsc } from 'lucide-react';
+import Link from 'next/link';
+import { LandPlot, RefreshCw, AlertCircle, ArrowUpDown, SortAsc, Database } from 'lucide-react';
 import { apiService } from '@/services/api';
-import { PermitCounty, CountyCoverageGap } from '@/types';
+import { PermitCounty, CountyCoverageGap, DataSourceHealthSummary } from '@/types';
 import { CountyAnalyticsCard } from '@/components/permits';
 import PageHeader from '@/components/common/PageHeader';
 
@@ -79,6 +80,17 @@ export default function CountiesPage() {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    // Lightweight source-health indicator only (Phase 2C) -- this page's
+    // job stays geographic coverage, not source troubleshooting, so this
+    // is a single small link, not a table or breakdown.
+    const [sourceHealth, setSourceHealth] = useState<DataSourceHealthSummary | null>(null);
+    useEffect(() => {
+        apiService.getDataSourcesHealthSummary().then(setSourceHealth).catch(() => {});
+    }, []);
+    const sourcesNeedingAttention = sourceHealth
+        ? sourceHealth.warning + sourceHealth.failed + sourceHealth.stuck + sourceHealth.needs_auth
+        : 0;
+
     // Build a gaps lookup for fast card access
     const gapMap = useMemo(() => {
         const m = new Map<string, CountyCoverageGap>();
@@ -127,14 +139,26 @@ export default function CountiesPage() {
                 title="County Coverage"
                 subtitle="Validate permit coverage by county — identify data gaps across key metros"
                 actions={
-                    <button
-                        onClick={fetchData}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
-                    >
-                        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                        Refresh
-                    </button>
+                    <>
+                        {sourcesNeedingAttention > 0 && (
+                            <Link
+                                href="/dashboard/datasources"
+                                className="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-amber-800 text-sm transition-colors"
+                                title="Some permit sources need attention"
+                            >
+                                <Database size={14} />
+                                {sourcesNeedingAttention} source{sourcesNeedingAttention === 1 ? '' : 's'} need attention
+                            </Link>
+                        )}
+                        <button
+                            onClick={fetchData}
+                            disabled={loading}
+                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
+                        >
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                            Refresh
+                        </button>
+                    </>
                 }
             />
 

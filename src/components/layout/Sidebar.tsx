@@ -91,13 +91,6 @@ const mainNavItems: NavItem[] = [
         ],
     },
     {
-        id: 'upload',
-        label: 'Data Upload',
-        icon: <Upload size={20} />,
-        href: '/dashboard/upload',
-        minRole: 'admin',
-    },
-    {
         id: 'cbsa-insights',
         label: 'CBSA Insights',
         icon: <MapPin size={20} />,
@@ -133,6 +126,16 @@ const mainNavItems: NavItem[] = [
         label: 'County Coverage',
         icon: <LandPlot size={20} />,
         href: '/dashboard/counties',
+        minRole: 'admin',
+    },
+    // DATA group: Data Sources, County Coverage, Import Data kept adjacent
+    // (Phase 2C) — "Import Data" is the same Excel-upload page previously
+    // labeled "Data Upload", renamed/relocated here rather than duplicated.
+    {
+        id: 'upload',
+        label: 'Import Data',
+        icon: <Upload size={20} />,
+        href: '/dashboard/upload',
         minRole: 'admin',
     },
     {

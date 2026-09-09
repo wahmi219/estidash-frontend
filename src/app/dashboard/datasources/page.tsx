@@ -1,236 +1,238 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Database, RefreshCw, Settings2 } from 'lucide-react';
-import { useAppDispatch, useAppSelector } from '@/hooks/useAppDispatch';
-import {
-    fetchPermitCities,
-    selectAvailableCities,
-} from '@/store/slices/permitsSlice';
-import { CityDataSourceCard } from '@/components/permits';
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Database, RefreshCw, Search, Eye } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import { apiService } from '@/services/api';
-import { CitySyncStatus, PermitCityInfo } from '@/types';
+import type { DataSourceSummary, SourceHealthState } from '@/types';
+import HealthBadge, { healthLabel } from '@/components/datasources/HealthBadge';
+import SourceDetailModal from '@/components/datasources/SourceDetailModal';
+import { formatDateTime, formatDateOnly } from '@/components/datasources/dateUtils';
 
-// ─── adapter tab colours (shared with CitySyncPanel) ────────────────────────
-// Restrained Estimation Hub palette — blue / green / amber / gray only.
-// No purple/pink/cyan-neon; "ods" reuses a second blue tone since only four
-// hue families are allowed for five source types.
+const HEALTH_STATES: SourceHealthState[] = ['HEALTHY', 'WARNING', 'FAILED', 'STUCK', 'NEEDS_AUTH', 'DISABLED', 'NEVER_VERIFIED'];
 
-const ADAPTER_COLORS: Record<string, { bg: string; text: string; activeBg: string; activeBorder: string }> = {
-    all:     { bg: 'bg-white',      text: 'text-[#5B6B7D]',  activeBg: 'bg-[#00458B]/10', activeBorder: 'border-[#00458B]/40' },
-    socrata: { bg: 'bg-blue-50',    text: 'text-blue-700',    activeBg: 'bg-blue-100',     activeBorder: 'border-blue-400'     },
-    arcgis:  { bg: 'bg-emerald-50', text: 'text-emerald-700', activeBg: 'bg-emerald-100',  activeBorder: 'border-emerald-400'  },
-    ckan:    { bg: 'bg-amber-50',   text: 'text-amber-700',   activeBg: 'bg-amber-100',    activeBorder: 'border-amber-400'    },
-    csv:     { bg: 'bg-gray-100',   text: 'text-[#5B6B7D]',   activeBg: 'bg-gray-200',     activeBorder: 'border-gray-400'     },
-    ods:     { bg: 'bg-blue-50',    text: 'text-blue-800',    activeBg: 'bg-blue-100',     activeBorder: 'border-blue-500'     },
+const CONNECTOR_COLORS: Record<string, string> = {
+    Socrata: 'bg-blue-50 text-blue-700',
+    ArcGIS: 'bg-emerald-50 text-emerald-700',
+    CKAN: 'bg-amber-50 text-amber-700',
+    CSV: 'bg-gray-100 text-[#5B6B7D]',
+    ODS: 'bg-blue-50 text-blue-800',
 };
 
-// ─── page ────────────────────────────────────────────────────────────────────
+function DataSourcesPageInner() {
+    const searchParams = useSearchParams();
 
-export default function DataSourcesPage() {
-    const dispatch = useAppDispatch();
-    const cities = useAppSelector(selectAvailableCities);
+    const [sources, setSources] = useState<DataSourceSummary[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [stateFilter, setStateFilter] = useState('all');
+    const [connectorFilter, setConnectorFilter] = useState('all');
+    const [healthFilter, setHealthFilter] = useState<string>(searchParams.get('health')?.toUpperCase() ?? 'all');
+    const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null);
 
-    const [activeAdapter, setActiveAdapter] = useState('all');
-    const [syncStatuses, setSyncStatuses]   = useState<Record<string, CitySyncStatus>>({});
-    const [loadingStatuses, setLoadingStatuses] = useState(false);
-    const [activeCardKey, setActiveCardKey] = useState<string | null>(null);
-    const [importingCrosswalk, setImportingCrosswalk] = useState(false);
-    const [crosswalkMsg, setCrosswalkMsg]   = useState<string | null>(null);
-    const [liveTotal, setLiveTotal]         = useState<number | null>(null);
-
-    // Load cities and live permit count on mount
-    useEffect(() => {
-        dispatch(fetchPermitCities());
-        apiService.getTotalPermitCount().then(r => setLiveTotal(r.total)).catch(() => {});
-    }, [dispatch]);
-
-    // Open the first non-stale city once cities are loaded
-    useEffect(() => {
-        if (cities.length > 0 && activeCardKey === null) {
-            const first = cities.find(c => !c.stale && !c.irrelevant) ?? cities[0];
-            setActiveCardKey(first.key);
-        }
-    }, [cities, activeCardKey]);
-
-    // Fetch sync statuses for all cities
-    const fetchStatuses = useCallback(async (cityList: PermitCityInfo[]) => {
-        if (cityList.length === 0) return;
-        setLoadingStatuses(true);
-        const results = await Promise.allSettled(
-            cityList.map(c => apiService.getCitySyncStatus(c.key).then(s => ({ key: c.key, status: s })))
-        );
-        const map: Record<string, CitySyncStatus> = {};
-        for (const r of results) {
-            if (r.status === 'fulfilled') map[r.value.key] = r.value.status;
-        }
-        setSyncStatuses(map);
-        setLoadingStatuses(false);
-    }, []);
-
-    useEffect(() => {
-        if (cities.length > 0) fetchStatuses(cities);
-    }, [cities, fetchStatuses]);
-
-    // Adapter counts + unique adapter types
-    const adapterCounts = useMemo(() => {
-        const counts: Record<string, number> = { all: cities.length };
-        cities.forEach(c => { counts[c.source] = (counts[c.source] || 0) + 1; });
-        return counts;
-    }, [cities]);
-
-    const adapterTypes = useMemo(() => {
-        const types = new Set(cities.map(c => c.source));
-        return ['all', ...Array.from(types).sort()];
-    }, [cities]);
-
-    const filteredCities = useMemo(() => (
-        activeAdapter === 'all' ? cities : cities.filter(c => c.source === activeAdapter)
-    ), [cities, activeAdapter]);
-
-    const handleStatusRefresh = useCallback((city: string, status: CitySyncStatus) => {
-        setSyncStatuses(prev => ({ ...prev, [city]: status }));
-    }, []);
-
-    const handleImportCrosswalk = async () => {
-        setImportingCrosswalk(true);
-        setCrosswalkMsg(null);
+    const load = useCallback(async () => {
+        setLoading(true);
         try {
-            const r = await apiService.importZipCrosswalk();
-            setCrosswalkMsg(r.message);
-        } catch (err: unknown) {
-            const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-            setCrosswalkMsg(detail ? `Import failed: ${detail}` : 'Import failed — check server logs for details');
+            const data = await apiService.getDataSources();
+            setSources(data);
+        } catch {
+            setSources([]);
         } finally {
-            setImportingCrosswalk(false);
+            setLoading(false);
         }
-    };
+    }, []);
 
-    // Summary stats — use live DB count so this matches the Permits page
-    const totalRecords = liveTotal;
-    const activeCities = useMemo(
-        () => cities.filter(c => !c.stale && !c.irrelevant).length,
-        [cities]
+    useEffect(() => { load(); }, [load]);
+
+    const states = useMemo(
+        () => Array.from(new Set(sources.map(s => s.state).filter(Boolean))).sort(),
+        [sources]
     );
-    const lastSyncTimes = Object.values(syncStatuses)
-        .map(s => s.last_sync_at)
-        .filter(Boolean) as string[];
-    const mostRecentSync = lastSyncTimes.length
-        ? new Date(Math.max(...lastSyncTimes.map(t => new Date(t).getTime()))).toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-          })
-        : 'Never';
+    const connectors = useMemo(
+        () => Array.from(new Set(sources.map(s => s.connector))).sort(),
+        [sources]
+    );
+
+    const filtered = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        return sources
+            .filter(s => !q || s.source.toLowerCase().includes(q) || s.city_key.toLowerCase().includes(q))
+            .filter(s => stateFilter === 'all' || s.state === stateFilter)
+            .filter(s => connectorFilter === 'all' || s.connector === connectorFilter)
+            .filter(s => healthFilter === 'all' || s.health === healthFilter)
+            // Default view: active (enabled/schedulable) sources first, then alphabetical.
+            .sort((a, b) => {
+                if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+                return a.source.localeCompare(b.source);
+            });
+    }, [sources, search, stateFilter, connectorFilter, healthFilter]);
+
+    const activeCount = useMemo(() => sources.filter(s => s.enabled).length, [sources]);
+    const needsAttentionCount = useMemo(
+        () => sources.filter(s => ['FAILED', 'STUCK', 'WARNING', 'NEEDS_AUTH'].includes(s.health)).length,
+        [sources]
+    );
+    const totalRecords = useMemo(() => sources.reduce((sum, s) => sum + s.records, 0), [sources]);
 
     return (
         <div className="p-6 lg:p-8 space-y-6">
             <PageHeader
                 icon={Database}
                 title="Data Sources"
-                subtitle="Manage city data feeds, sync permit records, and monitor data quality"
+                subtitle="Source health, sync schedule, and coverage across all configured permit feeds"
                 actions={
-                    <>
-                        <button
-                            onClick={handleImportCrosswalk}
-                            disabled={importingCrosswalk}
-                            title="Import ZIP → County crosswalk from Census Bureau"
-                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
-                        >
-                            {importingCrosswalk
-                                ? <RefreshCw size={14} className="animate-spin" />
-                                : <Settings2 size={14} />}
-                            {importingCrosswalk ? 'Importing…' : 'Import ZIP Crosswalk'}
-                        </button>
-                        <button
-                            onClick={() => fetchStatuses(cities)}
-                            disabled={loadingStatuses}
-                            className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
-                        >
-                            <RefreshCw size={14} className={loadingStatuses ? 'animate-spin' : ''} />
-                            Refresh All
-                        </button>
-                    </>
+                    <button
+                        onClick={load}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-3 py-2 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg text-[#5B6B7D] hover:text-[#0E2B5C] text-sm transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
                 }
             />
 
-            {/* Crosswalk status message */}
-            {crosswalkMsg && (
-                <div className="px-4 py-2 bg-[#00458B]/5 border border-[#00458B]/20 rounded-lg text-[#00458B] text-sm">
-                    {crosswalkMsg}
-                </div>
-            )}
-
             {/* Summary chips */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <SummaryChip label="Total Cities" value={cities.length.toString()} />
-                <SummaryChip label="Active Sources" value={activeCities.toString()} />
-                <SummaryChip label="Total Records" value={totalRecords != null ? totalRecords.toLocaleString() : '—'} />
-                <SummaryChip label="Last Sync" value={mostRecentSync} small />
+                <SummaryChip label="Configured Sources" value={sources.length.toString()} />
+                <SummaryChip label="Active / Schedulable" value={activeCount.toString()} />
+                <SummaryChip label="Needs Attention" value={needsAttentionCount.toString()} />
+                <SummaryChip label="Total Records" value={totalRecords.toLocaleString()} />
             </div>
 
-            {/* Adapter filter tabs */}
-            <div className="flex items-center gap-2 flex-wrap">
-                {adapterTypes.map(adapter => {
-                    const isActive = activeAdapter === adapter;
-                    const colors = ADAPTER_COLORS[adapter] ?? ADAPTER_COLORS.all;
-                    const count = adapterCounts[adapter] ?? 0;
-                    return (
-                        <button
-                            key={adapter}
-                            onClick={() => setActiveAdapter(adapter)}
-                            className={`
-                                inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                                border transition-all duration-150
-                                ${isActive
-                                    ? `${colors.activeBg} ${colors.text} ${colors.activeBorder}`
-                                    : `${colors.bg} ${colors.text} border-transparent hover:border-[#DFE6EE]`}
-                            `}
-                        >
-                            {adapter === 'all' ? 'All Sources' : adapter.toUpperCase()}
-                            <span className={`
-                                inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full text-[10px] font-semibold
-                                ${isActive ? 'bg-black/10' : 'bg-black/5'}
-                            `}>
-                                {count}
-                            </span>
-                        </button>
-                    );
-                })}
+            {/* Filters */}
+            <div className="flex items-center gap-3 flex-wrap">
+                <div className="relative flex-1 min-w-[220px] max-w-sm">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5B6B7D]" />
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search source or city…"
+                        className="w-full pl-9 pr-3 py-2 bg-white border border-[#DFE6EE] rounded-lg text-sm text-[#0E2B5C] placeholder:text-[#5B6B7D] focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B]"
+                    />
+                </div>
+                <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={states} />
+                <FilterSelect label="Connector" value={connectorFilter} onChange={setConnectorFilter} options={connectors} />
+                <FilterSelect
+                    label="Health"
+                    value={healthFilter}
+                    onChange={setHealthFilter}
+                    options={HEALTH_STATES}
+                    optionLabel={(h) => healthLabel(h as SourceHealthState)}
+                />
             </div>
 
-            {/* City card list (accordion) */}
-            {filteredCities.length === 0 ? (
-                <div className="text-center py-16 text-[#5B6B7D] text-sm">
-                    {cities.length === 0 ? 'Loading cities…' : `No cities found for ${activeAdapter.toUpperCase()}`}
+            {/* Table */}
+            <div className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-[#F7F9FB] text-left text-[11px] font-semibold text-[#5B6B7D] uppercase tracking-wider border-b border-[#DFE6EE]">
+                                <th className="px-4 py-2.5">Source / City</th>
+                                <th className="px-4 py-2.5">State</th>
+                                <th className="px-4 py-2.5">Connector</th>
+                                <th className="px-4 py-2.5">Last Success</th>
+                                <th className="px-4 py-2.5">Latest Permit</th>
+                                <th className="px-4 py-2.5">Next Sync</th>
+                                <th className="px-4 py-2.5">Health</th>
+                                <th className="px-4 py-2.5 text-right">Records</th>
+                                <th className="px-4 py-2.5">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map((s) => (
+                                <tr
+                                    key={s.agency_id}
+                                    className={`border-b border-[#F0F3F7] last:border-0 hover:bg-[#F7F9FB] cursor-pointer transition-colors ${!s.enabled ? 'opacity-60' : ''}`}
+                                    onClick={() => setSelectedAgencyId(s.agency_id)}
+                                >
+                                    <td className="px-4 py-3">
+                                        <p className="font-medium text-[#0E2B5C]">{s.source}</p>
+                                        <p className="text-xs text-[#5B6B7D]">{s.city_key}</p>
+                                    </td>
+                                    <td className="px-4 py-3 text-[#5B6B7D]">{s.state || '—'}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${CONNECTOR_COLORS[s.connector] ?? 'bg-gray-100 text-[#5B6B7D]'}`}>
+                                            {s.connector}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-[#0E2B5C] whitespace-nowrap">{formatDateTime(s.last_success)}</td>
+                                    <td className="px-4 py-3 text-[#0E2B5C] whitespace-nowrap">{formatDateOnly(s.latest_permit)}</td>
+                                    <td className="px-4 py-3 text-[#5B6B7D] whitespace-nowrap">{s.enabled ? formatDateTime(s.next_sync) : '—'}</td>
+                                    <td className="px-4 py-3">
+                                        <HealthBadge health={s.health} title={s.health_reason} />
+                                    </td>
+                                    <td className="px-4 py-3 text-right tabular-nums text-[#0E2B5C]">{s.records.toLocaleString()}</td>
+                                    <td className="px-4 py-3">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setSelectedAgencyId(s.agency_id); }}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-[#F7F9FB] border border-[#DFE6EE] rounded-md text-xs text-[#5B6B7D] hover:text-[#0E2B5C] transition-colors"
+                                        >
+                                            <Eye size={12} /> View
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            ) : (
-                <div className="space-y-2">
-                    {filteredCities.map(city => (
-                        <CityDataSourceCard
-                            key={city.key}
-                            city={city}
-                            syncStatus={syncStatuses[city.key]}
-                            isExpanded={activeCardKey === city.key}
-                            onToggle={() => setActiveCardKey(prev => prev === city.key ? null : city.key)}
-                            onSyncComplete={() => fetchStatuses(cities)}
-                            onStatusRefresh={status => handleStatusRefresh(city.key, status)}
-                        />
-                    ))}
-                </div>
+                {!loading && filtered.length === 0 && (
+                    <div className="text-center py-14 text-[#5B6B7D] text-sm">
+                        {sources.length === 0 ? 'Loading sources…' : 'No sources match the current filters.'}
+                    </div>
+                )}
+            </div>
+
+            {selectedAgencyId && (
+                <SourceDetailModal
+                    agencyId={selectedAgencyId}
+                    onClose={() => setSelectedAgencyId(null)}
+                    onRunSyncTriggered={load}
+                />
             )}
         </div>
     );
 }
 
-// ─── summary chip ─────────────────────────────────────────────────────────────
-
-function SummaryChip({ label, value, small }: { label: string; value: string; small?: boolean }) {
+function SummaryChip({ label, value }: { label: string; value: string }) {
     return (
         <div className="bg-white border border-[#DFE6EE] rounded-lg p-4">
-            <p className={`font-bold text-[#0E2B5C] ${small ? 'text-base' : 'text-2xl'}`}>
-                {value}
-            </p>
+            <p className="text-2xl font-bold text-[#0E2B5C]">{value}</p>
             <p className="text-xs text-[#5B6B7D] mt-0.5">{label}</p>
         </div>
+    );
+}
+
+function FilterSelect({
+    label, value, onChange, options, optionLabel,
+}: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    options: string[];
+    optionLabel?: (v: string) => string;
+}) {
+    return (
+        <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            aria-label={label}
+            className="px-3 py-2 bg-white border border-[#DFE6EE] rounded-lg text-sm text-[#0E2B5C] focus:outline-none focus:ring-2 focus:ring-[#00458B]/30 focus:border-[#00458B]"
+        >
+            <option value="all">All {label}</option>
+            {options.map((o) => (
+                <option key={o} value={o}>{optionLabel ? optionLabel(o) : o}</option>
+            ))}
+        </select>
+    );
+}
+
+export default function DataSourcesPage() {
+    return (
+        <Suspense fallback={<div className="p-6 lg:p-8 text-sm text-[#5B6B7D]">Loading…</div>}>
+            <DataSourcesPageInner />
+        </Suspense>
     );
 }
