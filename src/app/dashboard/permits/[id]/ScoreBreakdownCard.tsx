@@ -3,16 +3,21 @@
 import { Gauge, Ban } from 'lucide-react';
 import type { PermitRecord } from '@/types';
 
-// Category labels + the standard rubric maxes (Lead Scoring v5.0). The rubric
-// endpoint is admin-only, so we show the standard caps here; they match the
-// shipped defaults and only drift if a super admin retunes the caps.
-// Master Scoring Rubric v5 — six categories summing to 100.
+// Category labels + the standard rubric maxes (Master Scoring Rubric V6).
+// The rubric endpoint is admin-only, so we show the standard caps here;
+// they match the shipped defaults and only drift if a super admin retunes
+// the caps. Five categories summing to 100 — V6 removed the old
+// "Contractor / Contact" category entirely (contact availability/
+// contractor existence must never contribute score points); its 15 points
+// were redistributed into Complexity/Trade Scope/Valuation. A permit
+// scored under a pre-V6 rubric may still carry a "contractor_contact" key
+// in its stored breakdown — it's simply not rendered here, same as any
+// other unknown key.
 const CATEGORIES: { key: string; label: string; max: number }[] = [
     { key: 'timing', label: 'Timing & Stage', max: 25 },
-    { key: 'project_complexity', label: 'Complexity', max: 25 },
-    { key: 'trade_scope', label: 'Trade Scope', max: 15 },
-    { key: 'contractor_contact', label: 'Contractor / Contact', max: 15 },
-    { key: 'valuation', label: 'Valuation', max: 10 },
+    { key: 'project_complexity', label: 'Complexity', max: 30 },
+    { key: 'trade_scope', label: 'Trade Scope', max: 20 },
+    { key: 'valuation', label: 'Valuation', max: 15 },
     { key: 'site_context', label: 'Site Context', max: 10 },
 ];
 

@@ -12,7 +12,6 @@ import {
     History,
     RefreshCw,
     Clock,
-    Users,
     Building2,
     Wrench,
     DollarSign,
@@ -94,11 +93,13 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
     </div>
 );
 
+// Master Scoring Rubric V6 — five sections summing to 100. "contractor_contact"
+// was removed entirely (contact availability must never contribute score
+// points), not just de-weighted — do not re-add it here.
 const SECTION_KEYS = [
     { key: 'timing', short: 'T' },
     { key: 'project_complexity', short: 'C' },
     { key: 'trade_scope', short: 'Tr' },
-    { key: 'contractor_contact', short: 'Co' },
     { key: 'valuation', short: 'V' },
     { key: 'site_context', short: 'S' },
 ];
@@ -433,7 +434,7 @@ export default function PermitScoringPage() {
         );
     }
 
-    const capsSum = ['timing', 'project_complexity', 'trade_scope', 'contractor_contact', 'valuation', 'site_context']
+    const capsSum = ['timing', 'project_complexity', 'trade_scope', 'valuation', 'site_context']
         .reduce((acc, k) => acc + (content[k]?.max || 0), 0);
     const maxScore = content.max_score ?? 100;
 
@@ -679,19 +680,14 @@ export default function PermitScoringPage() {
                     <Row label="Section cap"><NumField value={content.trade_scope?.max} onChange={(v) => set(['trade_scope', 'max'], v)} /></Row>
                 </SectionCard>
 
-                {/* 04 Contractor / Contact Data */}
-                <SectionCard icon={<Users size={16} className="text-[#00458B]" />} title="04 · Contractor / Contact" cap={`/ ${content.contractor_contact?.max ?? 0}`}>
-                    {Object.entries(content.contractor_contact?.bands || {}).map(([k, b]) => (
-                        <Row key={k} label={(b as { label?: string }).label || k.replace(/_/g, ' ')}>
-                            <NumField value={(b as { base?: number }).base} onChange={(v) => set(['contractor_contact', 'bands', k, 'base'], v)} />
-                        </Row>
-                    ))}
-                    <p className="text-xs text-[#5B6B7D] pt-1">Contact quality only — owner / homeowner score low but are never excluded.</p>
-                    <Row label="Section cap"><NumField value={content.contractor_contact?.max} onChange={(v) => set(['contractor_contact', 'max'], v)} /></Row>
-                </SectionCard>
+                {/* V6 removed the old "04 Contractor / Contact Data" section entirely —
+                    contact availability / contractor existence must never contribute
+                    score points. Its 15 points were redistributed into Complexity /
+                    Trade Scope / Valuation above and below. Do not re-add an editor
+                    card for it. */}
 
-                {/* 05 Valuation */}
-                <SectionCard icon={<DollarSign size={16} className="text-[#00458B]" />} title="05 · Valuation" cap={`/ ${content.valuation?.max ?? 0}`}>
+                {/* 04 Valuation */}
+                <SectionCard icon={<DollarSign size={16} className="text-[#00458B]" />} title="04 · Valuation" cap={`/ ${content.valuation?.max ?? 0}`}>
                     {(content.valuation?.brackets || []).map((b: { label: string; base: number }, i: number) => (
                         <Row key={i} label={b.label}>
                             <NumField value={b.base} onChange={(v) => set(['valuation', 'brackets', i, 'base'], v)} />
@@ -713,8 +709,8 @@ export default function PermitScoringPage() {
                     <Row label="Section cap"><NumField value={content.valuation?.max} onChange={(v) => set(['valuation', 'max'], v)} /></Row>
                 </SectionCard>
 
-                {/* 06 Jurisdiction / Site Context */}
-                <SectionCard icon={<ShieldAlert size={16} className="text-[#00458B]" />} title="06 · Site Context" cap={`/ ${content.site_context?.max ?? 0}`}>
+                {/* 05 Jurisdiction / Site Context */}
+                <SectionCard icon={<ShieldAlert size={16} className="text-[#00458B]" />} title="05 · Site Context" cap={`/ ${content.site_context?.max ?? 0}`}>
                     {(content.site_context?.rules || []).map((r: { key: string; label?: string; base: number; requires_verified_source?: boolean }, i: number) => (
                         <Row key={r.key} label={(r.label || r.key.replace(/_/g, ' ')) + (r.requires_verified_source ? ' (needs data)' : '')}>
                             <NumField value={r.base} onChange={(v) => set(['site_context', 'rules', i, 'base'], v)} />
