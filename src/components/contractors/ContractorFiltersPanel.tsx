@@ -117,7 +117,6 @@ export default function ContractorFiltersPanel({
     onReset,
     availableStates,
     availableCities,
-    availableTypes,
     searchValue,
     onSearchChange,
     onSearchClear,
@@ -141,7 +140,6 @@ export default function ContractorFiltersPanel({
     const hasLocationActive = Boolean(filters.stateCode || filters.city);
     const hasContactabilityActive = filters.hasEmail !== null || filters.hasPhone !== null || filters.hasWebsite !== null;
     const hasLicenseActive = filters.hasLicense !== null || Boolean(filters.licenseReadiness);
-    const hasMoreActive = Boolean(filters.contractorType);
 
     const hasActiveFilters = Boolean(
         searchValue ||
@@ -385,35 +383,12 @@ export default function ContractorFiltersPanel({
                     )}
                 </div>
 
-                {/* More Filters — Contractor Type (the one real filter without its
-                    own primary trigger; Location/Contactability/License already own
-                    every other real query param, so nothing else belongs here). */}
-                <div className="relative">
-                    <FilterTrigger
-                        label="More Filters"
-                        icon={<Filter size={13} />}
-                        isOpen={openPopover === 'more'}
-                        hasValue={hasMoreActive}
-                        onClick={() => togglePopover('more')}
-                    />
-                    {openPopover === 'more' && (
-                        <PopoverPanel title="More Filters" align="right" width="w-64" onClose={() => setOpenPopover(null)}>
-                            <div>
-                                <label className={LABEL_CLS}>Contractor Type</label>
-                                <select
-                                    value={filters.contractorType || ''}
-                                    onChange={(e) => onFilterChange({ contractorType: e.target.value || null })}
-                                    className={SELECT_CLS}
-                                >
-                                    <option value="">All Types</option>
-                                    {availableTypes.map((t) => (
-                                        <option key={t} value={t}>{t}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </PopoverPanel>
-                    )}
-                </div>
+                {/* "More Filters" (Contractor Type) removed -- Phase 9 requirement
+                    update: Contractor Type is not part of the approved MVP filter
+                    set (see docs/phase9_frontend_api_contract.md). filters.
+                    contractorType/availableTypes are kept on the type/state only
+                    for backward compatibility with old bookmarked URLs; no
+                    control sets them anymore. */}
 
                 {/* Clear all — small text button, only shown when a filter is active */}
                 {hasActiveFilters && (

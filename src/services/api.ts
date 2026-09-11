@@ -1358,6 +1358,24 @@ class ApiService {
         return response.data;
     }
 
+    // Phase 9 Chunk 2 (backend commit 7a743d2) -- idempotent add (same
+    // address twice returns the same row), never a fabricated identity
+    // signal, just a contact channel.
+    async addContractorEmail(contractorId: string, email: string, isPrimary = false): Promise<import('@/types').ContractorEmail> {
+        const response = await this.client.post(`/contractors/${contractorId}/emails`, { email, is_primary: isPrimary });
+        return response.data;
+    }
+
+    async setContractorEmailPrimary(contractorId: string, emailId: string): Promise<import('@/types').ContractorEmail> {
+        const response = await this.client.post(`/contractors/${contractorId}/emails/${emailId}/set-primary`);
+        return response.data;
+    }
+
+    async markContractorEmailUnusable(contractorId: string, email: string): Promise<{ status: string; email: string }> {
+        const response = await this.client.post(`/contractors/${contractorId}/emails/mark-unusable`, { email });
+        return response.data;
+    }
+
     async getContractorTypes(): Promise<ContractorTypesResponse> {
         const response = await this.client.get<ContractorTypesResponse>('/contractors/types');
         return response.data;

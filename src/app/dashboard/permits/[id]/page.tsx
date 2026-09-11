@@ -870,6 +870,24 @@ export default function PermitDetailPage() {
                     )}
                 </div>
 
+                {/* Terminal is a SEPARATE lifecycle axis from Hard Exclusion --
+                    a finaled/closed permit may never have been excluded at all,
+                    and an excluded permit isn't necessarily terminal. Shown as
+                    its own row, never merged into the Qualification badge above
+                    (Phase 9 Chunk 2 completion item). */}
+                {permit.is_terminal && (
+                    <div className="bg-white border border-[#DFE6EE] rounded-lg px-5 py-4 flex items-center gap-3">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide border bg-gray-100 text-[#5B6B7D] border-gray-200">
+                            Terminal
+                        </span>
+                        {permit.terminal_reason && (
+                            <span className="text-xs text-[#5B6B7D]">
+                                Reason: {permit.terminal_reason.replace(/_/g, ' ')}
+                            </span>
+                        )}
+                    </div>
+                )}
+
                 <ScoreBreakdownCard permit={permit} />
                 <PermitAnalysis permit={permit} />
             </div>

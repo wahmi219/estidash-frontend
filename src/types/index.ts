@@ -901,6 +901,39 @@ export interface ContractorRecord {
     name_quality: ContractorNameQuality;
     permit_summary?: ContractorPermitSummary | null;
     possible_similar_records?: SimilarContractorMatch[];
+    // Detail-view-only (Phase 9 Chunk 2, backend commit 7a743d2) -- empty/
+    // null on list rows, same lean-payload convention as permit_summary.
+    emails?: ContractorEmail[];
+    aliases?: string[];
+    lead_bank?: ContractorLeadBankSummary | null;
+}
+
+/** One row from Contractor Master's emails list. Multiple may exist; at
+ * most one is_primary=true (DB-enforced). Never treat email as company
+ * identity -- it's a contact channel, not what makes two Contractor rows
+ * the same or different company. */
+export interface ContractorEmail {
+    id: string;
+    email: string;
+    is_primary: boolean;
+    status: 'usable' | 'unusable' | 'bounced' | string;
+    contact_name: string | null;
+    contact_role: string | null;
+    source: string | null;
+    verified_at: string | null;
+    created_at: string;
+}
+
+/** Present only if this Contractor already has a Lead Bank V2
+ * relationship. null means "no Lead Bank relationship yet" -- render as
+ * "Add to Lead Bank", never as an error or a reason to hide the section. */
+export interface ContractorLeadBankSummary {
+    relationship_id: string;
+    relationship_status: string;
+    outreach_status: string;
+    sales_owner_id: number | null;
+    dnc: boolean;
+    primary_opportunity_id: string | null;
 }
 
 export interface ContractorFilters {

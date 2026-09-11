@@ -141,26 +141,72 @@ export default function ContractorDetailPage() {
         totalPages: 0,
     });
 
+    const [emailActionError, setEmailActionError] = useState<string | null>(null);
+    const [newEmail, setNewEmail] = useState('');
+    const [addingEmail, setAddingEmail] = useState(false);
+
+    const refetchContractor = useCallback(async () => {
+        if (!contractorId) return;
+        try {
+            setError(null);
+            const data = await apiService.getContractorById(contractorId);
+            setContractor(data);
+        } catch (err) {
+            const message =
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message: string }).message
+                    : 'Failed to load contractor details';
+            setError(message);
+        } finally {
+            setLoading(false);
+        }
+    }, [contractorId]);
+
     useEffect(() => {
         if (!contractorId) return;
-        async function fetchContractor() {
-            try {
-                setLoading(true);
-                setError(null);
-                const data = await apiService.getContractorById(contractorId);
-                setContractor(data);
-            } catch (err) {
-                const message =
-                    err && typeof err === 'object' && 'message' in err
-                        ? (err as { message: string }).message
-                        : 'Failed to load contractor details';
-                setError(message);
-            } finally {
-                setLoading(false);
-            }
+        setLoading(true);
+        refetchContractor();
+    }, [contractorId, refetchContractor]);
+
+    async function handleAddEmail(e: React.FormEvent) {
+        e.preventDefault();
+        if (!newEmail.trim()) return;
+        setAddingEmail(true);
+        setEmailActionError(null);
+        try {
+            await apiService.addContractorEmail(contractorId, newEmail.trim());
+            setNewEmail('');
+            await refetchContractor();
+        } catch (err) {
+            const message =
+                err && typeof err === 'object' && 'message' in err
+                    ? (err as { message: string }).message
+                    : 'Could not add email';
+            setEmailActionError(message);
+        } finally {
+            setAddingEmail(false);
         }
-        fetchContractor();
-    }, [contractorId]);
+    }
+
+    async function handleSetPrimary(emailId: string) {
+        setEmailActionError(null);
+        try {
+            await apiService.setContractorEmailPrimary(contractorId, emailId);
+            await refetchContractor();
+        } catch {
+            setEmailActionError('Could not set this email as Primary');
+        }
+    }
+
+    async function handleMarkUnusable(email: string) {
+        setEmailActionError(null);
+        try {
+            await apiService.markContractorEmailUnusable(contractorId, email);
+            await refetchContractor();
+        } catch {
+            setEmailActionError('Could not mark this email unusable');
+        }
+    }
 
     const fetchPermits = useCallback(async (page: number, pageSize: number) => {
         if (!contractorId) return;
@@ -438,6 +484,130 @@ export default function ContractorDetailPage() {
                             ))}
                         </div>
                     </div>
+                )}
+            </div>
+
+            {/* Emails — Contractor Master's own email list, distinct from
+                Contact Information above (which shows the legacy single
+                Contractor.email column). Multiple emails, one Primary,
+                usability tracked per-address; email is a contact channel,
+                never treated as company identity. */}
+            <div className="bg-white border border-[#DFE6EE] rounded-xl p-4">
+                <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
+                    <Mail size={13} /> Emails
+                </h3>
+                {emailActionError && (
+                    <p className="text-xs text-red-600 mb-2">{emailActionError}</p>
+                )}
+                {(!contractor.emails || contractor.emails.length === 0) ? (
+                    <p className="text-sm text-[#5B6B7D] mb-3">No emails on file yet.</p>
+                ) : (
+                    <div className="space-y-1.5 mb-3">
+                        {contractor.emails.map((e) => (
+                            <div key={e.id} className="flex items-center justify-between gap-3 px-3 py-2 bg-[#F7F9FB] rounded-lg text-sm">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className="truncate text-[#0E2B5C]">{e.email}</span>
+                                    {e.is_primary && (
+                                        <span className="shrink-0 px-1.5 py-0.5 bg-[#00458B]/10 text-[#00458B] border border-[#00458B]/20 rounded text-[10px] font-semibold uppercase tracking-wide">Primary</span>
+                                    )}
+                                    <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${
+                                        e.status === 'usable' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'
+                                    }`}>
+                                        {e.status}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {!e.is_primary && e.status === 'usable' && (
+                                        <button onClick={() => handleSetPrimary(e.id)} className="text-xs text-[#00458B] hover:underline">
+                                            Set Primary
+                                        </button>
+                                    )}
+                                    {e.status === 'usable' && (
+                                        <button onClick={() => handleMarkUnusable(e.email)} className="text-xs text-[#5B6B7D] hover:text-red-600">
+                                            Mark Bad
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                <form onSubmit={handleAddEmail} className="flex items-center gap-2">
+                    <input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder="Add an email address"
+                        className="flex-1 px-3 py-1.5 text-sm border border-[#DFE6EE] rounded-lg focus-visible:ring-2 focus-visible:ring-[#00458B] outline-none"
+                    />
+                    <button
+                        type="submit"
+                        disabled={addingEmail || !newEmail.trim()}
+                        className="px-3 py-1.5 text-sm bg-[#00458B] hover:bg-[#045CB4] disabled:opacity-50 text-white rounded-lg transition-colors"
+                    >
+                        {addingEmail ? 'Adding…' : 'Add'}
+                    </button>
+                </form>
+            </div>
+
+            {/* Aliases */}
+            {contractor.aliases && contractor.aliases.length > 0 && (
+                <div className="bg-white border border-[#DFE6EE] rounded-xl p-4">
+                    <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
+                        <Shield size={13} /> Aliases
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                        {contractor.aliases.map((a) => (
+                            <span key={a} className="px-2 py-1 bg-[#F7F9FB] text-[#0E2B5C] border border-[#DFE6EE] rounded text-xs">{a}</span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Licenses — deliberately a LIST, not a single field. The
+                backend's contractor_licenses child table isn't built yet
+                (Phase 9 requirement update) -- today's single
+                license_number/license_type shows as one item so this
+                section needs no rework once the child table ships. Never
+                fabricates additional licenses. */}
+            <div className="bg-white border border-[#DFE6EE] rounded-xl p-4">
+                <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
+                    <Hash size={13} /> Licenses
+                </h3>
+                {contractor.license_number ? (
+                    <div className="flex items-center justify-between px-3 py-2 bg-[#F7F9FB] rounded-lg text-sm">
+                        <span className="font-mono text-[#0E2B5C]">{contractor.license_number}</span>
+                        <span className="text-xs text-[#5B6B7D]">{contractor.license_type || '—'}</span>
+                    </div>
+                ) : (
+                    <p className="text-sm text-[#5B6B7D]">No license on file.</p>
+                )}
+                <p className="text-[11px] text-[#5B6B7D] mt-3 pt-3 border-t border-[#DFE6EE] leading-relaxed">
+                    Multi-license support (a company holding more than one trade license) is an
+                    approved future architecture change, not yet built — this list shows exactly
+                    what the backend has today.
+                </p>
+            </div>
+
+            {/* CRM — Lead Bank V2 relationship, if one exists. A new
+                qualified permit for this Contractor ID always reuses this
+                same relationship; it never creates a second one. */}
+            <div className="bg-white border border-[#DFE6EE] rounded-xl p-4">
+                <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
+                    <Building2 size={13} /> Lead Bank / CRM
+                </h3>
+                {contractor.lead_bank ? (
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                        <DetailRow icon={Shield} label="Relationship Status" value={contractor.lead_bank.relationship_status.replace(/_/g, ' ')} />
+                        <DetailRow icon={Mail} label="Outreach Status" value={contractor.lead_bank.outreach_status.replace(/_/g, ' ')} />
+                        <DetailRow icon={Hash} label="Sales Owner" value={contractor.lead_bank.sales_owner_id ? `User #${contractor.lead_bank.sales_owner_id}` : 'Unassigned'} />
+                        <DetailRow icon={AlertCircle} label="Do Not Contact" value={contractor.lead_bank.dnc ? 'Yes' : 'No'} />
+                    </div>
+                ) : (
+                    <p className="text-sm text-[#5B6B7D]">
+                        No Lead Bank relationship yet — this contractor is not already in another
+                        company&apos;s record; adding a Ready-for-Lead-Bank opportunity will create one.
+                    </p>
                 )}
             </div>
 
