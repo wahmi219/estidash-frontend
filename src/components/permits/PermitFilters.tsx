@@ -5,7 +5,7 @@ import {
     X, MapPin, Briefcase, Layers, Target,
     DollarSign, Calendar, LandPlot, Gauge, Globe, UserCheck, ChevronDown, Filter,
 } from 'lucide-react';
-import { PermitFilters, PermitCityInfo, PermitCounty } from '@/types';
+import { PermitFilters, PermitCityInfo, PermitCounty, PermitDataSourceOption } from '@/types';
 import {
     OPPORTUNITY_CATEGORIES,
     ISSUED_AGE_BUCKET_OPTIONS,
@@ -17,7 +17,11 @@ import PermitSearch from './PermitSearch';
 interface PermitFiltersProps {
     filters: PermitFilters;
     availableCities: PermitCityInfo[];
+    // Kept as a prop (not removed from the type) so this component still
+    // compiles against callers passing it, but Phase 9 Chunk 1 no longer
+    // renders a County control — see PermitFilters.county's doc comment.
     availableCounties: PermitCounty[];
+    availableDataSources: PermitDataSourceOption[];
     onFilterChange: (filters: Partial<PermitFilters>) => void;
     onReset: () => void;
     searchValue: string;
@@ -212,7 +216,7 @@ function dateRangeLabel(prefix: string, start: string | null, end: string | null
 export default function PermitFiltersPanel({
     filters,
     availableCities,
-    availableCounties,
+    availableDataSources,
     onFilterChange,
     onReset,
     searchValue,
@@ -252,14 +256,14 @@ export default function PermitFiltersPanel({
         filters.minCost != null || filters.maxCost != null
     );
 
-    const hasLocationActive = Boolean(filters.state || filters.county || filters.city);
+    const hasLocationActive = Boolean(filters.state || filters.city || filters.agencyId);
     const hasDateActive = Boolean(filters.addedStartDate || filters.addedEndDate || filters.startDate || filters.endDate);
 
     const hasActiveFilters = Boolean(
         filters.city ||
         filters.state ||
         filters.metro ||
-        filters.county ||
+        filters.agencyId ||
         filters.opportunityCategory ||
         filters.issuedAgeBucket ||
         filters.projectClass ||
@@ -321,11 +325,13 @@ export default function PermitFiltersPanel({
         return citiesFilteredByMetro.filter((c: PermitCityInfo) => c.state_code === filters.state);
     }, [citiesFilteredByMetro, filters.state]);
 
-    // Counties cascade with state selection
-    const filteredCounties = useMemo(() => {
-        if (!filters.state) return availableCounties;
-        return availableCounties.filter((c: PermitCounty) => c.state_code === filters.state);
-    }, [availableCounties, filters.state]);
+    // Data sources cascade with state selection, same pattern the removed
+    // county cascade used.
+    const filteredDataSources = useMemo(() => {
+        if (!filters.state) return availableDataSources;
+        // "source" is formatted "City, ST" server-side — matches by suffix.
+        return availableDataSources.filter((d: PermitDataSourceOption) => d.source.endsWith(`, ${filters.state}`));
+    }, [availableDataSources, filters.state]);
 
     const selectedMetroName = useMemo(() => {
         if (!filters.metro) return null;
@@ -414,8 +420,9 @@ export default function PermitFiltersPanel({
                 onRemove: () => handleStateChange(null),
             });
         }
-        if (filters.county) {
-            chips.push({ id: 'county', label: filters.county, onRemove: () => onFilterChange({ county: null }) });
+        if (filters.agencyId) {
+            const source = availableDataSources.find((d) => d.agency_id === filters.agencyId);
+            chips.push({ id: 'data-source', label: source?.source ?? 'Data Source', onRemove: () => onFilterChange({ agencyId: null }) });
         }
         if (filters.city) {
             const cityInfo = filteredCities.find((c) => c.key === filters.city);
@@ -530,16 +537,19 @@ export default function PermitFiltersPanel({
                                     </select>
                                 </div>
                                 <div>
-                                    <label className={LABEL_CLS}>County</label>
+                                    {/* Data Source replaces County (Phase 9 Chunk 1 — County removed
+                                        from the MVP filter set; label/value shows the human-readable
+                                        source name, filters by the stable agency_id). */}
+                                    <label className={LABEL_CLS}>Data Source</label>
                                     <select
-                                        value={filters.county || ''}
-                                        onChange={(e) => onFilterChange({ county: e.target.value || null })}
+                                        value={filters.agencyId || ''}
+                                        onChange={(e) => onFilterChange({ agencyId: e.target.value || null })}
                                         className={SELECT_CLS}
                                     >
-                                        <option value="">All Counties</option>
-                                        {filteredCounties.map((c) => (
-                                            <option key={`${c.county_name}-${c.state_code}`} value={c.county_name}>
-                                                {c.county_name}, {c.state_code}
+                                        <option value="">All Data Sources</option>
+                                        {filteredDataSources.map((d) => (
+                                            <option key={d.agency_id} value={d.agency_id}>
+                                                {d.source}
                                             </option>
                                         ))}
                                     </select>

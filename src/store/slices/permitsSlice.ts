@@ -9,6 +9,7 @@ import {
     PermitSearchResponse,
     PermitCityInfo,
     PermitCounty,
+    PermitDataSourceOption,
     BulkDeleteResponse,
     ApiError,
     PermitSearchParams,
@@ -27,6 +28,7 @@ const initialFilters: PermitFilters = {
     state: null,
     metro: null,
     county: null,
+    agencyId: null,
     opportunityCategory: null,
     issuedAgeBucket: null,
     projectClass: null,
@@ -68,6 +70,7 @@ const initialState: PermitsState = {
     pageCache: {},
     availableCities: [],
     availableCounties: [],
+    availableDataSources: [],
 };
 
 // ============================================================================
@@ -79,7 +82,7 @@ function buildQueryParams(state: PermitsState) {
     return {
         city: filters.city || undefined,
         state: filters.state || undefined,
-        county: filters.county || undefined,
+        agency_id: filters.agencyId || undefined,
         opportunity_category: filters.opportunityCategory || undefined,
         issued_age_bucket: filters.issuedAgeBucket || undefined,
         project_class: filters.projectClass || undefined,
@@ -212,6 +215,25 @@ export const fetchPermitCounties = createAsyncThunk<
             return response.counties;
         } catch (error) {
             logger.error('Failed to fetch counties', error, 'Permits');
+            return rejectWithValue(error as ApiError);
+        }
+    }
+);
+
+// Reuses GET /api/v1/data-sources (already built for the Data Sources page)
+// rather than adding a second endpoint just for this dropdown.
+export const fetchPermitDataSources = createAsyncThunk<
+    PermitDataSourceOption[],
+    void,
+    { rejectValue: ApiError }
+>(
+    'permits/fetchDataSources',
+    async (_, { rejectWithValue }) => {
+        try {
+            const sources = await apiService.getDataSources();
+            return sources.map((s) => ({ agency_id: s.agency_id, source: s.source }));
+        } catch (error) {
+            logger.error('Failed to fetch data sources', error, 'Permits');
             return rejectWithValue(error as ApiError);
         }
     }
@@ -390,6 +412,11 @@ const permitsSlice = createSlice({
             state.availableCounties = action.payload;
         });
 
+        // Fetch Data Sources
+        builder.addCase(fetchPermitDataSources.fulfilled, (state, action) => {
+            state.availableDataSources = action.payload;
+        });
+
         // Bulk Delete by ID
         builder.addCase(bulkDeletePermits.fulfilled, (state, action) => {
             const deletedCount = action.payload.permits_deleted;
@@ -449,5 +476,6 @@ export const selectPermitPagination = (state: WithPermits) => state.permits.pagi
 export const selectPermitSorting = (state: WithPermits) => state.permits.sorting;
 export const selectAvailableCities = (state: WithPermits) => state.permits.availableCities;
 export const selectAvailableCounties = (state: WithPermits) => state.permits.availableCounties;
+export const selectAvailableDataSources = (state: WithPermits) => state.permits.availableDataSources;
 
 export default permitsSlice.reducer;

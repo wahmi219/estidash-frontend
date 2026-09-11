@@ -10,6 +10,7 @@ import {
     fetchPermits,
     fetchPermitCities,
     fetchPermitCounties,
+    fetchPermitDataSources,
     bulkDeletePermits,
     setFilters,
     resetFilters,
@@ -25,6 +26,7 @@ import {
     selectPermitSorting,
     selectAvailableCities,
     selectAvailableCounties,
+    selectAvailableDataSources,
 } from '@/store/slices/permitsSlice';
 import {
     PermitTable,
@@ -73,6 +75,7 @@ function PermitsPageContent() {
     const sorting = useAppSelector(selectPermitSorting);
     const availableCities = useAppSelector(selectAvailableCities);
     const availableCounties = useAppSelector(selectAvailableCounties);
+    const availableDataSources = useAppSelector(selectAvailableDataSources);
 
     // Delete is admin/super_admin only (backend already enforces this — see
     // require_role("admin") on /permits/bulk in app/routers/permits.py). This gate
@@ -91,6 +94,7 @@ function PermitsPageContent() {
         const stateParam = searchParams.get('state');
         const metro = searchParams.get('metro');
         const county = searchParams.get('county');
+        const agencyId = searchParams.get('agency_id');
         const opportunityCategory = searchParams.get('opportunity');
         const issuedAgeBucket = searchParams.get('age_bucket');
         const projectClass = searchParams.get('project_class');
@@ -106,7 +110,8 @@ function PermitsPageContent() {
         if (city) urlFilters.city = city;
         if (stateParam) urlFilters.state = stateParam;
         if (metro) urlFilters.metro = metro;
-        if (county) urlFilters.county = county;
+        if (county) urlFilters.county = county; // deprecated param, kept for old bookmarked URLs only — no UI control sets it anymore
+        if (agencyId) urlFilters.agencyId = agencyId;
         if (opportunityCategory) urlFilters.opportunityCategory = opportunityCategory;
         if (issuedAgeBucket) urlFilters.issuedAgeBucket = issuedAgeBucket;
         if (projectClass) urlFilters.projectClass = projectClass;
@@ -136,6 +141,7 @@ function PermitsPageContent() {
         // reference data that don't need to be re-fetched on every page visit.
         if (!availableCities.length) dispatch(fetchPermitCities());
         if (!availableCounties.length) dispatch(fetchPermitCounties());
+        if (!availableDataSources.length) dispatch(fetchPermitDataSources());
     }, []); // Only on mount
 
     // Sync state to URL
@@ -145,7 +151,7 @@ function PermitsPageContent() {
         if (filters.city) params.set('city', filters.city);
         if (filters.state) params.set('state', filters.state);
         if (filters.metro) params.set('metro', filters.metro);
-        if (filters.county) params.set('county', filters.county);
+        if (filters.agencyId) params.set('agency_id', filters.agencyId);
         if (filters.opportunityCategory) params.set('opportunity', filters.opportunityCategory);
         if (filters.issuedAgeBucket) params.set('age_bucket', filters.issuedAgeBucket);
         if (filters.projectClass) params.set('project_class', filters.projectClass);
@@ -345,6 +351,7 @@ function PermitsPageContent() {
                 filters={filters}
                 availableCities={availableCities}
                 availableCounties={availableCounties}
+                availableDataSources={availableDataSources}
                 onFilterChange={handleFilterChange}
                 onReset={handleResetFilters}
                 searchValue={filters.search}

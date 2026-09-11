@@ -191,8 +191,9 @@ const PERMIT_BUCKET_BADGE: Record<string, { label: string; cls: string }> = {
 // the backend's `qualification` filter exactly. Secondary = the existing score-bucket
 // badge, kept as supporting detail underneath (never shown as the primary label on its
 // own — a bucket like "Strategic" is not itself the qualification state).
-function QualificationCell({ bucket, tier, score, excluded, reason }: {
+function QualificationCell({ bucket, tier, score, excluded, reason, isTerminal, terminalReason }: {
     bucket: string | null; tier: string | null; score: number | null; excluded: boolean; reason: string | null;
+    isTerminal?: boolean; terminalReason?: string | null;
 }) {
     const isInvalid = excluded || bucket === 'no_send';
     const isQualified = !excluded && !!bucket && bucket !== 'no_send';
@@ -205,6 +206,18 @@ function QualificationCell({ bucket, tier, score, excluded, reason }: {
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">
                     <CheckCircle2 size={12} className="shrink-0" />
                     Qualified
+                </span>
+            )}
+            {/* Terminal is a distinct lifecycle axis from Excluded (a lifecycle-
+                complete permit like a finaled/closed job may never have been
+                excluded at all) -- shown alongside, not merged into, the
+                Invalid/Excluded badge below. */}
+            {isTerminal && (
+                <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-[#5B6B7D] border-gray-200"
+                    title={terminalReason ? `Terminal: ${terminalReason.replace(/_/g, ' ')}` : 'Terminal'}
+                >
+                    Terminal
                 </span>
             )}
             {isInvalid && (
@@ -426,6 +439,8 @@ const PermitRow = React.forwardRef<HTMLTableRowElement, PermitRowProps>(function
                     score={permit.lead_score ?? null}
                     excluded={!!permit.is_excluded}
                     reason={permit.exclude_reason ?? null}
+                    isTerminal={!!permit.is_terminal}
+                    terminalReason={permit.terminal_reason ?? null}
                 />
             </td>
 

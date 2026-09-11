@@ -465,6 +465,10 @@ export interface PermitRecord {
     county_name: string | null;
     latitude: number | null;
     longitude: number | null;
+    // Data Source / permitting jurisdiction (backend commit 0f48f13) --
+    // agency_id is the stable filter value, agency_name the display label.
+    agency_id?: string | null;
+    agency_name?: string | null;
     // Only ever the real PermitRecord.contractor_id FK (never a denormalized
     // fallback) -- only safe to link to a contractor detail page when present.
     contractor_id: string | null;
@@ -479,6 +483,10 @@ export interface PermitRecord {
     score_tier?: string | null;
     is_excluded?: boolean;
     exclude_reason?: string | null;
+    // Added Phase 9 Chunk 1 (backend commit 35b866d) -- previously the
+    // backend computed is_terminal but never exposed it on PermitRead.
+    is_terminal?: boolean;
+    terminal_reason?: string | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     score_breakdown?: Record<string, any> | null;   // per-category points + reasons
     contact_count?: number | null;
@@ -500,7 +508,16 @@ export interface PermitFilters {
     city: string | null;
     state: string | null;
     metro: string | null;
+    /** Removed from the MVP filter UI (Phase 9 Chunk 1 — no reliable backing
+     * data at the Contractor level, and County is not part of the approved
+     * MVP filter set). Field kept on the type only so any saved/URL state
+     * from before this decision deserializes harmlessly instead of erroring;
+     * PermitFilters.tsx no longer renders a control for it. */
     county: string | null;
+    /** Data Source / permitting jurisdiction — Agency.id (stable filter
+     * value; PermitFiltersPanel displays the human-readable Agency.name/
+     * "source" label from availableDataSources, never the id itself). */
+    agencyId: string | null;
     /** User-facing opportunity category: Fresh Leads | Scope Change | Introduction / Track | Late / Execution | Dead */
     opportunityCategory: string | null;
     /** Age bucket for Fresh Leads only: fresh_issued | warm_issued | aging_issued | old_issued */
@@ -533,6 +550,15 @@ export interface PermitCounty {
     county_name: string;
     state_code: string;
     permit_count: number;
+}
+
+/** Minimal shape for the Data Source filter dropdown — reuses
+ * GET /api/v1/data-sources (DataSourceSummary) rather than a new endpoint;
+ * only the two fields the filter control needs. */
+export interface PermitDataSourceOption {
+    agency_id: string;
+    /** Human-readable label, e.g. "Chicago, IL" — never display agency_id. */
+    source: string;
 }
 
 export interface PermitCountiesResponse {
@@ -601,7 +627,10 @@ export interface PermitSearchParams {
     project_class?: string;
     /** Work scope filter: New Build | Addition | Renovation | Interior Build-Out / TI | Demolition | Special */
     work_scope?: string;
+    /** Deprecated — no control renders it; kept only so old callers don't break. */
     county?: string;
+    /** Data Source / permitting jurisdiction — Agency.id (backend commit 0f48f13). */
+    agency_id?: string;
     contractor_name?: string;
     start_date?: string;
     end_date?: string;
@@ -808,6 +837,7 @@ export interface PermitsState {
     // Available options (from API)
     availableCities: PermitCityInfo[];
     availableCounties: PermitCounty[];
+    availableDataSources: PermitDataSourceOption[];
 }
 
 // ============================================================================
