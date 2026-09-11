@@ -50,7 +50,13 @@ interface NavItem {
     hidden?: boolean;
 }
 
-const mainNavItems: NavItem[] = [
+// CORE — Phase 9 target IA (docs/phase9_chunk1_report.md, "Lock navigation").
+// Contact Info Needed / Ready for Lead Bank / Lead Bank are real Phase 6/7
+// backend workflows with no frontend page yet — added here, hidden, so the
+// intended structure is locked in code now rather than bolted on ad hoc
+// when each page ships in a later Phase 9 chunk. Flip hidden:false the
+// same commit each page goes live.
+const coreNavItems: NavItem[] = [
     {
         id: 'dashboard',
         label: 'Dashboard',
@@ -65,6 +71,81 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard/permits',
         minRole: 'viewer',
     },
+    {
+        id: 'contact-info-needed',
+        label: 'Contact Info Needed',
+        icon: <Inbox size={20} />,
+        href: '/dashboard/contact-info-needed',
+        minRole: 'outreach',
+        hidden: true, // Phase 9 Chunk 2+ — backend: app/routers/contractor_workflow.py
+    },
+    {
+        id: 'ready-for-lead-bank',
+        label: 'Ready for Lead Bank',
+        icon: <Target size={20} />,
+        href: '/dashboard/ready-for-lead-bank',
+        minRole: 'outreach',
+        hidden: true, // Phase 9 Chunk 2+ — backend: list_ready_for_lead_bank()
+    },
+    {
+        id: 'contractors',
+        label: 'Contractors',
+        icon: <HardHat size={20} />,
+        href: '/dashboard/contractors',
+        minRole: 'outreach',
+        children: [
+            {
+                id: 'official-registry',
+                label: 'Official Registry',
+                icon: <ShieldCheck size={16} />,
+                href: '/dashboard/contractors?view=registry',
+                minRole: 'outreach',
+            },
+        ],
+    },
+    {
+        id: 'lead-bank',
+        label: 'Lead Bank',
+        icon: <Wallet size={20} />,
+        href: '/dashboard/lead-bank',
+        minRole: 'outreach',
+        hidden: true, // Phase 9 Chunk 2+ — backend: /api/v1/lead-bank-v2 + /api/v1/manual-outreach
+    },
+];
+
+// DATA — Data Sources, County Coverage, Import Data kept adjacent (Phase 2C)
+// — "Import Data" is the same Excel-upload page previously labeled "Data
+// Upload", renamed/relocated here rather than duplicated.
+const dataNavItems: NavItem[] = [
+    {
+        id: 'data-sources',
+        label: 'Data Sources',
+        icon: <Database size={20} />,
+        href: '/dashboard/datasources',
+        minRole: 'admin',
+    },
+    {
+        id: 'county-coverage',
+        label: 'County Coverage',
+        icon: <LandPlot size={20} />,
+        href: '/dashboard/counties',
+        minRole: 'admin',
+    },
+    {
+        id: 'upload',
+        label: 'Import Data',
+        icon: <Upload size={20} />,
+        href: '/dashboard/upload',
+        minRole: 'admin',
+    },
+];
+
+// Legacy/exploratory pages predating the Phase 9 target IA — already hidden
+// from nav (routes stay functional for anyone with a direct link). Kept
+// separate from coreNavItems/dataNavItems so the target structure above
+// reads cleanly; see docs/phase9_chunk1_report.md's frontend audit for the
+// KEEP/ADAPT/REBUILD/HIDE/REMOVE LATER classification of each.
+const legacyNavItems: NavItem[] = [
     {
         id: 'inbox',
         label: 'Inbox',
@@ -113,46 +194,6 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard/trades',
         minRole: 'admin',
         hidden: true,
-    },
-    {
-        id: 'data-sources',
-        label: 'Data Sources',
-        icon: <Database size={20} />,
-        href: '/dashboard/datasources',
-        minRole: 'admin',
-    },
-    {
-        id: 'county-coverage',
-        label: 'County Coverage',
-        icon: <LandPlot size={20} />,
-        href: '/dashboard/counties',
-        minRole: 'admin',
-    },
-    // DATA group: Data Sources, County Coverage, Import Data kept adjacent
-    // (Phase 2C) — "Import Data" is the same Excel-upload page previously
-    // labeled "Data Upload", renamed/relocated here rather than duplicated.
-    {
-        id: 'upload',
-        label: 'Import Data',
-        icon: <Upload size={20} />,
-        href: '/dashboard/upload',
-        minRole: 'admin',
-    },
-    {
-        id: 'contractors',
-        label: 'Contractors',
-        icon: <HardHat size={20} />,
-        href: '/dashboard/contractors',
-        minRole: 'outreach',
-        children: [
-            {
-                id: 'official-registry',
-                label: 'Official Registry',
-                icon: <ShieldCheck size={16} />,
-                href: '/dashboard/contractors?view=registry',
-                minRole: 'outreach',
-            },
-        ],
     },
     {
         id: 'economic-data',
@@ -304,14 +345,14 @@ export default function Sidebar() {
 
             {/* Main Navigation */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto hide-scrollbar">
-                {/* Primary Nav */}
+                {/* Core */}
                 <div className="space-y-1">
                     {!isCollapsed && (
                         <p className="px-3 py-2 text-xs font-medium text-[#5B6B7D] uppercase tracking-wider">
-                            Main
+                            Core
                         </p>
                     )}
-                    {mainNavItems.filter(canSee).map((item) => {
+                    {[...coreNavItems, ...legacyNavItems].filter(canSee).map((item) => {
                         const visibleChildren = item.children?.filter(canSee) ?? [];
                         const childActive = visibleChildren.some(c => isActive(c.href));
                         const parentActive = isActive(item.href) && !childActive;
@@ -377,6 +418,40 @@ export default function Sidebar() {
                             </div>
                         );
                     })}
+                </div>
+
+                {/* Data */}
+                {dataNavItems.filter(canSee).length > 0 && (
+                    <div className="my-4 border-t border-[#DFE6EE]" />
+                )}
+                <div className="space-y-1">
+                    {!isCollapsed && dataNavItems.filter(canSee).length > 0 && (
+                        <p className="px-3 py-2 text-xs font-medium text-[#5B6B7D] uppercase tracking-wider">
+                            Data
+                        </p>
+                    )}
+                    {dataNavItems.filter(canSee).map((item) => (
+                        <Link
+                            key={item.id}
+                            href={item.href}
+                            className={clsx('nav-item', isActive(item.href) && 'active')}
+                            title={isCollapsed ? item.label : undefined}
+                        >
+                            <span className="shrink-0">{item.icon}</span>
+                            <AnimatePresence>
+                                {!isCollapsed && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="truncate"
+                                    >
+                                        {item.label}
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
+                        </Link>
+                    ))}
                 </div>
 
                 {/* Divider — only when the AI Assistant section below actually
