@@ -1306,6 +1306,7 @@ function LeadQueueTab() {
     useEffect(() => { if (status === 'idle') dispatch(fetchLeads(filters)); }, [dispatch, status]); // eslint-disable-line
 
     const [localFilters, setLocalFilters] = useState(filters);
+    const [now] = useState(() => Date.now());
 
     function applyFilters() {
         dispatch(setLeadFilters(localFilters));
@@ -1389,7 +1390,7 @@ function LeadQueueTab() {
                                 <tbody>
                                     {leads.map((lead: PermitLead, i: number) => {
                                         const daysOld = lead.issue_date
-                                            ? Math.floor((Date.now() - new Date(lead.issue_date).getTime()) / 86400000)
+                                            ? Math.floor((now - new Date(lead.issue_date).getTime()) / 86400000)
                                             : null;
                                         return (
                                             <motion.tr key={lead.id}

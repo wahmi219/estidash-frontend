@@ -1757,6 +1757,7 @@ export interface ReadyForLeadBankItem {
 }
 
 export interface ReadyForLeadBankResponse {
+    total: number;
     limit: number;
     offset: number;
     items: ReadyForLeadBankItem[];
@@ -1774,4 +1775,262 @@ export interface BulkAddToLeadBankResult {
 export interface BulkAddToLeadBankResponse {
     results: BulkAddToLeadBankResult[];
     counts: Record<string, number>;
+}
+
+// ============================================================================
+// Phase 9 Chunk 3 — Lead Bank V2 CRM (relationships/opportunities)
+// ============================================================================
+
+export type RelationshipStatus =
+    | 'prospect' | 'warm_lead' | 'active_opportunity' | 'active_client'
+    | 'former_client' | 'not_interested' | 'do_not_contact' | string;
+
+export type OutreachStatus =
+    | 'ready' | 'active_outreach' | 'cooldown' | 'previously_contacted_new_project'
+    | 'completed_no_response' | 'delivery_issue' | string;
+
+export interface LeadBankRelationship {
+    id: string;
+    contractor_id: string;
+    relationship_status: RelationshipStatus;
+    outreach_status: OutreachStatus;
+    sales_owner_id: number | null;
+    primary_opportunity_id: string | null;
+    primary_opportunity_locked: boolean;
+    dnc: boolean;
+    dnc_reason: string | null;
+    dnc_set_at: string | null;
+    last_contacted_at: string | null;
+    cooldown_until: string | null;
+    created_at: string;
+    updated_at: string;
+    version: number;
+    // Enriched (backend commit "Lead Bank + Verification enrichment") --
+    // batched per page, never on the raw relationship row itself.
+    contractor_name: string | null;
+    contractor_email: string | null;
+    contractor_phone: string | null;
+    contractor_state_code: string | null;
+    sales_owner_name: string | null;
+    opportunity_count: number;
+    primary_opportunity_permit_number: string | null;
+    primary_opportunity_permit_type: string | null;
+    primary_opportunity_scope: string | null;
+    primary_opportunity_valuation: number | null;
+    primary_opportunity_qualification_bucket: string | null;
+    primary_opportunity_score: number | null;
+    primary_opportunity_issue_date: string | null;
+    primary_opportunity_source_agency: string | null;
+}
+
+export interface LeadBankRelationshipListResponse {
+    total: number;
+    items: LeadBankRelationship[];
+}
+
+export interface LeadOpportunity {
+    id: string;
+    relationship_id: string;
+    permit_id: string | null;
+    status: 'open' | 'primary' | string;
+    snapshot_permit_number: string | null;
+    snapshot_permit_type: string | null;
+    snapshot_scope: string | null;
+    snapshot_address: string | null;
+    snapshot_valuation: number | null;
+    snapshot_qualification_bucket: string | null;
+    snapshot_score: number | null;
+    snapshot_scoring_rubric_version: number | null;
+    snapshot_issue_date: string | null;
+    snapshot_source_agency: string | null;
+    created_at: string;
+    updated_at: string;
+    promoted_to_primary_at: string | null;
+}
+
+export interface LeadOpportunityListResponse {
+    total: number;
+    items: LeadOpportunity[];
+}
+
+export interface LeadBankHistoryEntry {
+    field_name: string;
+    previous_value: string | null;
+    new_value: string | null;
+    source: string | null;
+    evidence: Record<string, unknown> | null;
+    changed_at: string;
+    changed_by: string | null;
+}
+
+export interface LeadBankHistoryResponse {
+    total: number;
+    items: LeadBankHistoryEntry[];
+}
+
+// ============================================================================
+// Phase 9 Chunk 3 — Manual Outreach Workflow
+// ============================================================================
+
+export type OutreachStageStatus =
+    | 'pending' | 'due' | 'ready_for_outreach' | 'blocked' | 'sent' | 'stopped' | 'skipped' | string;
+
+export type OutreachSequenceStatusT =
+    | 'pending' | 'active' | 'paused' | 'stopped' | 'completed' | 'cancelled' | 'failed' | string;
+
+export type OutreachOutcome =
+    | 'replied' | 'interested' | 'active_opportunity' | 'not_interested' | 'dnc'
+    | 'unsubscribe' | 'no_response' | 'bad_email' | 'manual_stop' | string;
+
+export interface OutreachStage {
+    id: string;
+    sequence_id: string;
+    stage_number: number;
+    stage_type: string;
+    status: OutreachStageStatus;
+    due_at: string | null;
+    selected_email: string | null;
+    marked_sent_at: string | null;
+    marked_sent_by: string | null;
+    outcome: string | null;
+    stop_reason: string | null;
+}
+
+export interface OutreachWorkflow {
+    id: string;
+    relationship_id: string;
+    opportunity_id: string | null;
+    status: OutreachSequenceStatusT;
+    current_stage: string | null;
+    started_at: string | null;
+    stopped_at: string | null;
+    stop_reason: string | null;
+}
+
+export interface OutreachWorkflowDetail extends OutreachWorkflow {
+    stages: OutreachStage[];
+}
+
+export interface OutreachWorkflowListResponse {
+    total: number;
+    items: OutreachWorkflow[];
+}
+
+export interface ManualOutreachRelationshipDetail {
+    relationship_id: string;
+    contractor_id: string;
+    company_name: string | null;
+    primary_email: string | null;
+    usable_alternative_email_count: number;
+    phone: string | null;
+    website: string | null;
+    sales_owner_id: number | null;
+    sales_owner_name: string | null;
+    relationship_status: RelationshipStatus;
+    outreach_status: OutreachStatus;
+    previously_contacted_new_project: boolean;
+    primary_opportunity_id: string | null;
+    permit_number: string | null;
+    permit_type: string | null;
+    scope: string | null;
+    project_address: string | null;
+    valuation: number | null;
+    opportunity_score: number | null;
+    qualification_bucket: string | null;
+    issue_date: string | null;
+    source_agency: string | null;
+    last_contacted_at: string | null;
+    cooldown_until: string | null;
+    reply_lock_until: string | null;
+    dnc: boolean;
+    active_workflow_id: string | null;
+    active_workflow_status: string | null;
+    current_stage_number: number | null;
+    current_stage_type: string | null;
+    current_stage_status: string | null;
+    current_stage_due_at: string | null;
+}
+
+export interface DueOutreachStageItem {
+    stage_id: string;
+    sequence_id: string;
+    relationship_id: string;
+    stage_number: number;
+    stage_type: string;
+    status: OutreachStageStatus;
+    due_at: string | null;
+    needs_eligibility_check: boolean;
+}
+
+export interface DueOutreachResponse {
+    total: number;
+    items: DueOutreachStageItem[];
+}
+
+// ============================================================================
+// Phase 9 Chunk 4 — Contractor Verification
+// ============================================================================
+
+export interface CandidateContractorSummary {
+    id: string;
+    name: string;
+    aliases: string[];
+    license_number: string | null;
+    license_type: string | null;
+    phone: string | null;
+    website: string | null;
+    state_code: string | null;
+    has_lead_bank_relationship: boolean;
+}
+
+export interface MatchCandidate {
+    id: string;
+    permit_id: string;
+    raw_name: string | null;
+    normalized_name: string | null;
+    candidate_contractor_id: string | null;
+    outcome: 'possible_match' | 'conflict' | 'insufficient_identity' | string;
+    reason: string;
+    evidence: Record<string, unknown> | null;
+    matching_rule_version: string;
+    status: 'pending' | 'assigned' | 'in_progress' | 'confirmed' | 'rejected' | 'created_new' | 'unable_to_verify' | string;
+    assigned_to: string | null;
+    research_started_at: string | null;
+    research_completed_at: string | null;
+    resolved_contractor_id: string | null;
+    resolved_at: string | null;
+    resolved_by: string | null;
+    created_at: string;
+    updated_at: string;
+    // Enriched
+    permit_number: string | null;
+    permit_type: string | null;
+    scope: string | null;
+    project_address: string | null;
+    valuation: number | null;
+    qualification_bucket: string | null;
+    score: number | null;
+    issue_date: string | null;
+    state_code: string | null;
+    agency_id: string | null;
+    agency_name: string | null;
+    candidate_contractor: CandidateContractorSummary | null;
+}
+
+export interface MatchCandidateListResponse {
+    total: number;
+    items: MatchCandidate[];
+}
+
+// ============================================================================
+// Phase 9 Chunk 4 — Dashboard summary
+// ============================================================================
+
+export interface DashboardSummary {
+    contractor_verification_pending: number;
+    contact_info_needed: number;
+    ready_for_lead_bank: number;
+    ready_for_outreach: number;
+    follow_ups_due: number;
+    lead_bank_total: number;
 }

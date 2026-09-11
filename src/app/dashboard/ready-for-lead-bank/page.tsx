@@ -32,6 +32,7 @@ function formatDate(value: string | null): string {
 
 export default function ReadyForLeadBankPage() {
     const [items, setItems] = useState<ReadyForLeadBankItem[]>([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -62,6 +63,7 @@ export default function ReadyForLeadBankPage() {
             if (endDate) params.end_date = endDate;
             const data = await apiService.get<ReadyForLeadBankResponse>('/contractor-workflow/ready-for-lead-bank', params);
             setItems(data.items);
+            setTotal(data.total);
             setSelected(new Set());
         } catch (err) {
             const message = err && typeof err === 'object' && 'message' in err ? (err as { message: string }).message : 'Failed to load Ready for Lead Bank queue';
@@ -199,6 +201,10 @@ export default function ReadyForLeadBankPage() {
 
             {!loading && !error && items.length > 0 && (
                 <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
+                    <div className="px-4 py-2 border-b border-[#DFE6EE] text-xs text-[#5B6B7D]">
+                        {total} opportunit{total === 1 ? 'y' : 'ies'} waiting for Lead Bank
+                        {total > items.length && ` (showing first ${items.length})`}
+                    </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-[#F7F9FB] text-[10px] uppercase tracking-wide text-[#5B6B7D]">

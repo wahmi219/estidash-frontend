@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, RefreshCw, Activity, ListChecks, Flame, FileText, CheckCircle2, XCircle, ShieldAlert, Phone, Wallet, AlertTriangle, Lock, Clock } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, Activity, ListChecks, Flame, FileText, CheckCircle2, XCircle, ShieldAlert, Phone, Wallet, AlertTriangle, Lock, Clock, Send, CalendarClock } from 'lucide-react';
 import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard';
 import PageHeader from '@/components/common/PageHeader';
 import SectionHeading from '@/components/common/SectionHeading';
 import { apiService } from '@/services/api';
-import type { DataSourceHealthSummary } from '@/types';
+import type { DataSourceHealthSummary, DashboardSummary } from '@/types';
 
 const LATEST_SYNC_METRICS = [
     { label: 'New Permits', icon: FileText, accent: 'blue' as const },
@@ -15,10 +15,16 @@ const LATEST_SYNC_METRICS = [
     { label: 'Invalid / Excluded New', icon: XCircle, accent: 'red' as const },
 ];
 
-const WORKFLOW_METRICS = [
-    { label: 'Contractor Verification', icon: ShieldAlert, accent: 'amber' as const },
-    { label: 'Contact Info Needed', icon: Phone, accent: 'blue' as const },
-    { label: 'Ready for Lead Bank', icon: Wallet, accent: 'green' as const },
+// Real operational counts from GET /api/v1/dashboard/summary (Phase 9
+// Chunk 4) -- each key's card links to the exact queue that count comes
+// from, so a number here can never contradict its own drill-down.
+const WORKFLOW_METRICS: { key: keyof DashboardSummary; label: string; icon: typeof ShieldAlert; accent: 'amber' | 'blue' | 'green' | 'red'; href: string }[] = [
+    { key: 'contractor_verification_pending', label: 'Contractor Verification', icon: ShieldAlert, accent: 'amber', href: '/dashboard/contractor-verification' },
+    { key: 'contact_info_needed', label: 'Contact Info Needed', icon: Phone, accent: 'blue', href: '/dashboard/contact-info-needed' },
+    { key: 'ready_for_lead_bank', label: 'Ready for Lead Bank', icon: Wallet, accent: 'green', href: '/dashboard/ready-for-lead-bank' },
+    { key: 'ready_for_outreach', label: 'Ready for Outreach', icon: Send, accent: 'blue', href: '/dashboard/lead-bank' },
+    { key: 'follow_ups_due', label: 'Follow-ups Due', icon: CalendarClock, accent: 'amber', href: '/dashboard/lead-bank' },
+    { key: 'lead_bank_total', label: 'Lead Bank Relationships', icon: Wallet, accent: 'green', href: '/dashboard/lead-bank' },
 ];
 
 // Future columns for the Priority States to Work shell below. Kept in one
@@ -28,12 +34,28 @@ const PRIORITY_STATES_COLUMNS = ['State', 'Coverage', 'Qualified Rate', 'Strateg
 export default function DashboardPage() {
     const [health, setHealth] = useState<DataSourceHealthSummary | null>(null);
     const [healthLoading, setHealthLoading] = useState(true);
+    const [summary, setSummary] = useState<DashboardSummary | null>(null);
+    const [summaryLoading, setSummaryLoading] = useState(true);
+    const [summaryUnauthorized, setSummaryUnauthorized] = useState(false);
 
     useEffect(() => {
         apiService.getDataSourcesHealthSummary()
             .then(setHealth)
             .catch(() => setHealth(null))
             .finally(() => setHealthLoading(false));
+    }, []);
+
+    useEffect(() => {
+        apiService.get<DashboardSummary>('/dashboard/summary')
+            .then(setSummary)
+            .catch((err) => {
+                const status = err && typeof err === 'object' && 'response' in err
+                    ? (err as { response?: { status?: number } }).response?.status
+                    : undefined;
+                if (status === 401 || status === 403) setSummaryUnauthorized(true);
+                setSummary(null);
+            })
+            .finally(() => setSummaryLoading(false));
     }, []);
 
     const needsAttention = health ? health.warning + health.failed + health.stuck + health.needs_auth : 0;
@@ -104,19 +126,31 @@ export default function DashboardPage() {
                 </p>
             </section>
 
-            {/* Section 2 — Current Qualified Workflow */}
+            {/* Section 2 — Current Qualified Workflow. Real counts from
+                GET /api/v1/dashboard/summary (Phase 9 Chunk 4) — each card
+                links straight to the queue that count came from. */}
             <section className="mb-8">
                 <div className="mb-3">
                     <SectionHeading icon={ListChecks}>Current Qualified Workflow</SectionHeading>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {WORKFLOW_METRICS.map((m) => (
-                        <DashboardMetricCard key={m.label} label={m.label} icon={m.icon} accent={m.accent} />
-                    ))}
-                </div>
-                <p className="text-xs text-[#5B6B7D] mt-2">
-                    Workflow counts will populate after the production DB / contractor workflow audit.
-                </p>
+                {summaryUnauthorized ? (
+                    <div className="bg-white border border-[#DFE6EE] rounded-lg p-6 text-sm text-[#5B6B7D]">
+                        Your role does not have access to workflow counts. Ask an admin if you need visibility into these queues.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {WORKFLOW_METRICS.map((m) => (
+                            <Link key={m.key} href={m.href} className="block">
+                                <DashboardMetricCard
+                                    label={m.label}
+                                    value={summaryLoading ? undefined : summary?.[m.key]}
+                                    icon={m.icon}
+                                    accent={m.accent}
+                                />
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </section>
 
             {/* Section 3 — Priority States to Work. Shows which states currently

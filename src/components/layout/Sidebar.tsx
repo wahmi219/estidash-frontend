@@ -51,10 +51,9 @@ interface NavItem {
 }
 
 // CORE — Phase 9 target IA (docs/phase9_chunk1_report.md, "Lock navigation").
-// Contact Info Needed and Ready for Lead Bank shipped real pages in Phase 9
-// Chunk 2 and are unhidden below. Lead Bank stays hidden — its full CRM UI
-// is explicitly out of scope until a later chunk; flip hidden:false the
-// same commit that page goes live.
+// All six items are now real, functional pages: Contact Info Needed and
+// Ready for Lead Bank shipped in Chunk 2, Lead Bank (CRM + manual outreach)
+// in Chunk 3 — none are hidden stubs any more.
 const coreNavItems: NavItem[] = [
     {
         id: 'dashboard',
@@ -110,7 +109,9 @@ const coreNavItems: NavItem[] = [
         icon: <Wallet size={20} />,
         href: '/dashboard/lead-bank',
         minRole: 'outreach',
-        hidden: true, // Phase 9 Chunk 2+ — backend: /api/v1/lead-bank-v2 + /api/v1/manual-outreach
+        // Unhidden Phase 9 Chunk 3 — real contractor-centric CRM + manual
+        // outreach workflow UI shipped, wired to /api/v1/lead-bank-v2 and
+        // /api/v1/manual-outreach.
     },
 ];
 
@@ -126,17 +127,10 @@ const dataNavItems: NavItem[] = [
         minRole: 'admin',
     },
     {
-        id: 'county-coverage',
-        label: 'County Coverage',
-        icon: <LandPlot size={20} />,
-        href: '/dashboard/counties',
-        minRole: 'admin',
-    },
-    {
         id: 'upload',
         label: 'Import Data',
         icon: <Upload size={20} />,
-        href: '/dashboard/upload',
+        href: '/dashboard/import-data',
         minRole: 'admin',
     },
 ];
@@ -147,6 +141,17 @@ const dataNavItems: NavItem[] = [
 // reads cleanly; see docs/phase9_chunk1_report.md's frontend audit for the
 // KEEP/ADAPT/REBUILD/HIDE/REMOVE LATER classification of each.
 const legacyNavItems: NavItem[] = [
+    {
+        // Phase 9 Chunk 4 — County Coverage removed from active MVP nav;
+        // Data Sources / Source Health is the replacement. Route stays
+        // functional for anyone with a direct link, not deleted.
+        id: 'county-coverage',
+        label: 'County Coverage',
+        icon: <LandPlot size={20} />,
+        href: '/dashboard/counties',
+        minRole: 'admin',
+        hidden: true,
+    },
     {
         id: 'inbox',
         label: 'Inbox',
