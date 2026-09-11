@@ -4,10 +4,10 @@ Next.js 16 frontend for Estimation Hub. See root `CLAUDE.md` for full project ov
 
 ## Git & Commit Policy
 
-**Always commit after writing code or docs.** This is an independent git repo (separate from
-the root `Estimation-Hub` repo and from `estihub`). Make a commit at the end of each unit of
-work rather than leaving changes uncommitted. Commit directly on `main` (this repo's
-established workflow). End commit messages with the `Co-Authored-By` trailer.
+Active branch: `mvp-recovery`. Commit at the end of each unit of work rather than leaving
+changes uncommitted. **Do not merge or commit to `main`** — `main` stays untouched; all
+work happens on `mvp-recovery` and is pushed to `origin/mvp-recovery`. End commit messages
+with the `Co-Authored-By` trailer.
 
 ## Tech Stack
 
@@ -20,18 +20,30 @@ established workflow). End commit messages with the `Co-Authored-By` trailer.
 - **HTTP**: Axios 1
 - **Markdown**: react-markdown + remark-gfm
 
-## App Router Structure
+## App Router Structure (current — see `src/components/layout/Sidebar.tsx` for the authoritative navigation/IA)
 
 ```
 src/app/
-  layout.tsx            # Root layout with Redux Provider
-  page.tsx              # Home / dashboard
-  permits/              # Permit search and table
-  intelligence/         # AI analytics pages
-    outreach/           # Contractor outreach
-    cbsa/               # CBSA metro analysis
-    trades/             # Trade opportunity analysis
-  settings/             # Agent config + prompt editor
+  layout.tsx                        # Root layout with Redux Provider
+  page.tsx                          # Landing/redirect
+  login/                            # Auth
+  dashboard/
+    page.tsx                        # Dashboard
+    permits/                        # Permit Records (list + [id] detail) — CORE
+    contractors/                    # Contractor Master (list + [id] detail) — CORE
+    datasources/                    # Data Sources — DATA
+    counties/                       # County Coverage — DATA
+    upload/                         # Import Data — DATA
+    settings/                       # Settings, Users — ADMIN
+    (contact-info-needed, ready-for-lead-bank, lead-bank)  # CORE, added Phase 9 —
+       real Phase 6/7/8 backend, frontend pages shipped incrementally; each
+       Sidebar entry stays `hidden: true` only until its page is functional,
+       then flips to visible in the same commit — never leave a shipped page
+       permanently hidden
+    (outreach, inbox, warmup, cbsa, analytics, trades, economic)  # legacy/
+       exploratory, already hidden from nav — do not surface them; see the
+       Phase 9 chunk reports in `docs/` for the KEEP/ADAPT/HIDE/REMOVE LATER
+       classification of each before touching any of them
 ```
 
 ## Redux State Slices (`src/store/slices/`)
@@ -39,20 +51,30 @@ src/app/
 | Slice | Purpose |
 |-------|---------|
 | `permitsSlice.ts` | Permit search, filter, pagination |
+| `contractorsSlice.ts` | Contractor Master search, filter, pagination |
 | `chatSlice.ts` | AI chat/NL query state |
 | `dashboardSlice.ts` | Dashboard metrics |
 | `uploadSlice.ts` | Excel file upload state |
 | `examplesSlice.ts` | Example queries |
+| `outreachSlice.ts` | Legacy automated-outreach state — do not build new UI against this; see "Outreach Architecture" below |
 
 Always dispatch from components using `useAppDispatch` and select with `useAppSelector`.
 
-## API Client Pattern (`src/services/`)
+## API Client Pattern (`src/services/api.ts`)
 
-Axios instances with base URL from env. Example:
+One centralized, typed Axios client (`apiService`) — do not hardcode a second base URL or a
+raw `axios.get(...)` call in a component. Add new backend areas as typed methods here (and
+their request/response shapes in `src/types/index.ts`), following the existing method
+naming/shape conventions, rather than introducing a second API layer.
+
 ```ts
-import api from '@/services/api';
-const data = await api.get('/api/v1/permits', { params: { city: 'Chicago' } });
+import { apiService } from '@/services/api';
+const data = await apiService.searchPermits({ city: 'Chicago' });
 ```
+
+Before wiring a new page to the backend, read `docs/phase9_frontend_api_contract.md`
+(updated each Phase 9 chunk) for the actual, currently-exposed contract — never assume a
+field/filter exists because a mockup or a task description names it.
 
 ## MarkdownRenderer — CRITICAL
 
@@ -64,43 +86,79 @@ import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 <MarkdownRenderer content={response.answer} />
 ```
 
-Location: `src/components/common/MarkdownRenderer.tsx`
-CSS: scoped under `.chat-markdown` in `globals.css`
-
-Applies to: chat messages, all dashboard intelligence cards, outreach/cbsa/trades pages.
+Location: `src/components/common/MarkdownRenderer.tsx`. CSS scoped under `.chat-markdown` in `globals.css`.
 
 ## Key Components
 
 ```
 src/components/
-  common/
-    MarkdownRenderer.tsx    # Shared AI text renderer
-  chat/                     # NL query chat interface
-  dashboard/                # MarketPulseCard, CBSAListCard, HighValueCard, etc.
-  permits/                  # PermitTable, filters, ContractorOutreachModal
-  layout/                   # Header, sidebar, navigation
+  common/       PageHeader, SectionHeading, MarkdownRenderer
+  layout/       Sidebar, DashboardLayout/Shell, ThemeToggle
+  permits/      PermitTable, PermitFilters, PermitRow, pagination
+  contractors/  ContractorFiltersPanel, ContractorQualityBadges
+  chat/         NL query chat interface
+  dashboard/    MarketPulseCard, CBSAListCard, HighValueCard, etc. (legacy — see below)
 ```
 
-## Contractor Outreach Flow
+Reuse `PageHeader`/`SectionHeading`/existing table, badge, filter, empty-state, and
+loading-state patterns from Permit Records / Contractors rather than inventing a one-off
+style per new page — every operational page (Contact Info Needed, Ready for Lead Bank,
+Lead Bank, etc.) should look and behave like a sibling of those two, not a new design.
 
-1. User clicks "Message" on a permit row → `ContactOutreachModal` opens, lists permit contacts
-2. "Generate emails" calls `POST /api/v1/email-agent/generate-batch` — one shared `gather_context`
-   + pattern analysis for the permit, then a role-tailored email per selected contact
-3. User can Edit, Regenerate (with instructions), or Send via `POST /api/v1/email-agent/send-batch`,
-   which delivers through the sender's **assigned sending inboxes** (sticky-per-recipient, then
-   health-aware rotation) — never local/global SMTP
+## OUTREACH ARCHITECTURE — READ BEFORE TOUCHING ANYTHING OUTREACH-RELATED
 
-## Agent Settings UI
+**EHUB never sends email.** Employees send outreach manually from their own Gmail,
+Outlook, or other email account, entirely outside this application. EHUB's job is limited
+to: eligibility (who may be contacted right now, and why/why not), ownership (which
+employee owns a Contractor relationship), Mark Sent (recording that an employee already
+sent an email manually), follow-up due dates, and outcomes (Replied, Interested, Active
+Opportunity, Not Interested, DNC, Unsubscribe, No Response, Bad Email, Manual Stop).
 
-- **Settings > Agent Settings**: Change LLM model + temperature per agent
-- **Prompt Editor**: Edit system prompts per agent (no redeployment needed)
+**Never build or expose:**
+- a "Send Email" or "Auto Send" button of any kind
+- Gmail/Outlook/SMTP send integration
+- automated campaign or sequence-send UI
+- provider delivery controls (inbox warmup, placement testing, deliverability dashboards) as active product surfaces
+
+**Legacy automated-send code exists in this repo** (`/dashboard/outreach`, `/dashboard/inbox`,
+`/dashboard/warmup`, `ContactOutreachModal.tsx`, `outreachSlice.ts`'s send-related actions,
+the old `email-agent/generate-batch` / `email-agent/send-batch` flow this file used to
+describe as current). It is being **kept in the codebase for possible future development**,
+already hidden from the sidebar, and must **stay hidden** — do not link to it, do not adapt
+it into a new page, do not treat anything under it as a pattern to copy. If a task asks you
+to build outreach-adjacent UI, it means the manual workflow above (Mark Sent, outcomes,
+Ready for Outreach) via `/api/v1/manual-outreach` — never `/api/v1/outreach/*`, which is the
+legacy automated system's namespace.
+
+## Contractor Master model
+
+One Contractor ID = one real company. A Contractor may have: multiple emails (one Primary,
+others alternates — `ContractorRead.emails[]`, backend commit `7a743d2`), multiple confirmed
+aliases (`ContractorRead.aliases[]`), and — architecture decided, **not yet built** as a
+child table — will eventually have multiple licenses (currently still a single
+`license_number` field on `Contractor`; design any Licenses UI as a list from the start so
+no rework is needed once the child table ships — do not assume exactly one license). One
+Contractor may have many opportunities/permits and, if promoted, exactly one Lead Bank V2
+relationship (`ContractorRead.lead_bank`, null until one exists).
+
+## Filters — approved MVP set
+
+**Use:** State, Data Source (human-readable jurisdiction name shown; stable `agency_id`
+filtered on internally — never display the id), Trade/Scope, Project Type, Qualification,
+Status, Date.
+
+**Do not add or re-add:** County, Contractor Type. Both were removed from the MVP filter
+design across Permit Records and Contractors (Phase 9 Chunk 1/2) — not a missing feature,
+a settled product decision. Trade/Scope is a permit/opportunity-level concept, not a
+Contractor-level one — never infer or store a "Contractor Type" from a single permit.
 
 ## Dev Commands
 
 ```bash
-npm run dev      # Start on http://localhost:3000
-npm run build    # Production build
-npm run lint     # ESLint check
+npm run dev            # Start on http://localhost:3000
+npm run build           # Production build (also typechecks)
+npm run lint             # ESLint check
+npx tsc --noEmit         # Standalone typecheck (no dedicated package.json script exists)
 ```
 
 ## Environment
@@ -113,30 +171,35 @@ See `env.example` for full list.
 
 ## Design System
 
-**Active skill**: `.agent/skills/estimation-hub-design/SKILL.md` — use for ALL frontend work in estidash.
-Secondary references: `.agent/skills/frontend-design/SKILL.md` (creative direction) and `.agent/skills/ui-ux-pro-max/SKILL.md` (systematic rules + accessibility).
+**Professional, light B2B construction/CRM UI.** Confirmed as the actual current design of
+every in-scope page (Sidebar, Permit Records, Contractors) as of Phase 9 — this is not
+aspirational, it is what the code already does; keep matching it.
 
-### Always-On Rules (apply without invoking the skill)
+**Palette:**
+| Token | Hex | Use |
+|---|---|---|
+| Primary | `#00458B` | primary actions, active nav |
+| Primary hover | `#045CB4` | hover state |
+| Navy | `#0E2B5C` | headings, primary text |
+| Muted text | `#5B6B7D` | secondary/meta text |
+| Border | `#DFE6EE` | borders, dividers |
+| Page background | `#F7F9FB` | page background |
+| Cards | `#FFFFFF` | card/panel surfaces |
 
-**Adapter palette** — enforced on every component that shows city/source data:
-| Adapter | Color    | Badge classes                          | Chart hex  |
-|---------|----------|----------------------------------------|------------|
-| arcgis  | Emerald  | `bg-emerald-500/15 text-emerald-400`   | `#10b981`  |
-| socrata | Blue     | `bg-blue-500/15 text-blue-400`         | `#3b82f6`  |
-| ckan    | Amber    | `bg-amber-500/15 text-amber-400`       | `#f59e0b`  |
-| csv     | Purple   | `bg-purple-500/15 text-purple-400`     | `#a855f7`  |
-| ods     | Pink     | `bg-pink-500/15 text-pink-400`         | `#ec4899`  |
+**Avoid:** purple, pink, neon, dark dashboard themes, glow effects, heavy gradients. (Some
+already-hidden legacy pages — outreach/inbox/warmup/economic — and unused tokens in
+`globals.css` like `--brand-purple`/`.glow-purple` still use the old dark/neon direction;
+they are dead weight, not a pattern to follow. Do not extend that palette to new work, and
+do not "fix" those legacy pages' styling as a side effect of unrelated work — they're
+tracked separately for eventual removal.)
 
-**Typography**:
-- Data values (numbers, counts, timestamps): `font-mono tabular-nums text-white` — always monospaced
-- KPI values: `text-2xl font-mono font-bold text-white` minimum size
-- Labels/metadata: `text-[10px] uppercase tracking-widest text-gray-500`
-- Fonts loaded in `layout.tsx`: Geist (`--font-geist-sans`) + Geist Mono (`--font-geist-mono`)
+**Typography**: standard system/Geist fonts, dark text on light backgrounds (`#0E2B5C`
+headings, `#5B6B7D` secondary) — not the old white-on-dark/monospace-everything convention.
 
-**Charts**: `AreaChart` for time-series (not BarChart). Gradient fill via raw SVG `<defs><linearGradient>` inside chart — do NOT import from recharts. Use `useId()` for unique gradient IDs. Minimum chart height `h-52`.
+**Accessibility**: 4.5:1 contrast (WCAG AA). `focus-visible:ring-2` on all interactive
+elements. No emojis as icons — lucide-react only. Touch targets ≥ 44px.
 
-**Motion**: Framer Motion 12 for all animations. Always check `useReducedMotion()` — if true, set duration 0. Stagger list reveals with `staggerChildren: 0.05`. Spring config for accordions: `{ type: 'spring', stiffness: 400, damping: 35 }`.
+**Motion**: Framer Motion 12, respecting `useReducedMotion()`.
 
-**Accessibility**: 4.5:1 contrast (WCAG AA). `focus-visible:ring-2` on all interactive elements. No emojis as icons — lucide-react only. Touch targets ≥ 44px.
-
-**Dark-first**: All components target dark mode. Card base: `bg-gray-950/80 backdrop-blur-sm border border-white/[0.08] rounded-2xl`.
+**Responsive**: laptop/desktop-first — this is an internal business portal, not a
+mobile-first consumer product.
