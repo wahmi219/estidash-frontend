@@ -1685,3 +1685,93 @@ export interface RecommendationsResult {
     generated_at: string | null;
     error: string | null;
 }
+
+// ============================================================================
+// Phase 9 Chunk 2 — Contact Info Needed
+// ============================================================================
+
+export interface ContactTask {
+    id: string;
+    contractor_id: string;
+    status: 'contact_info_needed' | 'in_progress' | 'ready' | 'unable_to_find' | string;
+    assigned_to: string | null;
+    research_started_at: string | null;
+    research_completed_at: string | null;
+    attempt_count: number;
+    source: string | null;
+    evidence: Record<string, unknown> | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+    // Enriched (backend commit d0391ca) — never on the raw task row itself.
+    contractor_name: string | null;
+    contractor_phone: string | null;
+    contractor_website: string | null;
+    contractor_state_code: string | null;
+    sibling_opportunity_count: number;
+    current_permit_id: string | null;
+    current_permit_number: string | null;
+    current_permit_type: string | null;
+    current_scope: string | null;
+    current_project_address: string | null;
+    current_valuation: number | null;
+    current_qualification_bucket: string | null;
+    current_score: number | null;
+    current_issue_date: string | null;
+    current_agency_id: string | null;
+    current_agency_name: string | null;
+}
+
+export interface ContactTaskListResponse {
+    total: number;
+    items: ContactTask[];
+}
+
+// ============================================================================
+// Phase 9 Chunk 2 — Ready for Lead Bank
+// ============================================================================
+
+export interface ReadyForLeadBankItem {
+    permit_id: string;
+    permit_number: string;
+    contractor_id: string;
+    contractor_name: string;
+    contractor_phone: string | null;
+    contractor_website: string | null;
+    primary_email: string | null;
+    additional_emails_count: number;
+    permit_type: string;
+    scope: string | null;
+    project_address: string | null;
+    state_code: string | null;
+    agency_id: string | null;
+    agency_name: string | null;
+    valuation: number | null;
+    qualification_bucket: string | null;
+    score: number | null;
+    issue_date: string | null;
+    /** "existing" = will attach a new opportunity to the contractor's
+     * current Lead Bank relationship; "new" = will create one. Never
+     * render an "existing" row as if a new company record will result. */
+    lead_bank_status: 'existing' | 'new' | string;
+}
+
+export interface ReadyForLeadBankResponse {
+    limit: number;
+    offset: number;
+    items: ReadyForLeadBankItem[];
+}
+
+export interface BulkAddToLeadBankResult {
+    permit_id: string;
+    status: 'created' | 'attached' | 'already_attached' | 'rejected' | 'error' | string;
+    reason?: string;
+    relationship_id?: string;
+    opportunity_id?: string;
+    is_primary?: boolean;
+}
+
+export interface BulkAddToLeadBankResponse {
+    results: BulkAddToLeadBankResult[];
+    counts: Record<string, number>;
+}

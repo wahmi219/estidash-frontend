@@ -51,11 +51,10 @@ interface NavItem {
 }
 
 // CORE — Phase 9 target IA (docs/phase9_chunk1_report.md, "Lock navigation").
-// Contact Info Needed / Ready for Lead Bank / Lead Bank are real Phase 6/7
-// backend workflows with no frontend page yet — added here, hidden, so the
-// intended structure is locked in code now rather than bolted on ad hoc
-// when each page ships in a later Phase 9 chunk. Flip hidden:false the
-// same commit each page goes live.
+// Contact Info Needed and Ready for Lead Bank shipped real pages in Phase 9
+// Chunk 2 and are unhidden below. Lead Bank stays hidden — its full CRM UI
+// is explicitly out of scope until a later chunk; flip hidden:false the
+// same commit that page goes live.
 const coreNavItems: NavItem[] = [
     {
         id: 'dashboard',
@@ -77,7 +76,8 @@ const coreNavItems: NavItem[] = [
         icon: <Inbox size={20} />,
         href: '/dashboard/contact-info-needed',
         minRole: 'outreach',
-        hidden: true, // Phase 9 Chunk 2+ — backend: app/routers/contractor_workflow.py
+        // Unhidden Phase 9 Chunk 2 — real page shipped, wired to
+        // app/routers/contractor_workflow.py.
     },
     {
         id: 'ready-for-lead-bank',
@@ -85,7 +85,8 @@ const coreNavItems: NavItem[] = [
         icon: <Target size={20} />,
         href: '/dashboard/ready-for-lead-bank',
         minRole: 'outreach',
-        hidden: true, // Phase 9 Chunk 2+ — backend: list_ready_for_lead_bank()
+        // Unhidden Phase 9 Chunk 2 — real page shipped, wired to
+        // list_ready_for_lead_bank() + lead-bank-v2 bulk-add.
     },
     {
         id: 'contractors',
