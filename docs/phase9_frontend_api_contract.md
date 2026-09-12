@@ -295,6 +295,13 @@ here processes a real client/contractor/email dataset. Building any of the
 five real pipelines (including identity-matching against Contractor IDs
 and possible-match review) is pre-production follow-up work, not started.
 
+**Role (Phase 9.7 P2-D):** `/dashboard/import-data` was previously absent
+from `PAGE_MIN_ROLES` (`src/lib/roles.ts`), which `resolveMinRole()`
+treats as "any authenticated viewer" — now explicitly mapped to
+`admin`+, matching the sensitivity of a page that ultimately reaches the
+Excel uploader. See `estihub-backend`'s
+`docs/phase9_7_final_blocker_fixes.md` (P2-D).
+
 ## 12. User Management
 
 Existing page (`/dashboard/settings/users`) — audited this chunk, no
