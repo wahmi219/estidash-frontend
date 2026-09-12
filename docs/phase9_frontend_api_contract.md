@@ -108,7 +108,7 @@ Query params (all optional except pagination defaults):
 
 ## 3. Contractor Verification
 
-**Base:** `/api/v1/contractor-verification` (role: `admin`+, router-level).
+**Base:** `/api/v1/contractor-verification` (role: `outreach`+, router-level as of Phase 9.6 P1-7 — was `admin`+; `/candidates/{id}/assign` alone stays `admin`+, see docs/phase9_6_independent_audit_fixes.md).
 **Chunk 4 — page built** at `/dashboard/contractor-verification` (list)
 and `/dashboard/contractor-verification/[id]` (compare/resolve detail).
 Reachable via a Dashboard card, deliberately **not** added to the sidebar
@@ -130,7 +130,7 @@ No County / Contractor Type filter anywhere on this page.
 
 ## 4. Contact Info Needed
 
-**Base:** `/api/v1/contractor-workflow` (role: `admin`+, router-level).
+**Base:** `/api/v1/contractor-workflow` (role: `outreach`+, router-level as of Phase 9.6 P1-7 — was `admin`+; `/backlog-sweep` alone stays `admin`+, see docs/phase9_6_independent_audit_fixes.md).
 **Chunk 2 — page built** at `/dashboard/contact-info-needed`, unhidden in
 the CORE sidebar.
 
@@ -182,7 +182,7 @@ point for it.
 
 ## 7. Lead Bank V2
 
-**Base:** `/api/v1/lead-bank-v2` (role: `admin`+, router-level).
+**Base:** `/api/v1/lead-bank-v2` (role: `outreach`+, router-level as of Phase 9.6 P1-7 — was `admin`+; `/relationships/{id}/sales-owner` alone stays `admin`+, see docs/phase9_6_independent_audit_fixes.md).
 **Chunk 3 — page built** at `/dashboard/lead-bank` (CRM list, "All
 Relationships" tab) and `/dashboard/lead-bank/[id]` (detail), unhidden in
 the CORE sidebar. One main row per Contractor relationship, never per
