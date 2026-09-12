@@ -19,6 +19,18 @@ export const PAGE_MIN_ROLES: Record<string, Role> = {
     "/dashboard/permits": "viewer",
     "/dashboard/help": "viewer",
     "/dashboard/inbox": "outreach",
+    // Phase 9.6 P1-7: these four pages had no AuthGuard floor at all
+    // (resolveMinRole returned undefined -> any authenticated viewer could
+    // load them), while every API call they make requires "admin" on the
+    // backend -- an "outreach"-role employee could load the page, see the
+    // sidebar link (Sidebar.tsx already lists all four at minRole:
+    // 'outreach'), and get a 403 on every request. Backend roles for these
+    // routers were lowered to "outreach" to match (see
+    // docs/phase9_6_independent_audit_fixes.md P1-7); these entries now
+    // match that floor exactly so frontend visibility == backend access.
+    "/dashboard/contact-info-needed": "outreach",
+    "/dashboard/ready-for-lead-bank": "outreach",
+    "/dashboard/contractor-verification": "outreach",
     "/dashboard/outreach": "admin",
     "/dashboard/analytics": "admin",
     "/dashboard/cbsa": "admin",
@@ -26,6 +38,7 @@ export const PAGE_MIN_ROLES: Record<string, Role> = {
     "/dashboard/upload": "admin",
     "/dashboard/economic": "admin",
     "/dashboard/contractors": "outreach",
+    "/dashboard/lead-bank": "outreach",
     "/dashboard/counties": "admin",
     "/dashboard/trades": "admin",
     "/dashboard/datasources": "admin",
