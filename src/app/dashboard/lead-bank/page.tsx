@@ -293,12 +293,16 @@ function ReadyForOutreachTab() {
     const [error, setError] = useState<string | null>(null);
     const [startingId, setStartingId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(100);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await apiService.get<{ total: number; items: ReadyItem[] }>('/manual-outreach/ready', { limit: 200 });
+            const data = await apiService.get<{ total: number; items: ReadyItem[] }>('/manual-outreach/ready', {
+                limit: pageSize, offset: (page - 1) * pageSize,
+            });
             setItems(data.items);
             setTotal(data.total);
         } catch {
@@ -306,9 +310,14 @@ function ReadyForOutreachTab() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
+
+    const pagination: PermitPaginationType = {
+        page, pageSize, totalRecords: total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
 
     async function handleStart(relationshipId: string) {
         setStartingId(relationshipId);
@@ -329,7 +338,7 @@ function ReadyForOutreachTab() {
             <AlertCircle className="mx-auto mb-2 text-red-500" size={24} /><p className="text-red-700 text-sm">{error}</p>
         </div>
     );
-    if (items.length === 0) return (
+    if (total === 0) return (
         <div className="bg-white border border-[#DFE6EE] rounded-xl p-12 text-center">
             <PlayCircle className="mx-auto mb-3 text-[#5B6B7D]" size={28} />
             <p className="text-[#0E2B5C] font-medium">No relationships are currently ready for outreach.</p>
@@ -356,6 +365,14 @@ function ReadyForOutreachTab() {
                     </div>
                 ))}
             </div>
+            <div className="border-t border-[#DFE6EE]">
+                <PermitPagination
+                    pagination={pagination}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                    itemLabel="ready"
+                />
+            </div>
             <p className="px-4 py-2 text-[11px] text-[#5B6B7D] bg-[#F7F9FB] border-t border-[#DFE6EE]">
                 Starting a workflow does not send anything — the employee sends the email manually from their own account, then returns here to Mark Sent.
             </p>
@@ -370,11 +387,15 @@ function FollowUpsDueTab() {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(100);
 
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await apiService.get<DueOutreachResponse>('/manual-outreach/due', { limit: 200 });
+            const data = await apiService.get<DueOutreachResponse>('/manual-outreach/due', {
+                limit: pageSize, offset: (page - 1) * pageSize,
+            });
             setItems(data.items);
             setTotal(data.total);
         } catch {
@@ -382,9 +403,14 @@ function FollowUpsDueTab() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
+
+    const pagination: PermitPaginationType = {
+        page, pageSize, totalRecords: total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
 
     const [now] = useState(() => Date.now());
 
@@ -394,7 +420,7 @@ function FollowUpsDueTab() {
             <AlertCircle className="mx-auto mb-2 text-red-500" size={24} /><p className="text-red-700 text-sm">{error}</p>
         </div>
     );
-    if (items.length === 0) return (
+    if (total === 0) return (
         <div className="bg-white border border-[#DFE6EE] rounded-xl p-12 text-center">
             <p className="text-[#0E2B5C] font-medium">No follow-ups are due right now.</p>
         </div>
@@ -435,6 +461,14 @@ function FollowUpsDueTab() {
                         })}
                     </tbody>
                 </table>
+            </div>
+            <div className="border-t border-[#DFE6EE]">
+                <PermitPagination
+                    pagination={pagination}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                    itemLabel="stages"
+                />
             </div>
         </div>
     );
