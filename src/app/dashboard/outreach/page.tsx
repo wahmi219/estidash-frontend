@@ -2562,22 +2562,36 @@ function AgentsTab() {
 
 export default function OutreachPage() {
     const pref = useReducedMotion();
-    const [activeTab, setActiveTab] = useState<Tab>('Domains');
+    const [activeTab, setActiveTab] = useState<Tab>('Lead Queue');
 
     const { user } = useSelector((s: RootState) => s.auth);
     const userRole = (user?.role ?? 'viewer') as Role;
     const canSeeHealth = hasRole(userRole, 'admin');
     const canSeeAgents = hasRole(userRole, 'super_admin');
+    // Campaigns/Domains/Send History are the actual send/campaign-creation-
+    // capable surfaces of this legacy automated-email system (start/create/
+    // pause a campaign, manage sending domains) -- under this product's
+    // "EHUB never sends email" direction (see CLAUDE.md), these are gated at
+    // the strictest bar already used on this page (super_admin, same as
+    // Agents) rather than left at the page's own admin floor
+    // (PAGE_MIN_ROLES['/dashboard/outreach'], enforced by AuthGuard) that
+    // Lead Queue/Threads/Health share. This is frontend defense-in-depth
+    // only -- the backend's role gate + OUTREACH_ENABLED kill switch are the
+    // actual enforcement and are unchanged by this.
+    const canSeeCampaigns = hasRole(userRole, 'super_admin');
+    const canSeeDomains = hasRole(userRole, 'super_admin');
+    const canSeeSendHistory = hasRole(userRole, 'super_admin');
     const visibleTabs = TABS.filter(t =>
-        (t !== 'Health' || canSeeHealth) && (t !== 'Agents' || canSeeAgents)
+        (t !== 'Health' || canSeeHealth) &&
+        (t !== 'Agents' || canSeeAgents) &&
+        (t !== 'Campaigns' || canSeeCampaigns) &&
+        (t !== 'Domains' || canSeeDomains) &&
+        (t !== 'Send History' || canSeeSendHistory)
     );
 
-    // If a restricted tab is active but no longer visible, fall back to Domains.
-    const effectiveTab: Tab =
-        (activeTab === 'Health' && !canSeeHealth) ||
-        (activeTab === 'Agents' && !canSeeAgents)
-            ? 'Domains'
-            : activeTab;
+    // If a restricted tab is active but no longer visible, fall back to the
+    // first tab this user can actually see.
+    const effectiveTab: Tab = visibleTabs.includes(activeTab) ? activeTab : (visibleTabs[0] ?? 'Lead Queue');
 
     return (
         <div className="p-6 lg:p-8">
