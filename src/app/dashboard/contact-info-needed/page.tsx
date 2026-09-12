@@ -265,6 +265,7 @@ export default function ContactInfoNeededPage() {
                             onPageChange={setPage}
                             onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                             itemLabel="tasks"
+                            maxPageSize={500}
                         />
                     </div>
                 </div>

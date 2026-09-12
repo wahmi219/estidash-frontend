@@ -668,6 +668,7 @@ export default function ContractorDetailPage() {
                             pagination={pagination}
                             onPageChange={(page) => fetchPermits(page, pagination.pageSize)}
                             onPageSizeChange={(size) => fetchPermits(1, size)}
+                            maxPageSize={500}
                         />
                     </div>
                 )}

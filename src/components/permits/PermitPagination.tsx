@@ -11,17 +11,26 @@ interface PermitPaginationProps {
     /** Noun for the "Showing X to Y of Z ___" line. Defaults to "permits" so
      * every existing Permit Records call site is unaffected. */
     itemLabel?: string;
+    /** Largest page size this call site's backend endpoint actually accepts
+     * (Phase 9.7 P2-B) — every option above it is hidden from the dropdown
+     * so a caller can never select a size the API would 422 on. Defaults to
+     * 2000 (Permit Records' own cap, /api/v1/permits/search's le=2000) so
+     * every pre-existing call site is unaffected unless it opts into a
+     * lower cap explicitly. */
+    maxPageSize?: number;
 }
 
-const PAGE_SIZES = [10, 25, 50, 100, 500, 1000, 2000];
+const ALL_PAGE_SIZES = [10, 25, 50, 100, 500, 1000, 2000];
 
 export default function PermitPagination({
     pagination,
     onPageChange,
     onPageSizeChange,
     itemLabel = 'permits',
+    maxPageSize = 2000,
 }: PermitPaginationProps) {
     const { page, pageSize, totalRecords, totalPages, totalIsEstimate } = pagination;
+    const PAGE_SIZES = ALL_PAGE_SIZES.filter((size) => size <= maxPageSize);
 
     const startRecord = totalRecords === 0 ? 0 : (page - 1) * pageSize + 1;
     const endRecord = Math.min(page * pageSize, totalRecords);

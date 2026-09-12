@@ -674,6 +674,7 @@ function ContractorsPageContent() {
                             onPageChange={handlePageChange}
                             onPageSizeChange={handlePageSizeChange}
                             itemLabel="contractors"
+                            maxPageSize={500}
                         />
                     </div>
                 )}
@@ -729,6 +730,7 @@ function ContractorsPageContent() {
                             onPageChange={handleRegistryPageChange}
                             onPageSizeChange={handleRegistryPageSizeChange}
                             itemLabel="records"
+                            maxPageSize={100}
                         />
                     </div>
                 )}

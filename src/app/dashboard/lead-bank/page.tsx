@@ -274,6 +274,7 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
                             onPageChange={setPage}
                             onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                             itemLabel="relationships"
+                            maxPageSize={500}
                         />
                     </div>
                 </div>
@@ -371,6 +372,7 @@ function ReadyForOutreachTab() {
                     onPageChange={setPage}
                     onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                     itemLabel="ready"
+                    maxPageSize={500}
                 />
             </div>
             <p className="px-4 py-2 text-[11px] text-[#5B6B7D] bg-[#F7F9FB] border-t border-[#DFE6EE]">
@@ -468,6 +470,7 @@ function FollowUpsDueTab() {
                     onPageChange={setPage}
                     onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                     itemLabel="stages"
+                    maxPageSize={500}
                 />
             </div>
         </div>

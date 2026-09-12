@@ -299,6 +299,7 @@ export default function ReadyForLeadBankPage() {
                             onPageChange={setPage}
                             onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                             itemLabel="opportunities"
+                            maxPageSize={500}
                         />
                     </div>
                 </div>

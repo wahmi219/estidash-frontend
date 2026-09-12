@@ -36,6 +36,11 @@ export const PAGE_MIN_ROLES: Record<string, Role> = {
     "/dashboard/cbsa": "admin",
     "/dashboard/chat": "admin",
     "/dashboard/upload": "admin",
+    // Phase 9.7 P2-D: the sidebar's "Import Data" link (Sidebar.tsx,
+    // minRole: 'admin') points here — this page had NO AuthGuard floor at
+    // all (any authenticated viewer could load it), while its one real
+    // action (POST /api/v1/upload-excel) requires "admin" on the backend.
+    "/dashboard/import-data": "admin",
     "/dashboard/economic": "admin",
     "/dashboard/contractors": "outreach",
     "/dashboard/lead-bank": "outreach",

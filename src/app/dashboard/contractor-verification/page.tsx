@@ -189,6 +189,7 @@ export default function ContractorVerificationPage() {
                             onPageChange={setPage}
                             onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                             itemLabel="candidates"
+                            maxPageSize={500}
                         />
                     </div>
                 </div>
