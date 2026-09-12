@@ -4,8 +4,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { PackageCheck, ExternalLink, RefreshCw, AlertCircle, CheckSquare, Square, PlusCircle } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
+import PermitPagination from '@/components/permits/PermitPagination';
 import { apiService } from '@/services/api';
-import { ReadyForLeadBankItem, ReadyForLeadBankResponse, BulkAddToLeadBankResponse } from '@/types';
+import { ReadyForLeadBankItem, ReadyForLeadBankResponse, BulkAddToLeadBankResponse, PermitPagination as PermitPaginationType } from '@/types';
 
 // Real preparation queue — a row here is a QUALIFIED permit whose Contractor
 // already has a usable email (backend: list_ready_for_lead_bank()). Filters
@@ -41,6 +42,8 @@ export default function ReadyForLeadBankPage() {
     const [qualificationBucket, setQualificationBucket] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(100);
 
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [bulkAdding, setBulkAdding] = useState(false);
@@ -56,7 +59,7 @@ export default function ReadyForLeadBankPage() {
         setLoading(true);
         setError(null);
         try {
-            const params: Record<string, unknown> = { limit: 100 };
+            const params: Record<string, unknown> = { limit: pageSize, offset: (page - 1) * pageSize };
             if (agencyId) params.agency_id = agencyId;
             if (qualificationBucket) params.qualification_bucket = qualificationBucket;
             if (startDate) params.start_date = startDate;
@@ -71,9 +74,17 @@ export default function ReadyForLeadBankPage() {
         } finally {
             setLoading(false);
         }
-    }, [agencyId, qualificationBucket, startDate, endDate]);
+    }, [agencyId, qualificationBucket, startDate, endDate, page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Reset to page 1 whenever a server-side filter changes.
+    useEffect(() => { setPage(1); }, [agencyId, qualificationBucket, startDate, endDate]);
+
+    const pagination: PermitPaginationType = {
+        page, pageSize, totalRecords: total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
 
     const allSelected = items.length > 0 && selected.size === items.length;
 
@@ -203,7 +214,6 @@ export default function ReadyForLeadBankPage() {
                 <div className="bg-white border border-[#DFE6EE] rounded-xl overflow-hidden">
                     <div className="px-4 py-2 border-b border-[#DFE6EE] text-xs text-[#5B6B7D]">
                         {total} opportunit{total === 1 ? 'y' : 'ies'} waiting for Lead Bank
-                        {total > items.length && ` (showing first ${items.length})`}
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -282,6 +292,14 @@ export default function ReadyForLeadBankPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="border-t border-[#DFE6EE]">
+                        <PermitPagination
+                            pagination={pagination}
+                            onPageChange={setPage}
+                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                            itemLabel="opportunities"
+                        />
                     </div>
                 </div>
             )}

@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Inbox, ExternalLink, Search, RefreshCw, AlertCircle, PlayCircle, XCircle } from 'lucide-react';
 import { useAppSelector } from '@/hooks/useAppDispatch';
 import PageHeader from '@/components/common/PageHeader';
+import PermitPagination from '@/components/permits/PermitPagination';
 import { apiService } from '@/services/api';
-import { ContactTask, ContactTaskListResponse } from '@/types';
+import { ContactTask, ContactTaskListResponse, PermitPagination as PermitPaginationType } from '@/types';
 
 // Contractor-centric queue: one Contractor ID appears as one row even with
 // several eligible sibling permits attached (sibling_opportunity_count is
@@ -55,12 +56,16 @@ export default function ContactInfoNeededPage() {
     const [search, setSearch] = useState('');
     const [actioningId, setActioningId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(100);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const params: Record<string, unknown> = { status: statusFilter, limit: 100 };
+            const params: Record<string, unknown> = {
+                status: statusFilter, limit: pageSize, offset: (page - 1) * pageSize,
+            };
             if (myTasksOnly && currentUserEmail) params.assigned_to = currentUserEmail;
             const data = await apiService.get<ContactTaskListResponse>('/contractor-workflow/contact-tasks', params);
             setTasks(data.items);
@@ -71,9 +76,17 @@ export default function ContactInfoNeededPage() {
         } finally {
             setLoading(false);
         }
-    }, [statusFilter, myTasksOnly, currentUserEmail]);
+    }, [statusFilter, myTasksOnly, currentUserEmail, page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Reset to page 1 whenever a server-side filter changes.
+    useEffect(() => { setPage(1); }, [statusFilter, myTasksOnly]);
+
+    const pagination: PermitPaginationType = {
+        page, pageSize, totalRecords: total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
 
     const visibleTasks = search.trim()
         ? tasks.filter((t) => (t.contractor_name ?? '').toLowerCase().includes(search.trim().toLowerCase()))
@@ -245,6 +258,14 @@ export default function ContactInfoNeededPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="border-t border-[#DFE6EE]">
+                        <PermitPagination
+                            pagination={pagination}
+                            onPageChange={setPage}
+                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                            itemLabel="tasks"
+                        />
                     </div>
                 </div>
             )}

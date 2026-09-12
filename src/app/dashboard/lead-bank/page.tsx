@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { Wallet, ExternalLink, Search, RefreshCw, AlertCircle, Ban, PlayCircle } from 'lucide-react';
 import { useAppSelector } from '@/hooks/useAppDispatch';
 import PageHeader from '@/components/common/PageHeader';
+import PermitPagination from '@/components/permits/PermitPagination';
 import { apiService } from '@/services/api';
 import type {
     LeadBankRelationship, LeadBankRelationshipListResponse,
     DueOutreachResponse, DueOutreachStageItem,
+    PermitPagination as PermitPaginationType,
 } from '@/types';
 
 // The Lead Bank CRM: one main row per CONTRACTOR RELATIONSHIP, never per
@@ -125,12 +127,14 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
     const [myLeadsOnly, setMyLeadsOnly] = useState(false);
     const [showDnc, setShowDnc] = useState(false);
     const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(100);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const params: Record<string, unknown> = { limit: 200 };
+            const params: Record<string, unknown> = { limit: pageSize, offset: (page - 1) * pageSize };
             if (relationshipStatus) params.status = relationshipStatus;
             if (outreachStatus) params.outreach_status = outreachStatus;
             if (myLeadsOnly && currentUserId) params.sales_owner_id = currentUserId;
@@ -144,9 +148,17 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
         } finally {
             setLoading(false);
         }
-    }, [relationshipStatus, outreachStatus, myLeadsOnly, showDnc, currentUserId]);
+    }, [relationshipStatus, outreachStatus, myLeadsOnly, showDnc, currentUserId, page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Reset to page 1 whenever a server-side filter changes.
+    useEffect(() => { setPage(1); }, [relationshipStatus, outreachStatus, myLeadsOnly, showDnc]);
+
+    const pagination: PermitPaginationType = {
+        page, pageSize, totalRecords: total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
 
     const visible = search.trim()
         ? items.filter((r) => (r.contractor_name ?? '').toLowerCase().includes(search.trim().toLowerCase())
@@ -255,6 +267,14 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="border-t border-[#DFE6EE]">
+                        <PermitPagination
+                            pagination={pagination}
+                            onPageChange={setPage}
+                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                            itemLabel="relationships"
+                        />
                     </div>
                 </div>
             )}

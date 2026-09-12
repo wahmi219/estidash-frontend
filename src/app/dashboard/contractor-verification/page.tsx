@@ -4,8 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ShieldAlert, ExternalLink, Search, RefreshCw, AlertCircle, PlayCircle } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
+import PermitPagination from '@/components/permits/PermitPagination';
 import { apiService } from '@/services/api';
-import type { MatchCandidate, MatchCandidateListResponse } from '@/types';
+import type { MatchCandidate, MatchCandidateListResponse, PermitPagination as PermitPaginationType } from '@/types';
 
 // Exception workflow: a row here means contractor identity could NOT be
 // confirmed automatically -- the source permit's contractor_id stays NULL
@@ -38,12 +39,16 @@ export default function ContractorVerificationPage() {
     const [statusFilter, setStatusFilter] = useState('pending');
     const [search, setSearch] = useState('');
     const [startingId, setStartingId] = useState<string | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(100);
 
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
-            const data = await apiService.get<MatchCandidateListResponse>('/contractor-verification/candidates', { status: statusFilter, limit: 200 });
+            const data = await apiService.get<MatchCandidateListResponse>('/contractor-verification/candidates', {
+                status: statusFilter, limit: pageSize, offset: (page - 1) * pageSize,
+            });
             setItems(data.items);
             setTotal(data.total);
         } catch (err) {
@@ -52,9 +57,18 @@ export default function ContractorVerificationPage() {
         } finally {
             setLoading(false);
         }
-    }, [statusFilter]);
+    }, [statusFilter, page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Reset to page 1 whenever the server-side filter changes so we never
+    // land on an out-of-range page for the new, smaller result set.
+    useEffect(() => { setPage(1); }, [statusFilter]);
+
+    const pagination: PermitPaginationType = {
+        page, pageSize, totalRecords: total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    };
 
     const visible = search.trim()
         ? items.filter((c) => (c.raw_name ?? '').toLowerCase().includes(search.trim().toLowerCase())
@@ -168,6 +182,14 @@ export default function ContractorVerificationPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="border-t border-[#DFE6EE]">
+                        <PermitPagination
+                            pagination={pagination}
+                            onPageChange={setPage}
+                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                            itemLabel="candidates"
+                        />
                     </div>
                 </div>
             )}
