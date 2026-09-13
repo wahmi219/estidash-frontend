@@ -1051,8 +1051,14 @@ export interface PermitScorePreview {
 
 export interface ScoringStats {
     total_permits: number;
+    // `scored` includes every excluded permit too (exclusion is decided
+    // in the same scoring pass) — it is NOT disjoint from `excluded`.
+    // Use `scored_not_excluded` + `excluded` for a presentation that
+    // actually sums correctly; never `scored + excluded` (Phase 11.3).
     scored: number;
     excluded: number;
+    scored_not_excluded: number;
+    never_processed: number;
     rubric_version: number;
     scoring_active?: boolean;
     by_bucket: Record<string, number>;
@@ -1121,6 +1127,16 @@ export interface ContractorSearchParams {
     has_license?: boolean;
     has_phone?: boolean;
     has_website?: boolean;
+    // Phase 11.3 P1-06: true = at least one linked permit (the "Permit
+    // Contractors" operational view). Was previously accepted by the
+    // Redux slice/thunk but silently dropped here — apiService.
+    // searchContractors forwards an explicit allowlist of fields, and
+    // this one was missing from it, so the has_permits=true the slice
+    // already sent never reached the backend. That's why the deployed
+    // pilot kept showing 100,482 (all Contractor Master rows) instead of
+    // 77,282 (permit-linked only) even though the backend filter and the
+    // Redux thunk were both already correct.
+    has_permits?: boolean;
     license_readiness?: ContractorLicenseReadiness;
     limit: number;
     offset: number;

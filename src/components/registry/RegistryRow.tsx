@@ -58,10 +58,15 @@ interface RegistryRowProps {
     // York", so the badge only earns its space when it's adding real
     // information, not on an ordinary single-source search.
     showSource?: boolean;
+    // Phase 11.3 (P2 — repeated "Missing attribute name 'data-index={index}'
+    // on measured element" console warning): @tanstack/react-virtual's
+    // measureElement ref reads this attribute to know which virtual row
+    // it just measured.
+    index?: number;
 }
 
 const RegistryRow = React.forwardRef<HTMLTableRowElement, RegistryRowProps>(function RegistryRow(
-    { record, showSource = false }: RegistryRowProps,
+    { record, showSource = false, index }: RegistryRowProps,
     ref,
 ) {
     const router = useRouter();
@@ -71,6 +76,7 @@ const RegistryRow = React.forwardRef<HTMLTableRowElement, RegistryRowProps>(func
     return (
         <tr
             ref={ref}
+            data-index={index}
             onClick={() => router.push(`/dashboard/contractors/registry/${record.id}`)}
             className="group border-b border-[#DFE6EE] hover:bg-[#F7F9FB] transition-colors cursor-pointer"
         >

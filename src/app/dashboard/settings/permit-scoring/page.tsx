@@ -124,12 +124,23 @@ function CostBackfillCard() {
     useEffect(() => { load(); }, [load]);
 
     const run = async () => {
+        // Phase 11.3 (P1 — "High-impact Settings actions lack visible
+        // safeguards before interaction"): this calls a real, potentially
+        // long-running AI cost-estimation service across up to
+        // max_total permits (200,000 by default) — it previously had NO
+        // confirmation at all, unlike Reset below.
+        const cap = typeof maxTotal === 'number' && maxTotal > 0 ? maxTotal : 200000;
+        const remaining = stats?.remaining_unestimated;
+        const impact = remaining != null
+            ? `up to ${Math.min(cap, remaining).toLocaleString()} permits (${remaining.toLocaleString()} currently missing a cost)`
+            : `up to ${cap.toLocaleString()} permits`;
+        if (!confirm(`Run AI cost estimation against ${impact}, scoring ≥ ${minScore}? This calls a real external AI service and re-scores each permit it touches.`)) return;
         setRunning(true); setMsg(null);
         try {
             const res = await apiService.runBulkCostEstimation({
                 min_lead_score: minScore,
                 concurrency,
-                max_total: typeof maxTotal === 'number' && maxTotal > 0 ? maxTotal : 200000,
+                max_total: cap,
             });
             setMsg(res.message);
             // Poll until the run clears or progress stalls (long backfills run for
@@ -333,6 +344,11 @@ export default function PermitScoringPage() {
 
     const handleSave = async () => {
         if (!content) return;
+        // Phase 11.3 (P1 — no confirmation existed for Save Version at
+        // all): this creates a new active rubric version immediately
+        // affecting every future scoring run (live ingestion and
+        // backfills alike) — never previously confirmed before saving.
+        if (!confirm('Save this as the new active scoring rubric version? Every future scoring run (live ingestion and backfills) will use these values immediately.')) return;
         setStatus('saving'); setErrorMsg(null);
         try {
             const updated = await apiService.updateScoringRubric(content);
@@ -375,6 +391,17 @@ export default function PermitScoringPage() {
     };
 
     const handleRun = async () => {
+        // Phase 11.3 (P1 — "Fill Costs and Run Scoring have Options, but
+        // no visible dry-run/impact summary until interaction"): this
+        // runs a real bulk-scoring pass across every not-yet-scored
+        // permit (or up to runLimit) — previously started with zero
+        // confirmation or estimate.
+        const impact = runLimit !== ''
+            ? `up to ${runLimit.toLocaleString()} permits`
+            : stats
+                ? `all ${stats.never_processed.toLocaleString()} not-yet-processed permits`
+                : 'all not-yet-processed permits';
+        if (!confirm(`Run scoring against ${impact} using rubric v${stats?.rubric_version ?? rubric?.version ?? '?'}? This writes score_bucket/lead_score to the live permit_records table.`)) return;
         setRunning(true); setRunMsg(null);
         try {
             const res = await apiService.runPermitScoring({
@@ -391,7 +418,13 @@ export default function PermitScoringPage() {
                 let s: ScoringStats | null = null;
                 try { s = await apiService.getScoringStats(true); setStats(s); } catch { /* ignore */ }
                 if (!s) continue;
-                const processed = s.scored + s.excluded;
+                // Phase 11.3: `scored` already INCLUDES every excluded
+                // permit (exclusion is decided as part of the same
+                // scoring pass) — adding `excluded` again double-counted
+                // that overlap and could declare "Scoring complete" while
+                // real work remained. `scored` alone is the true
+                // processed count.
+                const processed = s.scored;
                 if (processed >= s.total_permits) { setRunMsg('Scoring complete.'); break; }
                 if (processed === prevProcessed) {
                     stalledPolls += 1;
@@ -527,9 +560,24 @@ export default function PermitScoringPage() {
                             permits or re-score after a rubric change — it scores rows not yet on the active
                             rubric (v{stats?.rubric_version ?? rubric?.version ?? 0}).
                             {stats
-                                ? <> {stats.scored.toLocaleString()} scored · {stats.excluded.toLocaleString()} excluded of {stats.total_permits.toLocaleString()} total.</>
+                                ? (
+                                    <>
+                                        {' '}{stats.scored_not_excluded.toLocaleString()} scored (not excluded) ·{' '}
+                                        {stats.excluded.toLocaleString()} excluded ·{' '}
+                                        {stats.never_processed.toLocaleString()} not yet processed of{' '}
+                                        {stats.total_permits.toLocaleString()} total permits.
+                                    </>
+                                )
                                 : statsLoading && <span className="text-[#5B6B7D]"> Loading totals…</span>}
                         </p>
+                        {stats && (
+                            <p className="text-[11px] text-[#5B6B7D] mt-1">
+                                &quot;Scored&quot; and &quot;excluded&quot; are not additive elsewhere on this page —
+                                every excluded permit is also counted as scored, since exclusion is decided in the
+                                same pass. The three figures above are the disjoint breakdown that actually sums to
+                                the total.
+                            </p>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setShowAdvanced((v) => !v)}
@@ -581,6 +629,31 @@ export default function PermitScoringPage() {
                         ))}
                     </div>
                 )}
+                {stats && (() => {
+                    // Phase 11.3 (P1 — "Settings buckets total 315,791...
+                    // does not identify the snapshot/population"): the
+                    // cards above show only the CURRENT rubric's named
+                    // buckets. by_bucket can contain additional legacy
+                    // bucket names from a retired rubric version that
+                    // this page deliberately doesn't render a card for —
+                    // disclose that residual explicitly rather than let
+                    // "sum of visible cards" silently differ from the
+                    // true is_excluded=false qualified total with no
+                    // explanation.
+                    const shown = new Set(content.buckets.map((b: { key: string }) => b.key));
+                    const legacyTotal = Object.entries(stats.by_bucket)
+                        .filter(([key]) => !shown.has(key))
+                        .reduce((sum, [, n]) => sum + n, 0);
+                    if (legacyTotal === 0) return null;
+                    return (
+                        <p className="mt-2 text-[11px] text-[#5B6B7D]">
+                            +{legacyTotal.toLocaleString()} additional qualified permits carry a bucket name from a
+                            retired rubric version, not shown as its own card above (they are included in
+                            &quot;scored (not excluded)&quot; and the Qualified filter, which is why those totals can
+                            exceed the sum of the cards).
+                        </p>
+                    );
+                })()}
             </div>
 
             {/* Test Sample panel */}

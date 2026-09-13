@@ -1337,6 +1337,7 @@ class ApiService {
         if (params.has_license !== undefined) queryParams.has_license = params.has_license;
         if (params.has_phone !== undefined) queryParams.has_phone = params.has_phone;
         if (params.has_website !== undefined) queryParams.has_website = params.has_website;
+        if (params.has_permits !== undefined) queryParams.has_permits = params.has_permits;
         if (params.license_readiness) queryParams.license_readiness = params.license_readiness;
 
         const response = await this.client.get<ContractorSearchResponse>('/contractors', {

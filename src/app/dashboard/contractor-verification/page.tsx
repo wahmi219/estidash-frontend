@@ -7,6 +7,13 @@ import PageHeader from '@/components/common/PageHeader';
 import PermitPagination from '@/components/permits/PermitPagination';
 import { apiService } from '@/services/api';
 import type { MatchCandidate, MatchCandidateListResponse, PermitPagination as PermitPaginationType } from '@/types';
+import { evidenceStrength } from '@/lib/contractorVerificationEvidence';
+
+const EVIDENCE_BADGE_CLASS: Record<string, string> = {
+    none: 'bg-gray-100 text-[#5B6B7D] border-gray-200',
+    weak: 'bg-red-50 text-red-700 border-red-200',
+    corroborated: 'bg-green-50 text-green-700 border-green-200',
+};
 
 // Exception workflow: a row here means contractor identity could NOT be
 // confirmed automatically -- the source permit's contractor_id stays NULL
@@ -141,6 +148,7 @@ export default function ContractorVerificationPage() {
                                     <th className="text-left px-4 py-2">Qualification</th>
                                     <th className="text-left px-4 py-2">Reason</th>
                                     <th className="text-left px-4 py-2">Possible Match</th>
+                                    <th className="text-left px-4 py-2">Evidence</th>
                                     <th className="text-left px-4 py-2">Status</th>
                                     <th className="text-right px-4 py-2">Action</th>
                                 </tr>
@@ -161,6 +169,19 @@ export default function ContractorVerificationPage() {
                                         <td className="px-4 py-3 text-[#5B6B7D]">{c.reason.replace(/_/g, ' ')}</td>
                                         <td className="px-4 py-3 text-[#0E2B5C]">
                                             {c.candidate_contractor ? c.candidate_contractor.name : <span className="text-[#5B6B7D]">None</span>}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {(() => {
+                                                const strength = evidenceStrength(c);
+                                                return (
+                                                    <span
+                                                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${EVIDENCE_BADGE_CLASS[strength.level]}`}
+                                                        title={strength.label}
+                                                    >
+                                                        {strength.level === 'corroborated' ? strength.signals.join(', ') : strength.level === 'weak' ? 'Name only' : '—'}
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border bg-amber-50 text-amber-700 border-amber-200">

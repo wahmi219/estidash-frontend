@@ -132,6 +132,7 @@ export default function RegistryTable({
                             <RegistryRow
                                 key={record.id}
                                 ref={rowVirtualizer.measureElement}
+                                index={virtualRow.index}
                                 record={record}
                                 showSource={hasMultipleSources}
                             />

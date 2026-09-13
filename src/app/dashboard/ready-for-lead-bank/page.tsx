@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { PackageCheck, ExternalLink, RefreshCw, AlertCircle, CheckSquare, Square, PlusCircle } from 'lucide-react';
@@ -37,34 +37,67 @@ function ReadyForLeadBankPageInner() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
+    // Phase 11.3 (P1: "page 2 can return page-1 content", "stale Showing
+    // 1 to 100 of 439", "page state is not represented in the URL") —
+    // page/pageSize/filters are now derived DIRECTLY from the URL on every
+    // render, never mirrored into local useState. There is exactly one
+    // source of truth, so there is nothing for local state to drift out
+    // of sync with: reload re-derives from the URL that was reloaded;
+    // browser back/forward re-render this component with the restored
+    // searchParams (useSearchParams() reacts to history navigation, not
+    // just to this component's own router calls) and this derivation
+    // picks it up automatically; a shared link encodes exactly the page
+    // being viewed. The previous version kept `page` in its own
+    // useState, seeded ONCE from the URL at mount and never
+    // re-synchronized from it afterward — that's what made back/forward
+    // (and, combined with the stale-response race below, rapid page
+    // clicks) unreliable.
+    const page = useMemo(() => {
+        const raw = Number(searchParams.get('page'));
+        return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+    }, [searchParams]);
+    const pageSize = useMemo(() => {
+        const raw = Number(searchParams.get('pageSize'));
+        return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 100;
+    }, [searchParams]);
+    const agencyId = searchParams.get('agency_id') ?? '';
+    const qualificationBucket = searchParams.get('qualification_bucket') ?? '';
+    const startDate = searchParams.get('start_date') ?? '';
+    const endDate = searchParams.get('end_date') ?? '';
+
+    /** Navigates to a new combination of page/pageSize/filters in one URL
+     * update — always via push (not replace) so each page/filter change
+     * is its own browser-history entry and back/forward can step through
+     * them, per this phase's explicit "reload/back/forward preserve the
+     * selected page" requirement. Any key omitted from `patch` keeps its
+     * current value; pass `null` to remove a key (e.g. resetting page to
+     * the implicit "1" by deleting it from the URL). */
+    const navigate = useCallback((patch: Record<string, string | number | null>) => {
+        const params = new URLSearchParams(searchParams.toString());
+        for (const [key, value] of Object.entries(patch)) {
+            if (value === null || value === '' || (key === 'page' && Number(value) <= 1) || (key === 'pageSize' && Number(value) === 100)) {
+                params.delete(key);
+            } else {
+                params.set(key, String(value));
+            }
+        }
+        const query = params.toString();
+        router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }, [pathname, router, searchParams]);
+
+    const setPage = useCallback((next: number) => navigate({ page: next }), [navigate]);
+    const setAgencyId = useCallback((v: string) => navigate({ agency_id: v || null, page: null }), [navigate]);
+    const setQualificationBucket = useCallback((v: string) => navigate({ qualification_bucket: v || null, page: null }), [navigate]);
+    const setStartDate = useCallback((v: string) => navigate({ start_date: v || null, page: null }), [navigate]);
+    const setEndDate = useCallback((v: string) => navigate({ end_date: v || null, page: null }), [navigate]);
+    const setPageSize = useCallback((size: number) => navigate({ pageSize: size, page: null }), [navigate]);
+
     const [items, setItems] = useState<ReadyForLeadBankItem[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const [dataSources, setDataSources] = useState<DataSourceOption[]>([]);
-    const [agencyId, setAgencyId] = useState('');
-    const [qualificationBucket, setQualificationBucket] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    // Phase 11.2 P0-02: page now round-trips through the URL (?page=N) —
-    // previously plain useState only, so a reload or a shared/back-button
-    // link always landed back on page 1 regardless of which page was
-    // actually being viewed, weakening reproducibility of exactly the
-    // pagination behavior this phase's fix needs to be verifiable against.
-    const [page, setPageState] = useState(() => {
-        const fromUrl = Number(searchParams.get('page'));
-        return Number.isFinite(fromUrl) && fromUrl >= 1 ? fromUrl : 1;
-    });
-    const [pageSize, setPageSize] = useState(100);
-
-    const setPage = useCallback((next: number) => {
-        setPageState(next);
-        const params = new URLSearchParams(searchParams.toString());
-        if (next <= 1) params.delete('page'); else params.set('page', String(next));
-        const query = params.toString();
-        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    }, [pathname, router, searchParams]);
 
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [bulkAdding, setBulkAdding] = useState(false);
@@ -76,7 +109,20 @@ function ReadyForLeadBankPageInner() {
         apiService.get<DataSourceOption[]>('/data-sources').then(setDataSources).catch(() => setDataSources([]));
     }, []);
 
+    // Phase 11.3 (P1: "page 2 can return page-1 content") — a monotonic
+    // request-sequence guard. Every call to load() stamps the in-flight
+    // request with the NEXT sequence number; when a response resolves,
+    // it's only applied to state if no NEWER request has been issued in
+    // the meantime. Without this, a slower response for an OLDER page
+    // (e.g. page 1, requested first but arriving last under real network
+    // jitter) can overwrite the state after a faster response for a
+    // NEWER page (e.g. page 2) has already rendered — exactly the
+    // "page 2 shows page 1's rows" defect. This is a correctness
+    // guarantee independent of network speed, not a timing workaround.
+    const requestSeqRef = useRef(0);
+
     const load = useCallback(async () => {
+        const seq = ++requestSeqRef.current;
         setLoading(true);
         setError(null);
         try {
@@ -86,21 +132,20 @@ function ReadyForLeadBankPageInner() {
             if (startDate) params.start_date = startDate;
             if (endDate) params.end_date = endDate;
             const data = await apiService.get<ReadyForLeadBankResponse>('/contractor-workflow/ready-for-lead-bank', params);
+            if (requestSeqRef.current !== seq) return; // a newer request superseded this one — discard
             setItems(data.items);
             setTotal(data.total);
             setSelected(new Set());
         } catch (err) {
+            if (requestSeqRef.current !== seq) return;
             const message = err && typeof err === 'object' && 'message' in err ? (err as { message: string }).message : 'Failed to load Ready for Lead Bank queue';
             setError(message);
         } finally {
-            setLoading(false);
+            if (requestSeqRef.current === seq) setLoading(false);
         }
     }, [agencyId, qualificationBucket, startDate, endDate, page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
-
-    // Reset to page 1 whenever a server-side filter changes.
-    useEffect(() => { setPage(1); }, [agencyId, qualificationBucket, startDate, endDate, setPage]);
 
     const pagination: PermitPaginationType = {
         page, pageSize, totalRecords: total,
@@ -318,7 +363,7 @@ function ReadyForLeadBankPageInner() {
                         <PermitPagination
                             pagination={pagination}
                             onPageChange={setPage}
-                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                            onPageSizeChange={setPageSize}
                             itemLabel="opportunities"
                             maxPageSize={500}
                         />

@@ -11,6 +11,13 @@ interface PermitRowProps {
     isSelected?: boolean;
     onToggleSelect?: (id: string) => void;
     onViewDetails?: (permit: PermitRecord) => void;
+    // Phase 11.3 (P2 — "Missing attribute name 'data-index={index}' on
+    // measured element"): @tanstack/react-virtual's measureElement ref
+    // reads this attribute off the DOM node to know which virtual row it
+    // just measured. It was never threaded through from the virtualizer
+    // (PermitTable.tsx) down to the actual rendered <tr>, so every
+    // measurement logged this warning instead of registering correctly.
+    index?: number;
 }
 
 // Light-theme status badges (Estimation Hub palette)
@@ -247,7 +254,7 @@ function QualificationCell({ bucket, tier, score, excluded, reason, isTerminal, 
 }
 
 const PermitRow = React.forwardRef<HTMLTableRowElement, PermitRowProps>(function PermitRow(
-    { permit, isSelected, onToggleSelect, onViewDetails }: PermitRowProps,
+    { permit, isSelected, onToggleSelect, onViewDetails, index }: PermitRowProps,
     ref,
 ) {
     const statusClass = statusColors[permit.status] || GRAY;
@@ -305,6 +312,7 @@ const PermitRow = React.forwardRef<HTMLTableRowElement, PermitRowProps>(function
     return (
         <tr
             ref={ref}
+            data-index={index}
             className={`hover:bg-[#F7F9FB] transition-colors group cursor-pointer ${isSelected ? 'bg-[#00458B]/5' : ''}`}
             onClick={() => onViewDetails?.(permit)}
         >

@@ -82,7 +82,19 @@ function formatRelative(iso: string | null) {
 function DeviceChip({ device }: { device: UserRecord['current_device'] }) {
     if (!device) {
         return (
-            <span className="inline-flex items-center gap-1 text-[10px] text-[#5B6B7D] px-2 py-0.5 rounded-md bg-[#F7F9FB] border border-[#DFE6EE]">
+            <span
+                className="inline-flex items-center gap-1 text-[10px] text-[#5B6B7D] px-2 py-0.5 rounded-md bg-[#F7F9FB] border border-[#DFE6EE]"
+                // Phase 11.3 (P2 — "current authenticated Pilot Tester shows
+                // no active device"): device registration only ever
+                // happens in the login route's device-check branch, which
+                // is unconditionally unreachable in the current build
+                // (DEVICE_CHECK_ENABLED=true is refused at boot — see
+                // app/routers/auth.py). No login anywhere, pilot or real,
+                // can create a device record right now; accounts that
+                // show a trusted device predate this feature going
+                // dormant. This is expected, not a bug.
+                title="Device registration is a dormant feature in the current build — no login (pilot or real) can create a device record right now. Accounts showing a trusted device predate it going dormant."
+            >
                 <Monitor size={9} />
                 No active device
             </span>

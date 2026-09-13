@@ -8,6 +8,7 @@ import PageHeader from '@/components/common/PageHeader';
 import SectionHeading from '@/components/common/SectionHeading';
 import { apiService } from '@/services/api';
 import type { MatchCandidate } from '@/types';
+import { evidenceStrength } from '@/lib/contractorVerificationEvidence';
 
 function fmtMoney(v: number | null): string {
     if (v == null) return '—';
@@ -117,6 +118,21 @@ export default function VerificationCandidateDetailPage() {
                 {/* EXISTING CANDIDATE */}
                 <section className="bg-white border border-[#DFE6EE] rounded-xl p-5">
                     <SectionHeading className="mb-3">Suggested Existing Contractor</SectionHeading>
+                    {candidate.candidate_contractor && (() => {
+                        const strength = evidenceStrength(candidate);
+                        const cls = strength.level === 'weak'
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : strength.level === 'corroborated'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-gray-100 text-[#5B6B7D] border-gray-200';
+                        return (
+                            <div className={`mb-3 px-3 py-2 rounded-lg border text-xs font-medium ${cls}`}>
+                                {strength.level === 'weak'
+                                    ? '⚠ Weak evidence — name match only, no corroborating signal (license, phone, address, email, or city/state). Do not confirm on name alone.'
+                                    : strength.label}
+                            </div>
+                        );
+                    })()}
                     {candidate.candidate_contractor ? (
                         <div className="space-y-2 text-sm">
                             <Field label="Name">

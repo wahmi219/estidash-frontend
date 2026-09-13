@@ -152,6 +152,7 @@ export default function PermitTable({
                             <PermitRow
                                 key={permit.id}
                                 ref={rowVirtualizer.measureElement}
+                                index={virtualRow.index}
                                 permit={permit}
                                 isSelected={showSelection ? (selectedIds?.has(permit.id) ?? false) : undefined}
                                 onToggleSelect={onToggleSelect}
