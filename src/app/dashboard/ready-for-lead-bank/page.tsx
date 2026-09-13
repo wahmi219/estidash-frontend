@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { PackageCheck, ExternalLink, RefreshCw, AlertCircle, CheckSquare, Square, PlusCircle } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PermitPagination from '@/components/permits/PermitPagination';
@@ -31,7 +32,11 @@ function formatDate(value: string | null): string {
     return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function ReadyForLeadBankPage() {
+function ReadyForLeadBankPageInner() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
     const [items, setItems] = useState<ReadyForLeadBankItem[]>([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -42,8 +47,24 @@ export default function ReadyForLeadBankPage() {
     const [qualificationBucket, setQualificationBucket] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [page, setPage] = useState(1);
+    // Phase 11.2 P0-02: page now round-trips through the URL (?page=N) —
+    // previously plain useState only, so a reload or a shared/back-button
+    // link always landed back on page 1 regardless of which page was
+    // actually being viewed, weakening reproducibility of exactly the
+    // pagination behavior this phase's fix needs to be verifiable against.
+    const [page, setPageState] = useState(() => {
+        const fromUrl = Number(searchParams.get('page'));
+        return Number.isFinite(fromUrl) && fromUrl >= 1 ? fromUrl : 1;
+    });
     const [pageSize, setPageSize] = useState(100);
+
+    const setPage = useCallback((next: number) => {
+        setPageState(next);
+        const params = new URLSearchParams(searchParams.toString());
+        if (next <= 1) params.delete('page'); else params.set('page', String(next));
+        const query = params.toString();
+        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }, [pathname, router, searchParams]);
 
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [bulkAdding, setBulkAdding] = useState(false);
@@ -79,7 +100,7 @@ export default function ReadyForLeadBankPage() {
     useEffect(() => { load(); }, [load]);
 
     // Reset to page 1 whenever a server-side filter changes.
-    useEffect(() => { setPage(1); }, [agencyId, qualificationBucket, startDate, endDate]);
+    useEffect(() => { setPage(1); }, [agencyId, qualificationBucket, startDate, endDate, setPage]);
 
     const pagination: PermitPaginationType = {
         page, pageSize, totalRecords: total,
@@ -305,5 +326,13 @@ export default function ReadyForLeadBankPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function ReadyForLeadBankPage() {
+    return (
+        <Suspense fallback={<div className="p-6 text-sm text-[#5B6B7D]">Loading…</div>}>
+            <ReadyForLeadBankPageInner />
+        </Suspense>
     );
 }

@@ -774,6 +774,10 @@ export interface DataSourceHealthSummary {
     failed: number;
     stuck: number;
     never_verified: number;
+    // Phase 11.2 P1-02: false means every WARNING/staleness reading above
+    // reflects historical record only — source sync is off for this whole
+    // environment, not a currently-broken source.
+    scheduler_enabled: boolean;
 }
 
 export interface DeleteCityResponse {

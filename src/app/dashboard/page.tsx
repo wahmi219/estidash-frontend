@@ -9,11 +9,16 @@ import SectionHeading from '@/components/common/SectionHeading';
 import { apiService } from '@/services/api';
 import type { DataSourceHealthSummary, DashboardSummary } from '@/types';
 
-const LATEST_SYNC_METRICS = [
-    { label: 'New Permits', icon: FileText, accent: 'blue' as const },
-    { label: 'Qualified New', icon: CheckCircle2, accent: 'green' as const },
-    { label: 'Invalid / Excluded New', icon: XCircle, accent: 'red' as const },
-];
+// Phase 11.2 P1-01 — GET /api/v1/dashboard/latest-sync response shape.
+interface LatestSyncSummary {
+    agency_id: string;
+    source: string;
+    completed_at: string;
+    status: string;
+    new_permits: number;
+    qualified_new: number;
+    invalid_excluded_new: number;
+}
 
 // Real operational counts from GET /api/v1/dashboard/summary (Phase 9
 // Chunk 4) -- each key's card links to the exact queue that count comes
@@ -37,6 +42,8 @@ export default function DashboardPage() {
     const [summary, setSummary] = useState<DashboardSummary | null>(null);
     const [summaryLoading, setSummaryLoading] = useState(true);
     const [summaryUnauthorized, setSummaryUnauthorized] = useState(false);
+    const [latestSync, setLatestSync] = useState<LatestSyncSummary | null>(null);
+    const [latestSyncLoading, setLatestSyncLoading] = useState(true);
 
     useEffect(() => {
         apiService.getDataSourcesHealthSummary()
@@ -56,6 +63,13 @@ export default function DashboardPage() {
                 setSummary(null);
             })
             .finally(() => setSummaryLoading(false));
+    }, []);
+
+    useEffect(() => {
+        apiService.get<{ latest_sync: LatestSyncSummary | null }>('/dashboard/latest-sync')
+            .then((res) => setLatestSync(res.latest_sync))
+            .catch(() => setLatestSync(null))
+            .finally(() => setLatestSyncLoading(false));
     }, []);
 
     const needsAttention = health ? health.warning + health.failed + health.stuck + health.needs_auth : 0;
@@ -98,11 +112,21 @@ export default function DashboardPage() {
                         {health.disabled > 0 && ` · ${health.disabled} disabled/retired`}
                     </p>
                 )}
+                {health && !health.scheduler_enabled && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                        Source sync is disabled in this environment — Warning/staleness states above
+                        reflect historical record only, not a currently-running scheduler.
+                    </p>
+                )}
             </section>
 
-            {/* Section 1 — Latest Sync. Sync Permit Sources stays a visual shell —
-                real SyncRun wiring comes later after the production DB/scheduler
-                audit; never derive these counts from issue_date/created_at. */}
+            {/* Section 1 — Latest Sync. Phase 11.2 P1-01: wired to real
+                api_sync_logs history via GET /api/v1/dashboard/latest-sync
+                (dashboard_service.get_latest_sync_summary) — previously a
+                permanent visual shell that never queried anything. Sync
+                Permit Sources stays a disabled button: this is read-only
+                reporting on already-completed runs, not a trigger, and
+                global source sync stays off regardless. */}
             <section className="mb-8">
                 <div className="flex items-center justify-between mb-3">
                     <SectionHeading icon={Activity}>Latest Sync</SectionHeading>
@@ -117,12 +141,16 @@ export default function DashboardPage() {
                     </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {LATEST_SYNC_METRICS.map((m) => (
-                        <DashboardMetricCard key={m.label} label={m.label} icon={m.icon} accent={m.accent} />
-                    ))}
+                    <DashboardMetricCard label="New Permits" value={latestSyncLoading ? undefined : latestSync?.new_permits} icon={FileText} accent="blue" />
+                    <DashboardMetricCard label="Qualified New" value={latestSyncLoading ? undefined : latestSync?.qualified_new} icon={CheckCircle2} accent="green" />
+                    <DashboardMetricCard label="Invalid / Excluded New" value={latestSyncLoading ? undefined : latestSync?.invalid_excluded_new} icon={XCircle} accent="red" />
                 </div>
                 <p className="text-xs text-[#5B6B7D] mt-2">
-                    Sync metrics will populate once permit sync tracking is connected.
+                    {latestSyncLoading
+                        ? 'Loading…'
+                        : latestSync
+                            ? `${latestSync.source} — completed ${new Date(latestSync.completed_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                            : 'No completed sync run found yet.'}
                 </p>
             </section>
 

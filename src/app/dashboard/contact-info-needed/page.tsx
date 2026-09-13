@@ -17,7 +17,15 @@ import { ContactTask, ContactTaskListResponse, PermitPagination as PermitPaginat
 // (the backend already resolves them per row) but not yet filterable here
 // -- documented in docs/phase9_frontend_api_contract.md rather than faked.
 
+// Phase 11.2 P1-04: "All Active" is the default — the same
+// contact_info_needed + in_progress definition the Dashboard's Contact
+// Info Needed card counts (dashboard_service.get_dashboard_summary()).
+// Previously this page defaulted to "Needs Research" alone, so its own
+// total silently disagreed with the Dashboard's card for the same
+// nominal metric — not a data bug, just two different populations shown
+// as if they were the same number. Narrower views remain selectable.
 const STATUS_OPTIONS: { value: string; label: string }[] = [
+    { value: 'all_active', label: 'All Active (Needs Research + In Progress)' },
     { value: 'contact_info_needed', label: 'Needs Research' },
     { value: 'in_progress', label: 'In Progress' },
     { value: 'unable_to_find', label: 'Unable to Find' },
@@ -51,7 +59,7 @@ export default function ContactInfoNeededPage() {
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [statusFilter, setStatusFilter] = useState('contact_info_needed');
+    const [statusFilter, setStatusFilter] = useState('all_active');
     const [myTasksOnly, setMyTasksOnly] = useState(false);
     const [search, setSearch] = useState('');
     const [actioningId, setActioningId] = useState<string | null>(null);

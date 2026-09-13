@@ -27,6 +27,7 @@ import {
     NameQualityFlag,
 } from '@/components/contractors';
 import PermitPaginationControls from '@/components/permits/PermitPagination';
+import { computeMissingContractorFields } from '@/lib/contractorMissingFields';
 
 // ============================================================================
 // Helpers — local copies matching the formatting conventions already used in
@@ -280,23 +281,11 @@ export default function ContractorDetailPage() {
 
     const summary = contractor.permit_summary;
 
-    // Identity/contact fields used for the "missing fields" data-quality list —
-    // mirrors the exact 5+3 signals identity_strength/contactability are
-    // computed from server-side (contractor_completeness_service.py), so this
-    // list never implies more/less than what those badges already represent.
-    const identityFields: { label: string; present: boolean }[] = [
-        { label: 'Name', present: !!contractor.name },
-        { label: 'License number', present: !!contractor.license_number },
-        { label: 'State', present: !!contractor.state_code },
-        { label: 'Address', present: !!contractor.address_line },
-        { label: 'Phone', present: !!contractor.phone },
-    ];
-    const contactFields: { label: string; present: boolean }[] = [
-        { label: 'Email', present: !!contractor.email },
-        { label: 'Phone', present: !!contractor.phone },
-        { label: 'Website', present: !!contractor.website },
-    ];
-    const missingFields = [...identityFields, ...contactFields].filter(f => !f.present);
+    // See computeMissingContractorFields for why this is deduplicated by
+    // field key rather than rendered as two arrays concatenated directly —
+    // `phone` deliberately appears in both identity_strength and
+    // contactability server-side (contractor_completeness_service.py).
+    const missingFields = computeMissingContractorFields(contractor);
 
     const conflicts = (contractor.extra_data?.ingestion_contact_conflicts ?? null) as Record<string, unknown> | null;
     const similarRecords = contractor.possible_similar_records ?? [];
@@ -430,7 +419,7 @@ export default function ContractorDetailPage() {
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {missingFields.map(f => (
-                            <span key={f.label} className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[11px]">
+                            <span key={f.key} className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[11px]">
                                 Missing: {f.label}
                             </span>
                         ))}

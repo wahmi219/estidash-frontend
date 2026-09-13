@@ -64,6 +64,13 @@ function buildQueryParams(state: ContractorsState) {
         contractor_type: filters.contractorType || undefined,
         city: filters.city || undefined,
         state_code: filters.stateCode || undefined,
+        // Phase 11.2 P1-06: this slice backs only the "Permit Contractors"
+        // tab (contractors/page.tsx) — an operational, permit-linked view,
+        // not the broader Contractor Master table. Zero-permit orphan rows
+        // (no permit evidence at all) are excluded here rather than shown
+        // alongside real permit-linked contractors; Official Registry
+        // remains the separate, explicitly-labeled broader view.
+        has_permits: true,
         has_email: filters.hasEmail ?? undefined,
         score_bucket: filters.scoreBucket || undefined,
         has_license: filters.hasLicense ?? undefined,

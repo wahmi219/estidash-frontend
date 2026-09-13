@@ -30,6 +30,10 @@ function DataSourcesPageInner() {
     const [connectorFilter, setConnectorFilter] = useState('all');
     const [healthFilter, setHealthFilter] = useState<string>(searchParams.get('health')?.toUpperCase() ?? 'all');
     const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null);
+    // Phase 11.2 P1-02: same distinction as the Dashboard's Permit Source
+    // Health banner — Warning/staleness columns below reflect historical
+    // record only while sync is disabled for this whole environment.
+    const [schedulerEnabled, setSchedulerEnabled] = useState<boolean | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -41,6 +45,12 @@ function DataSourcesPageInner() {
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    useEffect(() => {
+        apiService.getDataSourcesHealthSummary()
+            .then((s) => setSchedulerEnabled(s.scheduler_enabled))
+            .catch(() => setSchedulerEnabled(null));
     }, []);
 
     useEffect(() => { load(); }, [load]);
@@ -93,12 +103,32 @@ function DataSourcesPageInner() {
                 }
             />
 
+            {schedulerEnabled === false && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                    Source sync is disabled in this environment — Warning/staleness values below
+                    reflect historical record only, not a currently-running scheduler.
+                </p>
+            )}
+
             {/* Summary chips */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <SummaryChip label="Configured Sources" value={sources.length.toString()} />
                 <SummaryChip label="Active / Schedulable" value={activeCount.toString()} />
                 <SummaryChip label="Needs Attention" value={needsAttentionCount.toString()} />
-                <SummaryChip label="Total Records" value={totalRecords.toLocaleString()} />
+                <SummaryChip
+                    label="Records at Last Sync"
+                    value={totalRecords.toLocaleString()}
+                    // Phase 11.2 P1-03: this is Agency.total_records, a
+                    // per-source count cached at that source's LAST sync
+                    // run (ingestion_service._count_agency_permits) — it
+                    // is never decremented when retention/finaled-closed
+                    // cleanup later purges permits, so it legitimately
+                    // drifts above the current live Permit Records total
+                    // over time. Renamed rather than forced to match a
+                    // different, live-count metric it was never meant to
+                    // equal — see docs/phase11_2_local_stabilization.md.
+                    title="Cached per-source count as of that source's last sync — not decremented by later retention purges, so it can exceed the current live Permit Records total."
+                />
             </div>
 
             {/* Filters */}
@@ -196,9 +226,9 @@ function DataSourcesPageInner() {
     );
 }
 
-function SummaryChip({ label, value }: { label: string; value: string }) {
+function SummaryChip({ label, value, title }: { label: string; value: string; title?: string }) {
     return (
-        <div className="bg-white border border-[#DFE6EE] rounded-lg p-4">
+        <div className="bg-white border border-[#DFE6EE] rounded-lg p-4" title={title}>
             <p className="text-2xl font-bold text-[#0E2B5C]">{value}</p>
             <p className="text-xs text-[#5B6B7D] mt-0.5">{label}</p>
         </div>
