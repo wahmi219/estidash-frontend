@@ -27,6 +27,7 @@ import {
     selectAvailableCities,
     selectAvailableCounties,
     selectAvailableDataSources,
+    selectPermitSyncBatch,
 } from '@/store/slices/permitsSlice';
 import {
     PermitTable,
@@ -76,6 +77,7 @@ function PermitsPageContent() {
     const availableCities = useAppSelector(selectAvailableCities);
     const availableCounties = useAppSelector(selectAvailableCounties);
     const availableDataSources = useAppSelector(selectAvailableDataSources);
+    const syncBatch = useAppSelector(selectPermitSyncBatch);
 
     // Delete is admin/super_admin only (backend already enforces this — see
     // require_role("admin") on /permits/bulk in app/routers/permits.py). This gate
@@ -106,6 +108,7 @@ function PermitsPageContent() {
         const hasContractorParam = searchParams.get('has_contractor');
         const addedStartDate = searchParams.get('added_start_date');
         const addedEndDate = searchParams.get('added_end_date');
+        const syncLogId = searchParams.get('sync_log_id');
 
         if (city) urlFilters.city = city;
         if (stateParam) urlFilters.state = stateParam;
@@ -123,6 +126,7 @@ function PermitsPageContent() {
         if (hasContractorParam !== null) urlFilters.hasContractor = hasContractorParam === 'true';
         if (addedStartDate) urlFilters.addedStartDate = addedStartDate;
         if (addedEndDate) urlFilters.addedEndDate = addedEndDate;
+        if (syncLogId) urlFilters.syncLogId = syncLogId;
 
         const page = searchParams.get('page');
         const pageSize = searchParams.get('pageSize');
@@ -163,6 +167,7 @@ function PermitsPageContent() {
         if (filters.hasContractor !== null) params.set('has_contractor', String(filters.hasContractor));
         if (filters.addedStartDate) params.set('added_start_date', filters.addedStartDate);
         if (filters.addedEndDate) params.set('added_end_date', filters.addedEndDate);
+        if (filters.syncLogId) params.set('sync_log_id', filters.syncLogId);
         if (pagination.page > 1) params.set('page', pagination.page.toString());
         if (pagination.pageSize !== 25) params.set('pageSize', pagination.pageSize.toString());
         if (sorting.field !== 'issue_date') params.set('sort', sorting.field);
@@ -203,6 +208,10 @@ function PermitsPageContent() {
 
     const handleSearchClear = useCallback(() => {
         dispatch(setFilters({ search: '' }));
+    }, [dispatch]);
+
+    const handleClearSyncBatch = useCallback(() => {
+        dispatch(setFilters({ syncLogId: null }));
     }, [dispatch]);
 
     const handlePageChange = useCallback((page: number) => {
@@ -345,6 +354,34 @@ function PermitsPageContent() {
                     );
                 })}
             </div>
+
+            {/* Latest Sync drill-down banner — shown whenever this view is
+                scoped to a single persisted sync run (Dashboard Latest
+                Sync card click). Explains the scope in plain language and
+                gives an explicit way back to unfiltered Permit Records,
+                on top of the generic removable filter chip in
+                PermitFiltersPanel below. */}
+            {filters.syncLogId && (
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-[#00458B]/5 border border-[#00458B]/20 rounded-xl text-sm">
+                    <RefreshCw size={16} className="text-[#00458B] shrink-0" />
+                    <span className="text-[#0E2B5C]">
+                        Showing permits from the{' '}
+                        <span className="font-semibold">latest completed sync</span>
+                        {syncBatch?.source ? <> for <span className="font-semibold">{syncBatch.source}</span></> : null}
+                        {syncBatch?.completed_at ? (
+                            <> — completed {new Date(syncBatch.completed_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</>
+                        ) : null}
+                        .
+                    </span>
+                    <button
+                        onClick={handleClearSyncBatch}
+                        className="ml-auto flex items-center gap-1 text-[#00458B] hover:text-[#045CB4] font-medium underline underline-offset-2"
+                    >
+                        <X size={14} />
+                        Clear Latest Sync filter
+                    </button>
+                </div>
+            )}
 
             {/* Filters — compact toolbar (search + popover filters) */}
             <PermitFiltersPanel

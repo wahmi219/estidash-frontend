@@ -553,6 +553,7 @@ class ApiService {
         if (params.has_contractor !== undefined) queryParams.has_contractor = params.has_contractor;
         if (params.added_start_date) queryParams.added_start_date = params.added_start_date;
         if (params.added_end_date) queryParams.added_end_date = params.added_end_date;
+        if (params.sync_log_id) queryParams.sync_log_id = params.sync_log_id;
 
         const response = await this.client.get<PermitSearchResponse>('/permits/search', {
             params: queryParams

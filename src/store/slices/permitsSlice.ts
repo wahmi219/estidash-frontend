@@ -45,6 +45,7 @@ const initialFilters: PermitFilters = {
     hasContractor: null,
     addedStartDate: null,
     addedEndDate: null,
+    syncLogId: null,
 };
 
 const initialState: PermitsState = {
@@ -71,6 +72,7 @@ const initialState: PermitsState = {
     availableCities: [],
     availableCounties: [],
     availableDataSources: [],
+    syncBatch: null,
 };
 
 // ============================================================================
@@ -99,6 +101,7 @@ function buildQueryParams(state: PermitsState) {
         has_contractor: filters.hasContractor ?? undefined,
         added_start_date: filters.addedStartDate || undefined,
         added_end_date: filters.addedEndDate || undefined,
+        sync_log_id: filters.syncLogId || undefined,
         limit: pagination.pageSize,
         offset: (pagination.page - 1) * pagination.pageSize,
         order_by: sorting.field,
@@ -150,6 +153,7 @@ export const fetchPermits = createAsyncThunk<
                     data: cached.data,
                     total: cached.total,
                     total_is_estimate: cached.totalIsEstimate,
+                    sync_batch: cached.syncBatch ?? null,
                     limit: params.limit,
                     offset: params.offset,
                 } as PermitSearchResponse;
@@ -370,6 +374,7 @@ const permitsSlice = createSlice({
             state.pagination.totalRecords = action.payload.total;
             state.pagination.totalIsEstimate = action.payload.total_is_estimate ?? false;
             state.pagination.totalPages = Math.ceil(action.payload.total / state.pagination.pageSize);
+            state.syncBatch = state.filters.syncLogId ? (action.payload.sync_batch ?? null) : null;
             state.lastFetchParams = JSON.stringify(buildQueryParams(state));
             state.lastFetchedAt = new Date().toISOString();
 
@@ -379,6 +384,7 @@ const permitsSlice = createSlice({
                 data: action.payload.data,
                 total: action.payload.total,
                 totalIsEstimate: action.payload.total_is_estimate ?? false,
+                syncBatch: action.payload.sync_batch ?? null,
                 fetchedAt: state.lastFetchedAt,
             };
 
@@ -477,5 +483,6 @@ export const selectPermitSorting = (state: WithPermits) => state.permits.sorting
 export const selectAvailableCities = (state: WithPermits) => state.permits.availableCities;
 export const selectAvailableCounties = (state: WithPermits) => state.permits.availableCounties;
 export const selectAvailableDataSources = (state: WithPermits) => state.permits.availableDataSources;
+export const selectPermitSyncBatch = (state: WithPermits) => state.permits.syncBatch;
 
 export default permitsSlice.reducer;

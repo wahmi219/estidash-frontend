@@ -544,6 +544,11 @@ export interface PermitFilters {
     /** Added Date range — filters on PermitRecord.created_at (Estimation Hub ingestion time), not Permit Date */
     addedStartDate: string | null;
     addedEndDate: string | null;
+    /** Dashboard "Latest Sync" drill-down — PermitRecord.sync_log_id (the
+     * persisted APISyncLog run that created the permit), never a date
+     * range. Set by clicking a Latest Sync card; combine with
+     * `qualification` for the Qualified New / Invalid Excluded New cards. */
+    syncLogId: string | null;
 }
 
 export interface PermitCounty {
@@ -645,10 +650,24 @@ export interface PermitSearchParams {
     has_contractor?: boolean;
     added_start_date?: string;
     added_end_date?: string;
+    /** Dashboard Latest Sync drill-down — PermitRecord.sync_log_id, a
+     * persisted APISyncLog id, never a date range. */
+    sync_log_id?: string;
     limit: number;
     offset: number;
     order_by: string;
     order_desc: boolean;
+}
+
+/** Present only when the request included sync_log_id and it resolved to
+ * a real APISyncLog — lets the Permit Records drill-down show which
+ * Latest Sync batch is active without a second round trip. */
+export interface PermitSyncBatchInfo {
+    sync_log_id: string;
+    agency_id: string;
+    source: string;
+    completed_at: string;
+    status: string;
 }
 
 export interface PermitSearchResponse {
@@ -657,6 +676,7 @@ export interface PermitSearchResponse {
     limit: number;
     offset: number;
     data: PermitRecord[];
+    sync_batch?: PermitSyncBatchInfo | null;
 }
 
 export interface PermitCityInfo {
@@ -810,6 +830,7 @@ export interface PageCacheEntry {
     data: PermitRecord[];
     total: number;
     totalIsEstimate: boolean;
+    syncBatch?: PermitSyncBatchInfo | null;
     fetchedAt: string; // ISO timestamp
 }
 
@@ -842,6 +863,10 @@ export interface PermitsState {
     availableCities: PermitCityInfo[];
     availableCounties: PermitCounty[];
     availableDataSources: PermitDataSourceOption[];
+
+    // Latest Sync drill-down context for the current result set — null
+    // whenever filters.syncLogId isn't set (or hasn't resolved yet).
+    syncBatch: PermitSyncBatchInfo | null;
 }
 
 // ============================================================================

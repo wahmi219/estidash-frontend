@@ -8,9 +8,15 @@ import PageHeader from '@/components/common/PageHeader';
 import SectionHeading from '@/components/common/SectionHeading';
 import { apiService } from '@/services/api';
 import type { DataSourceHealthSummary, DashboardSummary } from '@/types';
+import { latestSyncHref } from '@/lib/latestSyncDrilldown';
 
 // Phase 11.2 P1-01 — GET /api/v1/dashboard/latest-sync response shape.
+// sync_log_id (EHUB Latest Sync Dashboard Drill-Down) is the persisted
+// APISyncLog id every card below links to — Permit Records filters on
+// this exact column, never a date range, so a card's count and its
+// drill-down's result count can never disagree.
 interface LatestSyncSummary {
+    sync_log_id: string;
     agency_id: string;
     source: string;
     completed_at: string;
@@ -137,9 +143,40 @@ export default function DashboardPage() {
                     </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <DashboardMetricCard label="New Permits" value={latestSyncLoading ? undefined : latestSync?.new_permits} icon={FileText} accent="blue" />
-                    <DashboardMetricCard label="Qualified New" value={latestSyncLoading ? undefined : latestSync?.qualified_new} icon={CheckCircle2} accent="green" />
-                    <DashboardMetricCard label="Invalid / Excluded New" value={latestSyncLoading ? undefined : latestSync?.invalid_excluded_new} icon={XCircle} accent="red" />
+                    {latestSync ? (
+                        <>
+                            <Link
+                                href={latestSyncHref(latestSync)}
+                                aria-label={`View the ${latestSync.new_permits} permits from the latest completed sync for ${latestSync.source}`}
+                                className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00458B] focus-visible:ring-offset-2"
+                            >
+                                <DashboardMetricCard label="New Permits" value={latestSync.new_permits} icon={FileText} accent="blue" clickable />
+                            </Link>
+                            <Link
+                                href={latestSyncHref(latestSync, 'qualified')}
+                                aria-label={`View the ${latestSync.qualified_new} qualified permits from the latest completed sync for ${latestSync.source}`}
+                                className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00458B] focus-visible:ring-offset-2"
+                            >
+                                <DashboardMetricCard label="Qualified New" value={latestSync.qualified_new} icon={CheckCircle2} accent="green" clickable />
+                            </Link>
+                            <Link
+                                href={latestSyncHref(latestSync, 'invalid')}
+                                aria-label={`View the ${latestSync.invalid_excluded_new} invalid or excluded permits from the latest completed sync for ${latestSync.source}`}
+                                className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00458B] focus-visible:ring-offset-2"
+                            >
+                                <DashboardMetricCard label="Invalid / Excluded New" value={latestSync.invalid_excluded_new} icon={XCircle} accent="red" clickable />
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            {/* No completed sync run has ever existed (or still loading) —
+                                nothing to link to; DashboardMetricCard renders "—", never a
+                                fabricated 0, exactly as before this feature. */}
+                            <DashboardMetricCard label="New Permits" value={undefined} icon={FileText} accent="blue" />
+                            <DashboardMetricCard label="Qualified New" value={undefined} icon={CheckCircle2} accent="green" />
+                            <DashboardMetricCard label="Invalid / Excluded New" value={undefined} icon={XCircle} accent="red" />
+                        </>
+                    )}
                 </div>
                 <p className="text-xs text-[#5B6B7D] mt-2">
                     {latestSyncLoading

@@ -383,6 +383,15 @@ export default function PermitFiltersPanel({
     const activeChips = useMemo(() => {
         const chips: { id: string; label: string; onRemove: () => void }[] = [];
 
+        // Dashboard Latest Sync drill-down — surfaced first since it scopes
+        // every other filter to one persisted sync run, not a date guess.
+        if (filters.syncLogId) {
+            chips.push({
+                id: 'sync-batch',
+                label: 'Latest Sync batch',
+                onRemove: () => onFilterChange({ syncLogId: null }),
+            });
+        }
         if (filters.qualification) {
             chips.push({
                 id: 'qualification',
