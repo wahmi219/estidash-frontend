@@ -198,14 +198,27 @@ const PERMIT_BUCKET_BADGE: Record<string, { label: string; cls: string }> = {
 // the backend's `qualification` filter exactly. Secondary = the existing score-bucket
 // badge, kept as supporting detail underneath (never shown as the primary label on its
 // own — a bucket like "Strategic" is not itself the qualification state).
+// Phase 11.4 (EHUB-MSA-03 / Master Spec rules 22-25): Terminal, Hard
+// Exclusion, and no_send are three DISTINCT states, not one "Invalid /
+// Excluded" bucket. is_excluded=true alone is NOT sufficient to show
+// "Invalid / Excluded" — a terminal permit (completed/finaled/closed) sets
+// is_excluded=true architecturally (every downstream "stop" gate keys off
+// that one column) but is valid historical data, never "invalid," and
+// must show ONLY "Terminal". A no_send permit is valid, scored data that
+// is simply too weak for current outreach — it must show ONLY "No Send",
+// never "Invalid / Excluded". "Invalid / Excluded" is reserved for a real,
+// independent hard-exclusion reason (cancelled/void, admin-only, minor
+// revision/no scope, confirmed non-construction, or a configured
+// source-specific rule) on a permit that is NOT terminal.
 function QualificationCell({ bucket, tier, score, excluded, reason, isTerminal, terminalReason }: {
     bucket: string | null; tier: string | null; score: number | null; excluded: boolean; reason: string | null;
     isTerminal?: boolean; terminalReason?: string | null;
 }) {
-    const isInvalid = excluded || bucket === 'no_send';
-    const isQualified = !excluded && !!bucket && bucket !== 'no_send';
+    const isHardExcluded = excluded && !isTerminal && bucket !== 'no_send';
+    const isNoSend = bucket === 'no_send' && !isTerminal;
+    const isQualified = !excluded && !isTerminal && !!bucket && bucket !== 'no_send';
 
-    const bucketBadge = excluded ? null : (bucket ? PERMIT_BUCKET_BADGE[bucket] : null);
+    const bucketBadge = (excluded || isTerminal) ? null : (bucket ? PERMIT_BUCKET_BADGE[bucket] : null);
 
     return (
         <div className="flex flex-col items-end gap-1">
@@ -215,19 +228,17 @@ function QualificationCell({ bucket, tier, score, excluded, reason, isTerminal, 
                     Qualified
                 </span>
             )}
-            {/* Terminal is a distinct lifecycle axis from Excluded (a lifecycle-
-                complete permit like a finaled/closed job may never have been
-                excluded at all) -- shown alongside, not merged into, the
-                Invalid/Excluded badge below. */}
+            {/* Terminal takes precedence over any Invalid/Excluded rendering —
+                a finaled/closed/completed permit is valid historical data. */}
             {isTerminal && (
                 <span
                     className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-[#5B6B7D] border-gray-200"
-                    title={terminalReason ? `Terminal: ${terminalReason.replace(/_/g, ' ')}` : 'Terminal'}
+                    title={terminalReason ? `Terminal: ${terminalReason.replace(/_/g, ' ')}` : 'Terminal — valid historical record, not invalid data'}
                 >
                     Terminal
                 </span>
             )}
-            {isInvalid && (
+            {isHardExcluded && (
                 <span
                     className="inline-flex items-center gap-1 text-xs font-semibold text-red-700"
                     title={reason ? `Excluded: ${reason.replace(/_/g, ' ')}` : undefined}
@@ -237,15 +248,24 @@ function QualificationCell({ bucket, tier, score, excluded, reason, isTerminal, 
                 </span>
             )}
             {bucketBadge && (
+                // Phase 11.4 (EHUB-MSA-08 / Master Spec rule 27 — "UI shows
+                // Bucket · Score, for example 'Strong · 54'"): the raw
+                // internal tier letter (A/B/C) used to render inline as
+                // "Strategic ·A 94", which is not the specified format and
+                // exposes an internal implementation detail with no
+                // approved user-facing purpose. Tier is still available on
+                // hover for anyone who wants it, just not in the label.
                 <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide ${bucketBadge.cls}`}
                     title={`Score bucket${tier ? ` · Tier ${tier}` : ''}`}>
                     {bucketBadge.label}
-                    {tier && <span className="opacity-80">·{tier}</span>}
-                    {score != null && <span className="font-mono opacity-70 ml-0.5">{score.toFixed(0)}</span>}
+                    {score != null && <span className="font-mono opacity-70 ml-0.5">· {score.toFixed(0)}</span>}
                 </span>
             )}
-            {isInvalid && bucket === 'no_send' && !bucketBadge && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-[#5B6B7D] border-gray-200">
+            {isNoSend && !bucketBadge && (
+                <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-[#5B6B7D] border-gray-200"
+                    title="Valid permit, too weak for current outreach — not invalid data"
+                >
                     No Send
                 </span>
             )}

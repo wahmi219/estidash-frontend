@@ -114,7 +114,13 @@ function DataSourcesPageInner() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <SummaryChip label="Configured Sources" value={sources.length.toString()} />
                 <SummaryChip label="Active / Schedulable" value={activeCount.toString()} />
-                <SummaryChip label="Needs Attention" value={needsAttentionCount.toString()} />
+                <SummaryChip
+                    label={schedulerEnabled === false ? 'Needs Attention (historical)' : 'Needs Attention'}
+                    value={needsAttentionCount.toString()}
+                    title={schedulerEnabled === false
+                        ? 'Reflects historical staleness/failure record while source sync is disabled in this environment — not a live count of sources currently failing to sync.'
+                        : undefined}
+                />
                 <SummaryChip
                     label="Records at Last Sync"
                     value={totalRecords.toLocaleString()}
@@ -165,7 +171,7 @@ function DataSourcesPageInner() {
                                 <th className="px-4 py-2.5">Connector</th>
                                 <th className="px-4 py-2.5">Last Success</th>
                                 <th className="px-4 py-2.5">Latest Permit</th>
-                                <th className="px-4 py-2.5">Next Sync</th>
+                                <th className="px-4 py-2.5">{schedulerEnabled === false ? 'Next Sync (scheduler off)' : 'Next Sync'}</th>
                                 <th className="px-4 py-2.5">Health</th>
                                 <th className="px-4 py-2.5 text-right">Records</th>
                                 <th className="px-4 py-2.5">Action</th>
@@ -190,7 +196,18 @@ function DataSourcesPageInner() {
                                     </td>
                                     <td className="px-4 py-3 text-[#0E2B5C] whitespace-nowrap">{formatDateTime(s.last_success)}</td>
                                     <td className="px-4 py-3 text-[#0E2B5C] whitespace-nowrap">{formatDateOnly(s.latest_permit)}</td>
-                                    <td className="px-4 py-3 text-[#5B6B7D] whitespace-nowrap">{s.enabled ? formatDateTime(s.next_sync) : '—'}</td>
+                                    <td className="px-4 py-3 text-[#5B6B7D] whitespace-nowrap">
+                                        {/* Phase 11.4 (EHUB-MSA-09): a computed next_sync timestamp implies an
+                                            active schedule even for a source that's individually "enabled" —
+                                            while the environment-wide scheduler is off, nothing will actually
+                                            run at that time, so showing the raw value here would misrepresent
+                                            current state as if a real cron were counting down to it. */}
+                                        {s.enabled && schedulerEnabled !== false
+                                            ? formatDateTime(s.next_sync)
+                                            : s.enabled
+                                                ? <span title="Scheduler is disabled in this environment — this is when the source would next run if sync were enabled, not a scheduled event.">Not scheduled (sync off)</span>
+                                                : '—'}
+                                    </td>
                                     <td className="px-4 py-3">
                                         <HealthBadge health={s.health} title={s.health_reason} />
                                     </td>

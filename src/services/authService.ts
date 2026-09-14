@@ -38,6 +38,17 @@ const authClient = axios.create({
     baseURL: API_BASE,
     withCredentials: true,
     headers: { 'Content-Type': 'application/json' },
+    // Phase 11.4 (EHUB-MSA-05): axios has NO default timeout (waits
+    // forever) unless one is set explicitly — this client had none, so a
+    // stalled login/refresh/device call (a dead connection, or a request
+    // silently blocked as mixed content behind an HTTPS tunnel fronting a
+    // plain-HTTP backend) left AuthGuard's "Loading…" gate — which every
+    // dashboard page waits on before rendering anything — stuck
+    // indefinitely with no error and no retry. This is the precise
+    // mechanism behind "Import Data remained on Loading… for more than
+    // 105 seconds": Import Data itself makes no API calls at all: the
+    // page stuck loading was AuthGuard's own auth bootstrap.
+    timeout: 20000,
 });
 
 export const authService = {

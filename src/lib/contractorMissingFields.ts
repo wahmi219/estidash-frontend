@@ -25,8 +25,23 @@ export interface MissingContractorField {
  * index would only hide any future genuine duplicate, not rule it out).
  */
 export function computeMissingContractorFields(
-    contractor: Pick<ContractorRecord, 'name' | 'license_number' | 'state_code' | 'address_line' | 'phone' | 'email' | 'website'>,
+    contractor: Pick<ContractorRecord, 'name' | 'license_number' | 'state_code' | 'address_line' | 'phone' | 'email' | 'website' | 'canonical_email' | 'canonical_email_checked'>,
 ): MissingContractorField[] {
+    // Contractor Contact Summary Consistency fix: "is email present" must
+    // be answered from the canonical, normalized Contractor Email state
+    // (canonical_email, backed by contractor_emails child rows), never the
+    // legacy `email` column — a contractor with a usable canonical email
+    // added via Contact Info Needed research must never show "Missing:
+    // Email" just because that address never got backfilled into the
+    // legacy column (which Phase 5+ deliberately never does). Falls back
+    // to the legacy field only when canonical_email_checked is falsy (a
+    // list row, where the canonical lookup never ran) — a detail row that
+    // WAS checked and genuinely has no usable email must not fall back to
+    // the legacy column, or a contractor with only a bad/unusable legacy
+    // address would wrongly show as having email.
+    const hasEmail = contractor.canonical_email_checked
+        ? !!contractor.canonical_email
+        : !!contractor.email;
     const identityFields: MissingContractorField[] = [
         { key: 'name', label: 'Name', present: !!contractor.name },
         { key: 'license_number', label: 'License number', present: !!contractor.license_number },
@@ -35,7 +50,7 @@ export function computeMissingContractorFields(
         { key: 'phone', label: 'Phone', present: !!contractor.phone },
     ];
     const contactFields: MissingContractorField[] = [
-        { key: 'email', label: 'Email', present: !!contractor.email },
+        { key: 'email', label: 'Email', present: hasEmail },
         { key: 'phone', label: 'Phone', present: !!contractor.phone },
         { key: 'website', label: 'Website', present: !!contractor.website },
     ];

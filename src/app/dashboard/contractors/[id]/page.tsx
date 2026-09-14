@@ -68,12 +68,17 @@ function DetailRow({
     value,
     href,
     mono,
+    badge,
 }: {
     icon: React.ComponentType<{ size?: number; className?: string }>;
     label: string;
     value: string | null | undefined;
     href?: string;
     mono?: boolean;
+    /** Small inline qualifier shown next to the value, e.g. "(source
+     * evidence, unverified)" when a raw/legacy field is shown in place of
+     * a canonical value. */
+    badge?: string;
 }) {
     const isEmpty = !value;
     return (
@@ -87,6 +92,11 @@ function DetailRow({
             ) : (
                 <span className={`text-sm truncate ${isEmpty ? 'text-[#5B6B7D] italic' : 'text-[#0E2B5C]'} ${mono ? 'font-mono text-xs' : ''}`}>
                     {isEmpty ? 'Not present' : value}
+                </span>
+            )}
+            {!isEmpty && badge && (
+                <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 flex-shrink-0">
+                    {badge}
                 </span>
             )}
         </div>
@@ -397,7 +407,22 @@ export default function ContractorDetailPage() {
                     <h3 className="text-xs text-[#5B6B7D] uppercase tracking-wider font-semibold mb-2 flex items-center gap-2">
                         <Mail size={13} /> Contact Information
                     </h3>
-                    <DetailRow icon={Mail} label="Email" value={contractor.email} href={contractor.email ? `mailto:${contractor.email}` : undefined} />
+                    {/* Contractor Contact Summary Consistency fix: the Email row
+                        shows the CANONICAL Contractor Master email state
+                        (canonical_email, backed by contractor_emails child rows)
+                        as the authoritative value — never the legacy `email`
+                        column. When no usable canonical email exists but a raw
+                        legacy address is on file, that address is still shown,
+                        but explicitly labeled as unverified source evidence
+                        rather than presented as the current contact state. */}
+                    <DetailRow
+                        icon={Mail} label="Email"
+                        value={contractor.canonical_email_checked && contractor.canonical_email ? contractor.canonical_email : contractor.email}
+                        href={(contractor.canonical_email_checked ? contractor.canonical_email : contractor.email)
+                            ? `mailto:${contractor.canonical_email_checked && contractor.canonical_email ? contractor.canonical_email : contractor.email}`
+                            : undefined}
+                        badge={contractor.canonical_email_checked && !contractor.canonical_email && contractor.email ? 'source evidence, unverified' : undefined}
+                    />
                     <DetailRow icon={Phone} label="Phone" value={contractor.phone} href={contractor.phone ? `tel:${contractor.phone}` : undefined} />
                     <DetailRow icon={Globe} label="Website" value={contractor.website} href={contractor.website ?? undefined} />
 
@@ -405,8 +430,9 @@ export default function ContractorDetailPage() {
                         "present" — never "verified". Verification would require an
                         external lookup, which this phase deliberately does not do. */}
                     <p className="text-[11px] text-[#5B6B7D] mt-3 pt-3 border-t border-[#DFE6EE] leading-relaxed">
-                        Values shown above are as recorded from permit data — presence only,
-                        not independently verified.
+                        Phone and website are as recorded from permit data — presence only, not
+                        independently verified. Email reflects the current canonical Contractor
+                        Master state (see the Emails list below for full history).
                     </p>
                 </div>
             </div>

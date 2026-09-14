@@ -98,6 +98,9 @@ export default function VerificationCandidateDetailPage() {
                     <div className="space-y-2 text-sm">
                         <Field label="Raw Name on Permit">{candidate.raw_name ?? '—'}</Field>
                         <Field label="Normalized Name">{candidate.normalized_name ?? '—'}</Field>
+                        <Field label="Source Company (permit contact)">{candidate.source_company ?? 'Unavailable'}</Field>
+                        <Field label="Source Phone">{candidate.source_phone ?? 'Unavailable'}</Field>
+                        <Field label="Source Email">{candidate.source_email ?? 'Unavailable'}</Field>
                         <Field label="Permit Number">{candidate.permit_number ?? '—'}</Field>
                         <Field label="Permit Type">{candidate.permit_type ?? '—'}</Field>
                         <Field label="Trade / Scope">{candidate.scope ?? '—'}</Field>
@@ -107,6 +110,14 @@ export default function VerificationCandidateDetailPage() {
                         <Field label="Valuation">{fmtMoney(candidate.valuation)}</Field>
                         <Field label="Qualification">{candidate.qualification_bucket ? `${candidate.qualification_bucket} · ${candidate.score != null ? Math.round(candidate.score) : '—'}` : '—'}</Field>
                         <Field label="Issue Date">{candidate.issue_date ? new Date(candidate.issue_date).toLocaleDateString() : '—'}</Field>
+                        {candidate.match_signals.length > 0 && (
+                            <Field label="Matched Signals">{candidate.match_signals.join(', ')}</Field>
+                        )}
+                        {candidate.conflicts.length > 0 && (
+                            <Field label="Conflicts Detected">
+                                <span className="text-amber-700">{candidate.conflicts.map((c) => c.replace(/_/g, ' ')).join(', ')}</span>
+                            </Field>
+                        )}
                         {candidate.evidence && Object.keys(candidate.evidence).length > 0 && (
                             <Field label="Evidence">
                                 <pre className="text-[11px] bg-[#F7F9FB] border border-[#DFE6EE] rounded p-2 overflow-x-auto">{JSON.stringify(candidate.evidence, null, 2)}</pre>
@@ -133,6 +144,12 @@ export default function VerificationCandidateDetailPage() {
                             </div>
                         );
                     })()}
+                    {candidate.conflicts.length > 0 && (
+                        <div className="mb-3 px-3 py-2 rounded-lg border text-xs font-medium bg-amber-50 text-amber-800 border-amber-200">
+                            ⚠ Conflicting evidence found: {candidate.conflicts.map((c) => c.replace(/_/g, ' ')).join(', ')} —
+                            fields disagree between the source permit and this candidate. Review carefully before confirming.
+                        </div>
+                    )}
                     {candidate.candidate_contractor ? (
                         <div className="space-y-2 text-sm">
                             <Field label="Name">
@@ -143,11 +160,46 @@ export default function VerificationCandidateDetailPage() {
                             {candidate.candidate_contractor.aliases.length > 0 && (
                                 <Field label="Known Aliases">{candidate.candidate_contractor.aliases.join(', ')}</Field>
                             )}
-                            <Field label="License">{candidate.candidate_contractor.license_number ?? '—'} {candidate.candidate_contractor.license_type ? `(${candidate.candidate_contractor.license_type})` : ''}</Field>
-                            <Field label="Phone">{candidate.candidate_contractor.phone ?? '—'}</Field>
-                            <Field label="Website">{candidate.candidate_contractor.website ?? '—'}</Field>
-                            <Field label="State">{candidate.candidate_contractor.state_code ?? '—'}</Field>
-                            <Field label="Lead Bank Relationship">{candidate.candidate_contractor.has_lead_bank_relationship ? 'Yes — already in Lead Bank' : 'None yet'}</Field>
+                            <Field label="License(s)">
+                                {candidate.candidate_contractor.licenses.length > 0 ? (
+                                    <div className="space-y-0.5">
+                                        {candidate.candidate_contractor.licenses.map((l, i) => (
+                                            <div key={i}>
+                                                {l.license_number}
+                                                {l.jurisdiction ? ` (${l.jurisdiction})` : ' — jurisdiction unavailable'}
+                                                {l.license_type ? ` · ${l.license_type}` : ''}
+                                                {l.status ? ` · ${l.status}` : ''}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (candidate.candidate_contractor.license_number
+                                    ? `${candidate.candidate_contractor.license_number} — jurisdiction unavailable`
+                                    : 'Unavailable')}
+                            </Field>
+                            <Field label="Address">{candidate.candidate_contractor.address ?? 'Unavailable'}</Field>
+                            <Field label="Phone">{candidate.candidate_contractor.phone ?? 'Unavailable'}</Field>
+                            <Field label="Website">{candidate.candidate_contractor.website ?? 'Unavailable'}</Field>
+                            <Field label="Email">
+                                {candidate.candidate_contractor.email ? (
+                                    <span className="inline-flex items-center gap-1.5">
+                                        {candidate.candidate_contractor.email}
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${
+                                            candidate.candidate_contractor.email_status === 'usable'
+                                                ? 'bg-green-50 text-green-700 border-green-200'
+                                                : 'bg-red-50 text-red-700 border-red-200'
+                                        }`}>
+                                            {candidate.candidate_contractor.email_status}
+                                        </span>
+                                    </span>
+                                ) : 'Unavailable'}
+                            </Field>
+                            <Field label="State">{candidate.candidate_contractor.state_code ?? 'Unavailable'}</Field>
+                            <Field label="Permit History">{candidate.candidate_contractor.permit_history_count} linked permit{candidate.candidate_contractor.permit_history_count === 1 ? '' : 's'}</Field>
+                            <Field label="CRM / Lead Bank State">
+                                {candidate.candidate_contractor.has_lead_bank_relationship
+                                    ? `${(candidate.candidate_contractor.crm_relationship_status ?? 'unknown').replace(/_/g, ' ')} · ${(candidate.candidate_contractor.crm_outreach_status ?? 'unknown').replace(/_/g, ' ')}`
+                                    : 'Not yet in Lead Bank'}
+                            </Field>
                         </div>
                     ) : (
                         <p className="text-sm text-[#5B6B7D]">No existing contractor was suggested for this permit — evidence was insufficient.</p>

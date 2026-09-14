@@ -16,7 +16,24 @@ import { ReadyForLeadBankItem, ReadyForLeadBankResponse, BulkAddToLeadBankRespon
 // filterable yet -- no join/normalized taxonomy exists (see
 // docs/phase9_frontend_api_contract.md, not fabricated here).
 
-interface DataSourceOption { agency_id: string; source: string; }
+interface DataSourceOption { agency_id: string; source: string; city_key: string; }
+
+// Phase 11.4 (EHUB-MSA-12): several stable, DISTINCT agencies share the same
+// city-level display label (e.g. "Boise, ID" covers both a residential and a
+// commercial permit feed with different agency_ids) — the filter previously
+// showed both as an unlabeled, apparently-duplicate "Boise, ID" entry. This
+// derives a short disambiguating suffix from each source's own city_key
+// (e.g. "boise_commercial" -> "Commercial") without touching the stable
+// agency_id used as the actual filter value.
+function disambiguatedSourceLabel(source: DataSourceOption, allSources: DataSourceOption[]): string {
+    const sameLabel = allSources.filter((s) => s.source === source.source);
+    if (sameLabel.length <= 1) return source.source;
+    const prefix = source.city_key.split('_')[0];
+    const suffix = source.city_key.slice(prefix.length + 1);
+    if (!suffix) return `${source.source} — General`;
+    const humanized = suffix.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    return `${source.source} — ${humanized}`;
+}
 
 const BUCKET_LABEL: Record<string, string> = {
     strategic: 'Strategic', strong: 'Strong', core: 'Core', opportunistic: 'Opportunistic',
@@ -216,7 +233,9 @@ function ReadyForLeadBankPageInner() {
             <div className="bg-white border border-[#DFE6EE] rounded-lg p-3 mb-4 flex items-center gap-3 flex-wrap">
                 <select value={agencyId} onChange={(e) => setAgencyId(e.target.value)} className="px-3 py-1.5 text-sm border border-[#DFE6EE] rounded-lg">
                     <option value="">All Data Sources</option>
-                    {dataSources.map((d) => <option key={d.agency_id} value={d.agency_id}>{d.source}</option>)}
+                    {dataSources.map((d) => (
+                        <option key={d.agency_id} value={d.agency_id}>{disambiguatedSourceLabel(d, dataSources)}</option>
+                    ))}
                 </select>
                 <select value={qualificationBucket} onChange={(e) => setQualificationBucket(e.target.value)} className="px-3 py-1.5 text-sm border border-[#DFE6EE] rounded-lg">
                     <option value="">All Qualifications</option>

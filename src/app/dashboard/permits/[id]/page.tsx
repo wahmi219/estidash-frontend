@@ -162,13 +162,18 @@ function formatShortDate(dateStr: string | null | undefined): string {
 // Sub-components
 // ============================================================================
 
-/** Header qualification badge — mirrors PermitRow.tsx's QualificationCell logic
- * exactly: Qualified = !is_excluded && score_bucket set && score_bucket != 'no_send'.
- * Invalid/Excluded = is_excluded || score_bucket === 'no_send'. Never re-derive this
- * from any other field. */
-function QualificationBadge({ isExcluded, scoreBucket }: { isExcluded: boolean; scoreBucket: string | null }) {
-    const isInvalid = isExcluded || scoreBucket === 'no_send';
-    const isQualified = !isExcluded && !!scoreBucket && scoreBucket !== 'no_send';
+/** Header qualification badge — mirrors PermitRow.tsx's QualificationCell
+ * precedence exactly (Phase 11.4, EHUB-MSA-03 / Master Spec rules 22-25):
+ * Terminal (completed/finaled/closed) is valid historical data and takes
+ * precedence over any "Invalid / Excluded" rendering even though it also
+ * sets is_excluded=true internally. no_send is likewise its own state, not
+ * "invalid". "Invalid / Excluded" is reserved for a real, independent hard
+ * exclusion on a non-terminal permit. Never re-derive this from any other
+ * field. */
+function QualificationBadge({ isExcluded, scoreBucket, isTerminal }: { isExcluded: boolean; scoreBucket: string | null; isTerminal: boolean }) {
+    const isHardExcluded = isExcluded && !isTerminal && scoreBucket !== 'no_send';
+    const isNoSend = scoreBucket === 'no_send' && !isTerminal;
+    const isQualified = !isExcluded && !isTerminal && !!scoreBucket && scoreBucket !== 'no_send';
 
     if (isQualified) {
         return (
@@ -177,10 +182,30 @@ function QualificationBadge({ isExcluded, scoreBucket }: { isExcluded: boolean; 
             </span>
         );
     }
-    if (isInvalid) {
+    if (isTerminal) {
+        return (
+            <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-[#5B6B7D] border border-gray-200"
+                title="Valid historical record — completed/finaled/closed, not invalid data"
+            >
+                Terminal
+            </span>
+        );
+    }
+    if (isHardExcluded) {
         return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
                 <XCircle size={13} /> Invalid / Excluded
+            </span>
+        );
+    }
+    if (isNoSend) {
+        return (
+            <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-[#5B6B7D] border border-gray-200"
+                title="Valid permit, too weak for current outreach — not invalid data"
+            >
+                No Send
             </span>
         );
     }
@@ -531,7 +556,7 @@ export default function PermitDetailPage() {
                             <h1 className="text-xl sm:text-2xl font-bold text-[#0E2B5C] tracking-tight">
                                 #{permit.permit_number}
                             </h1>
-                            <QualificationBadge isExcluded={isExcluded} scoreBucket={scoreBucket} />
+                            <QualificationBadge isExcluded={isExcluded} scoreBucket={scoreBucket} isTerminal={!!permit.is_terminal} />
                             {bucketBadge && (
                                 <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide border ${bucketBadge.cls}`}>
                                     {bucketBadge.label}
@@ -846,12 +871,12 @@ export default function PermitDetailPage() {
                     <h2 className="text-xs font-semibold text-[#5B6B7D] uppercase tracking-wider">Qualification / Scoring</h2>
                 </div>
 
-                {/* Qualification logic is fixed and must never be re-derived here:
-                    Qualified = !is_excluded && score_bucket set && score_bucket != 'no_send'
-                    Invalid/Excluded = is_excluded || score_bucket === 'no_send' */}
+                {/* Qualification logic is fixed and must never be re-derived here —
+                    see QualificationBadge's own docstring for the full precedence
+                    (Terminal > Invalid/Excluded > No Send > Qualified). */}
                 <div className="bg-white border border-[#DFE6EE] rounded-lg px-5 py-4 flex items-center justify-between flex-wrap gap-3">
                     <div className="flex items-center gap-3 flex-wrap">
-                        <QualificationBadge isExcluded={isExcluded} scoreBucket={scoreBucket} />
+                        <QualificationBadge isExcluded={isExcluded} scoreBucket={scoreBucket} isTerminal={!!permit.is_terminal} />
                         {bucketBadge && (
                             <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide border ${bucketBadge.cls}`}>
                                 {bucketBadge.label}

@@ -37,9 +37,23 @@ export default function LoginForm() {
             dispatch(setCredentials({ user: result.user, accessToken: result.access_token }));
             router.replace('/dashboard');
         } catch (err: unknown) {
-            const msg =
-                (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-                'Invalid email or password';
+            // Phase 11.4 (EHUB-MSA-05): a timeout/network failure has no
+            // `.response` at all (axios only populates that for an actual
+            // HTTP reply) — falling straight to "Invalid email or password"
+            // for that case told the user their credentials were wrong when
+            // the real problem was a stalled/unreachable backend. Distinguish
+            // the two so a timeout says so, not "wrong password".
+            const axiosErr = err as { code?: string; message?: string; response?: { data?: { detail?: string } } };
+            let msg: string;
+            if (axiosErr?.response?.data?.detail) {
+                msg = axiosErr.response.data.detail;
+            } else if (axiosErr?.code === 'ECONNABORTED' || /timeout/i.test(axiosErr?.message ?? '')) {
+                msg = 'The server took too long to respond. Check your connection and try again.';
+            } else if (!axiosErr?.response) {
+                msg = 'Could not reach the server. Check your connection and try again.';
+            } else {
+                msg = 'Invalid email or password';
+            }
             setErrorMsg(msg);
             dispatch(setError(msg));
         } finally {

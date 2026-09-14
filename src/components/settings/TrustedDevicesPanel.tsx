@@ -94,6 +94,17 @@ export default function TrustedDevicesPanel() {
 
     return (
         <div>
+            {/* Phase 11.4 (EHUB-MSA-11): device registration/enforcement is a
+                permanently dormant feature in this build (Phase 9.9 —
+                DEVICE_CHECK_ENABLED=true refuses to boot unconditionally),
+                so no login, pilot or real, can create a new device record
+                right now. Rows below predate that going dormant and are
+                preserved as history, not evidence of an active check. */}
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                Device enforcement is disabled in this environment — the rows below are historical records from
+                before this feature went dormant, not evidence of an active device check. No current login (pilot
+                or real) can create, update, or trust a new device.
+            </p>
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                 {(['all', 'pending', 'trusted', 'revoked'] as FilterStatus[]).map(s => (

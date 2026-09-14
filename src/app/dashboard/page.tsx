@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, RefreshCw, Activity, ListChecks, Flame, FileText, CheckCircle2, XCircle, ShieldAlert, Phone, Wallet, AlertTriangle, Lock, Clock, Send, CalendarClock } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, Activity, ListChecks, FileText, CheckCircle2, XCircle, ShieldAlert, Phone, Wallet, AlertTriangle, Lock, Clock, Send, CalendarClock } from 'lucide-react';
 import DashboardMetricCard from '@/components/dashboard/DashboardMetricCard';
 import PageHeader from '@/components/common/PageHeader';
 import SectionHeading from '@/components/common/SectionHeading';
@@ -31,10 +31,6 @@ const WORKFLOW_METRICS: { key: keyof DashboardSummary; label: string; icon: type
     { key: 'follow_ups_due', label: 'Follow-ups Due', icon: CalendarClock, accent: 'amber', href: '/dashboard/lead-bank' },
     { key: 'lead_bank_total', label: 'Lead Bank Relationships', icon: Wallet, accent: 'green', href: '/dashboard/lead-bank' },
 ];
-
-// Future columns for the Priority States to Work shell below. Kept in one
-// place so the header row and any later real implementation stay in sync.
-const PRIORITY_STATES_COLUMNS = ['State', 'Coverage', 'Qualified Rate', 'Strategic / Strong', 'Contractor Backlog', 'Priority'];
 
 export default function DashboardPage() {
     const [health, setHealth] = useState<DataSourceHealthSummary | null>(null);
@@ -181,55 +177,6 @@ export default function DashboardPage() {
                 )}
             </section>
 
-            {/* Section 3 — Priority States to Work. Shows which states currently
-                deserve the most contractor-research attention.
-
-                COVERAGE RULE (not implemented yet — column/message shell only):
-                A state should only be ranked when data coverage is sufficient and
-                reasonably representative. States with partial/limited coverage
-                should not be ranked purely from raw permit totals.
-
-                Future ranking should consider:
-                - source / jurisdiction coverage
-                - total permits collected
-                - qualified permits / total permits
-                - Strategic + Strong / qualified permits
-                - contractor verification backlog
-                - contact-info backlog
-                - minimum sample size
-
-                A state with insufficient coverage should render as "Limited
-                Coverage" / "Not Ranked" in the Priority column rather than being
-                scored or ranked against fully-covered states. No fake rows are
-                rendered here until that aggregation exists.
-
-                No client-side aggregation — this is a column shell only,
-                intentionally not loading permits to compute anything here.
-                Real values arrive once a backend aggregation endpoint exists. */}
-            <section>
-                <div className="mb-3">
-                    <SectionHeading icon={Flame}>Priority States to Work</SectionHeading>
-                </div>
-                <div className="bg-white border border-[#DFE6EE] rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-[#F7F9FB] text-left text-[11px] font-semibold text-[#5B6B7D] uppercase tracking-wider border-b border-[#DFE6EE]">
-                                    {PRIORITY_STATES_COLUMNS.map((label) => (
-                                        <th key={label} className="px-4 py-2.5 whitespace-nowrap">{label}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                        </table>
-                    </div>
-                    <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-                        <Flame size={22} className="text-gray-300" />
-                        <p className="text-sm text-[#5B6B7D] max-w-md">
-                            Priority-state metrics will populate after permit coverage and workflow aggregation are connected.
-                        </p>
-                    </div>
-                </div>
-            </section>
         </div>
     );
 }

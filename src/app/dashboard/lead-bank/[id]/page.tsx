@@ -14,6 +14,7 @@ import type {
     ManualOutreachRelationshipDetail, LeadOpportunityListResponse, LeadBankHistoryResponse,
     OutreachWorkflowDetail, ContractorRecord,
 } from '@/types';
+import { primaryIneligibleReason, describeIneligibleReasons } from '@/lib/outreachEligibility';
 
 const RELATIONSHIP_STATUS_OPTIONS = [
     'prospect', 'warm_lead', 'active_opportunity', 'active_client',
@@ -136,9 +137,29 @@ export default function LeadBankRelationshipDetailPage() {
                     <Field label="Contractor ID"><span className="font-mono text-xs">{detail.contractor_id}</span></Field>
                     <Field label="Phone">{detail.phone ?? '—'}</Field>
                     <Field label="Website">{detail.website ?? '—'}</Field>
-                    <Field label="Primary Email">{detail.primary_email ?? '—'}</Field>
+                    <Field label="Primary Email">
+                        {detail.primary_email ? (
+                            <span className="inline-flex items-center gap-1.5">
+                                {detail.primary_email}
+                                {detail.primary_email_status === 'unusable' && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border bg-red-50 text-red-700 border-red-200">
+                                        Unusable
+                                    </span>
+                                )}
+                            </span>
+                        ) : '—'}
+                    </Field>
                     <Field label="Alternate Usable Emails">{detail.usable_alternative_email_count}</Field>
+                    {detail.primary_email_status === 'unusable' && detail.usable_contact_email && (
+                        <Field label="Usable Contact Email">{detail.usable_contact_email}</Field>
+                    )}
                 </div>
+                {detail.primary_email_status === 'unusable' && (
+                    <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        The historically-designated primary email is unusable. EHUB never automatically contacts another
+                        address — if no usable email remains, this contractor routes to Contact Info Needed.
+                    </p>
+                )}
             </section>
 
             {/* CRM RELATIONSHIP */}
@@ -247,8 +268,24 @@ export default function LeadBankRelationshipDetailPage() {
                 {canStartWorkflow ? (
                     <div>
                         <p className="text-sm text-[#5B6B7D] mb-3">No active outreach workflow. Starting one only tracks the workflow — EHUB never sends anything.</p>
+                        {!detail.outreach_eligible && (
+                            <div className="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-700 font-medium">
+                                    {primaryIneligibleReason(detail.outreach_ineligible_reasons)}
+                                </p>
+                                {detail.outreach_ineligible_reasons.length > 1 && (
+                                    <ul className="mt-1 text-xs text-red-700 list-disc list-inside">
+                                        {describeIneligibleReasons(detail.outreach_ineligible_reasons).map((r) => (
+                                            <li key={r}>{r}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        )}
                         <ActionButton
                             icon={PlayCircle} label="Start Outreach Workflow" busy={busy}
+                            disabled={!detail.outreach_eligible}
+                            title={!detail.outreach_eligible ? (primaryIneligibleReason(detail.outreach_ineligible_reasons) ?? undefined) : undefined}
                             onClick={() => runAction(() => apiService.post('/manual-outreach/workflows', { relationship_id: relationshipId }))}
                         />
                     </div>
@@ -318,13 +355,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function ActionButton({
-    icon: Icon, label, onClick, busy, variant = 'default',
-}: { icon: React.ComponentType<{ size?: number }>; label: string; onClick: () => void; busy: boolean; variant?: 'default' | 'danger' }) {
+    icon: Icon, label, onClick, busy, variant = 'default', disabled = false, title,
+}: {
+    icon: React.ComponentType<{ size?: number }>; label: string; onClick: () => void; busy: boolean;
+    variant?: 'default' | 'danger'; disabled?: boolean; title?: string;
+}) {
     return (
         <button
             onClick={onClick}
-            disabled={busy}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border disabled:opacity-50 ${
+            disabled={busy || disabled}
+            title={title}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed ${
                 variant === 'danger'
                     ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
                     : 'border-[#DFE6EE] bg-white text-[#0E2B5C] hover:bg-[#F7F9FB]'

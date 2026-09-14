@@ -62,4 +62,38 @@ describe('computeMissingContractorFields', () => {
         const missing = computeMissingContractorFields(makeContractor({ email: null, website: null }));
         expect(missing.map(f => f.key).sort()).toEqual(['email', 'website']);
     });
+
+    describe('canonical_email (Contractor Contact Summary Consistency fix)', () => {
+        it('does not report Missing: Email when a usable canonical email exists, even with no legacy email', () => {
+            // The exact CIN-fix regression: an email added via Contact Info
+            // Needed research lives only in the canonical contractor_emails
+            // child rows, never backfilled into the legacy `email` column.
+            const missing = computeMissingContractorFields(makeContractor({
+                email: null, canonical_email: 'owner@somecontractor.com', canonical_email_checked: true,
+            }));
+            expect(missing.map(f => f.key)).not.toContain('email');
+        });
+
+        it('reports Missing: Email on a checked detail row with no canonical email, even if a legacy address exists', () => {
+            // A legacy address alone (unusable/unresolved) must never mask
+            // a genuine "no usable canonical email" state once it has been
+            // authoritatively checked.
+            const missing = computeMissingContractorFields(makeContractor({
+                email: 'stale@example.com', canonical_email: null, canonical_email_checked: true,
+            }));
+            expect(missing.map(f => f.key)).toContain('email');
+        });
+
+        it('falls back to the legacy email field on an unchecked (list) row', () => {
+            const present = computeMissingContractorFields(makeContractor({
+                email: 'ops@acme.test', canonical_email: null, canonical_email_checked: false,
+            }));
+            expect(present.map(f => f.key)).not.toContain('email');
+
+            const missing = computeMissingContractorFields(makeContractor({
+                email: null, canonical_email: null, canonical_email_checked: false,
+            }));
+            expect(missing.map(f => f.key)).toContain('email');
+        });
+    });
 });

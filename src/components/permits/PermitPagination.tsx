@@ -12,22 +12,26 @@ interface PermitPaginationProps {
      * every existing Permit Records call site is unaffected. */
     itemLabel?: string;
     /** Largest page size this call site's backend endpoint actually accepts
-     * (Phase 9.7 P2-B) — every option above it is hidden from the dropdown
-     * so a caller can never select a size the API would 422 on. Defaults to
-     * 2000 (Permit Records' own cap, /api/v1/permits/search's le=2000) so
-     * every pre-existing call site is unaffected unless it opts into a
-     * lower cap explicitly. */
+     * — every option above it is hidden from the dropdown so a caller can
+     * never select a size the API would 422 on. Phase 11.4 (EHUB-MSA-05 /
+     * Master Spec rule 69 — "do not offer page sizes beyond API limits" /
+     * "bounded page sizes"): 500/1000/2000 were removed from the option set
+     * entirely, not just gated per call site — rendering hundreds or
+     * thousands of rows into the browser at once measurably degraded
+     * routine load times even where the backend itself accepted the
+     * request. Defaults to 100, the documented safe maximum used across
+     * every operational large queue in this codebase. */
     maxPageSize?: number;
 }
 
-const ALL_PAGE_SIZES = [10, 25, 50, 100, 500, 1000, 2000];
+const ALL_PAGE_SIZES = [10, 25, 50, 100];
 
 export default function PermitPagination({
     pagination,
     onPageChange,
     onPageSizeChange,
     itemLabel = 'permits',
-    maxPageSize = 2000,
+    maxPageSize = 100,
 }: PermitPaginationProps) {
     const { page, pageSize, totalRecords, totalPages, totalIsEstimate } = pagination;
     const PAGE_SIZES = ALL_PAGE_SIZES.filter((size) => size <= maxPageSize);

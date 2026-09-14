@@ -168,17 +168,37 @@ export default function ContractorVerificationPage() {
                                         <td className="px-4 py-3 text-[#0E2B5C]">{c.qualification_bucket ? `${c.qualification_bucket} · ${c.score != null ? Math.round(c.score) : '—'}` : '—'}</td>
                                         <td className="px-4 py-3 text-[#5B6B7D]">{c.reason.replace(/_/g, ' ')}</td>
                                         <td className="px-4 py-3 text-[#0E2B5C]">
-                                            {c.candidate_contractor ? c.candidate_contractor.name : <span className="text-[#5B6B7D]">None</span>}
+                                            {c.candidate_contractor ? (
+                                                <>
+                                                    {c.candidate_contractor.name}
+                                                    <div className="text-[11px] text-[#5B6B7D] mt-0.5">
+                                                        {c.candidate_contractor.licenses.length > 0
+                                                            ? c.candidate_contractor.licenses.map((l) => `${l.license_number}${l.jurisdiction ? ` (${l.jurisdiction})` : ''}`).join(', ')
+                                                            : 'No license on file'}
+                                                        {c.candidate_contractor.has_lead_bank_relationship && ' · in Lead Bank'}
+                                                    </div>
+                                                </>
+                                            ) : <span className="text-[#5B6B7D]">None</span>}
                                         </td>
                                         <td className="px-4 py-3">
                                             {(() => {
                                                 const strength = evidenceStrength(c);
                                                 return (
-                                                    <span
-                                                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${EVIDENCE_BADGE_CLASS[strength.level]}`}
-                                                        title={strength.label}
-                                                    >
-                                                        {strength.level === 'corroborated' ? strength.signals.join(', ') : strength.level === 'weak' ? 'Name only' : '—'}
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <span
+                                                            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${EVIDENCE_BADGE_CLASS[strength.level]}`}
+                                                            title={strength.label}
+                                                        >
+                                                            {strength.level === 'corroborated' ? strength.signals.join(', ') : strength.level === 'weak' ? 'Name only' : '—'}
+                                                        </span>
+                                                        {c.conflicts.length > 0 && (
+                                                            <span
+                                                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border bg-amber-50 text-amber-700 border-amber-200"
+                                                                title={`Conflicts: ${c.conflicts.join(', ')}`}
+                                                            >
+                                                                Conflict
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 );
                                             })()}

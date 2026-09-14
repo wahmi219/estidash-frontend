@@ -910,6 +910,17 @@ export interface ContractorRecord {
     emails?: ContractorEmail[];
     aliases?: string[];
     lead_bank?: ContractorLeadBankSummary | null;
+    // Contractor Contact Summary Consistency fix — the authoritative
+    // Contractor Master email state (backend get_eligible_contact_email(),
+    // sourced from the normalized contractor_emails child rows). NEVER
+    // derive "does this contractor have an email" from the legacy `email`
+    // field above — that column is preserved only as unverified source
+    // evidence. Always check `canonical_email_checked` before trusting
+    // canonical_email: both list rows (lookup never ran) and detail rows
+    // with genuinely no usable email serialize canonical_email as null,
+    // so null alone cannot distinguish them.
+    canonical_email?: string | null;
+    canonical_email_checked?: boolean;
 }
 
 /** One row from Contractor Master's emails list. Multiple may exist; at
@@ -1729,6 +1740,7 @@ export interface ContactTask {
     contractor_website: string | null;
     contractor_state_code: string | null;
     sibling_opportunity_count: number;
+    contact_summary: string | null;
     current_permit_id: string | null;
     current_permit_number: string | null;
     current_permit_type: string | null;
@@ -1941,7 +1953,11 @@ export interface ManualOutreachRelationshipDetail {
     contractor_id: string;
     company_name: string | null;
     primary_email: string | null;
+    primary_email_status: 'usable' | 'unusable' | 'none';
+    usable_contact_email: string | null;
     usable_alternative_email_count: number;
+    outreach_eligible: boolean;
+    outreach_ineligible_reasons: string[];
     phone: string | null;
     website: string | null;
     sales_owner_id: number | null;
@@ -1991,16 +2007,30 @@ export interface DueOutreachResponse {
 // Phase 9 Chunk 4 — Contractor Verification
 // ============================================================================
 
+export interface CandidateLicenseSummary {
+    license_number: string;
+    jurisdiction: string | null;
+    license_type: string | null;
+    status: string | null;
+}
+
 export interface CandidateContractorSummary {
     id: string;
     name: string;
     aliases: string[];
     license_number: string | null;
     license_type: string | null;
+    licenses: CandidateLicenseSummary[];
     phone: string | null;
     website: string | null;
+    address: string | null;
     state_code: string | null;
+    email: string | null;
+    email_status: 'usable' | 'unusable' | 'none';
+    permit_history_count: number;
     has_lead_bank_relationship: boolean;
+    crm_relationship_status: string | null;
+    crm_outreach_status: string | null;
 }
 
 export interface MatchCandidate {
@@ -2035,6 +2065,11 @@ export interface MatchCandidate {
     agency_id: string | null;
     agency_name: string | null;
     candidate_contractor: CandidateContractorSummary | null;
+    source_company: string | null;
+    source_phone: string | null;
+    source_email: string | null;
+    match_signals: string[];
+    conflicts: string[];
 }
 
 export interface MatchCandidateListResponse {

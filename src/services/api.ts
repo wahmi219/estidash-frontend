@@ -136,7 +136,20 @@ class ApiService {
             headers: {
                 'Content-Type': 'application/json',
             },
-            timeout: 120000, // 2 minutes for LLM queries
+            // Phase 11.4 (EHUB-MSA-05): 20s, not the old global 120s. A
+            // 2-minute default meant ANY routine list/detail/auth call that
+            // stalled (a dead connection, a blocked mixed-content request
+            // behind an HTTPS tunnel fronting a plain-HTTP backend, etc.)
+            // left the UI showing a bare, unexplained "Loading…" for up to
+            // two minutes with no error and no retry — this is the direct
+            // mechanism behind "Import Data remained on Loading… for more
+            // than 105 seconds" (AuthGuard's own refresh-token check, which
+            // every dashboard page waits on, was the thing actually stuck —
+            // Import Data itself makes no API calls at all). The few calls
+            // that genuinely need longer (LLM cost/analysis endpoints,
+            // large sync/import jobs) pass their own explicit `timeout`
+            // override per-request instead of relying on this default.
+            timeout: 20000,
         });
 
         this.setupInterceptors();
@@ -1004,7 +1017,7 @@ class ApiService {
         const response = await this.client.post('/agents/permit-analysis', {
             permit_data: params.permit_data,
             use_cache: params.use_cache ?? true,
-        });
+        }, { timeout: 120000 }); // LLM call — needs the long timeout the old global default provided
         return response.data;
     }
 
@@ -1027,7 +1040,7 @@ class ApiService {
             permit_data: params.permit_data,
             permit_id: params.permit_id,
             use_cache: params.use_cache ?? false,
-        });
+        }, { timeout: 120000 }); // LLM call — needs the long timeout the old global default provided
         return response.data;
     }
 
@@ -1119,7 +1132,7 @@ class ApiService {
             skipped_reason: string | null;
         } | null;
     }> {
-        const response = await this.client.post('/email-agent/generate-batch', params);
+        const response = await this.client.post('/email-agent/generate-batch', params, { timeout: 120000 }); // LLM batch generation
         return response.data;
     }
 

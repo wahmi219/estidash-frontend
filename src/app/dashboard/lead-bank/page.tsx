@@ -127,8 +127,18 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
     const [myLeadsOnly, setMyLeadsOnly] = useState(false);
     const [showDnc, setShowDnc] = useState(false);
     const [search, setSearch] = useState('');
+    // Phase 11.4 (EHUB-MSA-07): debounced so every keystroke doesn't fire a
+    // request, but the search itself is now server-side across the FULL
+    // queue (see the `q` param below) — not a client-side filter over
+    // whatever page happened to already be loaded.
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(100);
+
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+        return () => clearTimeout(t);
+    }, [search]);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -139,6 +149,7 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
             if (outreachStatus) params.outreach_status = outreachStatus;
             if (myLeadsOnly && currentUserId) params.sales_owner_id = currentUserId;
             if (!showDnc) params.dnc = false;
+            if (debouncedSearch) params.q = debouncedSearch;
             const data = await apiService.get<LeadBankRelationshipListResponse>('/lead-bank-v2/relationships', params);
             setItems(data.items);
             setTotal(data.total);
@@ -148,22 +159,19 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
         } finally {
             setLoading(false);
         }
-    }, [relationshipStatus, outreachStatus, myLeadsOnly, showDnc, currentUserId, page, pageSize]);
+    }, [relationshipStatus, outreachStatus, myLeadsOnly, showDnc, debouncedSearch, currentUserId, page, pageSize]);
 
     useEffect(() => { load(); }, [load]);
 
     // Reset to page 1 whenever a server-side filter changes.
-    useEffect(() => { setPage(1); }, [relationshipStatus, outreachStatus, myLeadsOnly, showDnc]);
+    useEffect(() => { setPage(1); }, [relationshipStatus, outreachStatus, myLeadsOnly, showDnc, debouncedSearch]);
 
     const pagination: PermitPaginationType = {
         page, pageSize, totalRecords: total,
         totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
 
-    const visible = search.trim()
-        ? items.filter((r) => (r.contractor_name ?? '').toLowerCase().includes(search.trim().toLowerCase())
-            || (r.contractor_email ?? '').toLowerCase().includes(search.trim().toLowerCase()))
-        : items;
+    const visible = items;
 
     return (
         <div>
@@ -173,7 +181,7 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search company or email (this page)"
+                        placeholder="Search company or email (all relationships)"
                         className="w-full pl-8 pr-3 py-1.5 text-sm border border-[#DFE6EE] rounded-lg focus-visible:ring-2 focus-visible:ring-[#00458B] outline-none"
                     />
                 </div>

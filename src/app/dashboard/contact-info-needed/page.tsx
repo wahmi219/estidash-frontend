@@ -218,10 +218,13 @@ export default function ContactInfoNeededPage() {
                                                 {t.contractor_name ?? 'Unknown'} <ExternalLink size={11} />
                                             </Link>
                                             <div className="text-[11px] text-[#5B6B7D] mt-0.5">
-                                                {t.contractor_phone ?? '—'} · {t.contractor_state_code ?? '—'}
+                                                {t.contact_summary ?? 'No usable email'}
                                                 {t.sibling_opportunity_count > 0 && (
-                                                    <span className="ml-1.5 px-1 py-0.5 bg-[#F7F9FB] border border-[#DFE6EE] rounded text-[10px]">+{t.sibling_opportunity_count} more</span>
+                                                    <span className="ml-1.5 px-1 py-0.5 bg-[#F7F9FB] border border-[#DFE6EE] rounded text-[10px]">+{t.sibling_opportunity_count} more opportunities</span>
                                                 )}
+                                            </div>
+                                            <div className="text-[11px] text-[#5B6B7D]">
+                                                {t.contractor_phone ?? '—'} · {t.contractor_state_code ?? '—'}
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
