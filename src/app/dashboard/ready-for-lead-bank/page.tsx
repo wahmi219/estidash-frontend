@@ -121,6 +121,11 @@ function ReadyForLeadBankPageInner() {
     const [bulkSummary, setBulkSummary] = useState<BulkAddToLeadBankResponse | null>(null);
     const [addingPermitId, setAddingPermitId] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    // Phase 11.7 (CFW-04): a permit just attached via this session's own
+    // action must stop looking newly actionable immediately, not only
+    // after load()'s refetch completes -- covers any refetch latency and
+    // makes the "already attached" state impossible to miss.
+    const [attachedPermitIds, setAttachedPermitIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         apiService.get<DataSourceOption[]>('/data-sources').then(setDataSources).catch(() => setDataSources([]));
@@ -196,10 +201,17 @@ function ReadyForLeadBankPageInner() {
         setActionError(null);
         setBulkSummary(null);
         try {
+            const submittedIds = Array.from(selected);
             const result = await apiService.post<BulkAddToLeadBankResponse>('/lead-bank-v2/opportunities/bulk', {
-                permit_ids: Array.from(selected),
+                permit_ids: submittedIds,
             });
             setBulkSummary(result);
+            setAttachedPermitIds((prev) => {
+                const next = new Set(prev);
+                submittedIds.forEach((id) => next.add(id));
+                return next;
+            });
+            setSelected(new Set());
             await load();
         } catch {
             setActionError('Bulk add failed. No opportunities were created.');
@@ -213,6 +225,7 @@ function ReadyForLeadBankPageInner() {
         setActionError(null);
         try {
             await apiService.post('/lead-bank-v2/opportunities', { permit_id: permitId });
+            setAttachedPermitIds((prev) => new Set(prev).add(permitId));
             await load();
         } catch {
             setActionError('Could not add this opportunity to Lead Bank.');
@@ -365,13 +378,19 @@ function ReadyForLeadBankPageInner() {
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-right">
-                                            <button
-                                                onClick={() => handleAddOne(item.permit_id)}
-                                                disabled={addingPermitId === item.permit_id}
-                                                className="flex items-center gap-1 text-xs text-[#00458B] hover:underline disabled:opacity-50 ml-auto"
-                                            >
-                                                <PlusCircle size={12} /> {item.lead_bank_status === 'existing' ? 'Add Opportunity' : 'Add to Lead Bank'}
-                                            </button>
+                                            {attachedPermitIds.has(item.permit_id) ? (
+                                                <span className="inline-flex items-center gap-1 text-xs text-green-700 ml-auto">
+                                                    <CheckSquare size={12} /> Attached
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleAddOne(item.permit_id)}
+                                                    disabled={addingPermitId === item.permit_id}
+                                                    className="flex items-center gap-1 text-xs text-[#00458B] hover:underline disabled:opacity-50 ml-auto"
+                                                >
+                                                    <PlusCircle size={12} /> {item.lead_bank_status === 'existing' ? 'Add Opportunity' : 'Add to Lead Bank'}
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
