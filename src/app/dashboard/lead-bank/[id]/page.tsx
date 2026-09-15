@@ -190,8 +190,12 @@ export default function LeadBankRelationshipDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <Field label="Company">{detail.company_name ?? '—'}</Field>
-                    <Field label="Friendly ID">{detail.contractor_friendly_id ?? '—'}</Field>
-                    <Field label="Contractor ID"><span className="font-mono text-xs">{detail.contractor_id}</span></Field>
+                    {/* Phase 11.9 — one visible Contractor ID only (the
+                        EH-####### permanent identifier); the internal UUID
+                        (detail.contractor_id) stays in the profile link's
+                        href above and never renders on this normal
+                        operational screen. */}
+                    <Field label="Contractor ID">{detail.contractor_friendly_id ?? '—'}</Field>
                     <Field label="Phone">{detail.phone ?? '—'}</Field>
                     <Field label="Website">{detail.website ?? '—'}</Field>
                     <Field label="Primary Email">
