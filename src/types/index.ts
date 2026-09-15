@@ -1994,6 +1994,9 @@ export interface ManualOutreachRelationshipDetail {
     sales_owner_name: string | null;
     relationship_status: RelationshipStatus;
     outreach_status: OutreachStatus;
+    archived_at: string | null;
+    archived_by: string | null;
+    archived_reason: string | null;
     previously_contacted_new_project: boolean;
     primary_opportunity_id: string | null;
     permit_number: string | null;

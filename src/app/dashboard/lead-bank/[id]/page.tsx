@@ -3,18 +3,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useSelector } from 'react-redux';
 import {
     Wallet, ExternalLink, ArrowLeft, AlertCircle, PlayCircle, Send, Ban,
-    ThumbsUp, ThumbsDown, MailWarning, StopCircle, UserCheck, Star,
+    ThumbsUp, ThumbsDown, MailWarning, StopCircle, UserCheck, Star, Archive,
 } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import SectionHeading from '@/components/common/SectionHeading';
+import ConfirmModal from '@/components/common/ConfirmModal';
 import { apiService } from '@/services/api';
 import type {
     ManualOutreachRelationshipDetail, LeadOpportunityListResponse, LeadBankHistoryResponse,
     OutreachWorkflowDetail, ContractorRecord,
 } from '@/types';
 import { primaryIneligibleReason, describeIneligibleReasons } from '@/lib/outreachEligibility';
+import { hasRole } from '@/lib/roles';
+import type { RootState } from '@/store/store';
 
 const RELATIONSHIP_STATUS_OPTIONS = [
     'prospect', 'warm_lead', 'active_opportunity', 'active_client',
@@ -43,6 +47,9 @@ export default function LeadBankRelationshipDetailPage() {
     const [error, setError] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [showArchiveModal, setShowArchiveModal] = useState(false);
+    const { user: me } = useSelector((s: RootState) => s.auth);
+    const canArchive = hasRole(me?.role ?? 'viewer', 'admin');
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -72,6 +79,12 @@ export default function LeadBankRelationshipDetailPage() {
     }, [relationshipId]);
 
     useEffect(() => { load(); }, [load]);
+
+    async function handleArchive(reason?: string) {
+        await apiService.post(`/lead-bank-v2/relationships/${relationshipId}/archive`, { reason });
+        setShowArchiveModal(false);
+        await load();
+    }
 
     async function runAction(fn: () => Promise<unknown>, confirmMsg?: string) {
         if (confirmMsg && !window.confirm(confirmMsg)) return;
@@ -107,14 +120,57 @@ export default function LeadBankRelationshipDetailPage() {
             <Link href="/dashboard/lead-bank" className="inline-flex items-center gap-1.5 text-sm text-[#5B6B7D] hover:text-[#00458B]">
                 <ArrowLeft size={14} /> Back to Lead Bank
             </Link>
-            <PageHeader
-                icon={Wallet}
-                title={detail.company_name ?? 'Lead Bank Relationship'}
-                subtitle={`Relationship ${detail.relationship_id}`}
-            />
+            <div className="flex items-start justify-between gap-4">
+                <PageHeader
+                    icon={Wallet}
+                    title={detail.company_name ?? 'Lead Bank Relationship'}
+                    subtitle={`Relationship ${detail.relationship_id}`}
+                />
+                {canArchive && !detail.archived_at && (
+                    <button
+                        onClick={() => setShowArchiveModal(true)}
+                        className="shrink-0 mt-1 flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg px-3 py-1.5"
+                    >
+                        <Archive size={13} /> Archive Relationship
+                    </button>
+                )}
+            </div>
 
             {actionError && (
                 <div className="px-4 py-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{actionError}</div>
+            )}
+
+            {detail.archived_at && (
+                <div className="px-4 py-3 bg-gray-100 border border-gray-300 text-gray-700 text-sm rounded-lg flex items-start gap-2">
+                    <Archive size={15} className="shrink-0 mt-0.5" />
+                    <div>
+                        <span className="font-medium">Archived</span> {fmtDateTime(detail.archived_at)} by {detail.archived_by ?? 'unknown'}.
+                        {detail.archived_reason && <> Reason: {detail.archived_reason}</>}
+                        {' '}This relationship is hidden from active Lead Bank views/counts and outreach is blocked. It preserves all history
+                        and will only re-enter Lead Bank if a genuinely new qualified opportunity is added for this contractor.
+                    </div>
+                </div>
+            )}
+
+            {showArchiveModal && (
+                <ConfirmModal
+                    title="Archive this Lead Bank relationship?"
+                    consequences={
+                        <>
+                            This is an administrative correction, not a delete. It removes this relationship from active Lead Bank
+                            views/counts and blocks outreach on it. The Contractor, its opportunities, permits, contact/email history,
+                            CRM status, and audit history are all preserved. It will only re-enter Lead Bank through a genuinely new
+                            qualified opportunity — never automatically.
+                        </>
+                    }
+                    affectedEstimate="1 relationship"
+                    requireReason
+                    reasonLabel="Reason for archiving"
+                    confirmLabel="Archive Relationship"
+                    confirmVariant="danger"
+                    onCancel={() => setShowArchiveModal(false)}
+                    onConfirm={(reason) => handleArchive(reason)}
+                />
             )}
 
             {detail.previously_contacted_new_project && (
