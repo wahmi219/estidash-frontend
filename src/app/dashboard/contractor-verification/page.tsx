@@ -171,6 +171,9 @@ export default function ContractorVerificationPage() {
                                             {c.candidate_contractor ? (
                                                 <>
                                                     {c.candidate_contractor.name}
+                                                    {c.candidate_contractor.friendly_id && (
+                                                        <div className="text-[11px] text-[#5B6B7D] font-mono">{c.candidate_contractor.friendly_id}</div>
+                                                    )}
                                                     <div className="text-[11px] text-[#5B6B7D] mt-0.5">
                                                         {c.candidate_contractor.licenses.length > 0
                                                             ? c.candidate_contractor.licenses.map((l) => `${l.license_number}${l.jurisdiction ? ` (${l.jurisdiction})` : ''}`).join(', ')

@@ -347,6 +347,9 @@ function ReadyForLeadBankPageInner() {
                                             <Link href={`/dashboard/contractors/${item.contractor_id}`} className="text-[#00458B] hover:text-[#045CB4] font-medium flex items-center gap-1">
                                                 {item.contractor_name} <ExternalLink size={11} />
                                             </Link>
+                                            {item.contractor_friendly_id && (
+                                                <div className="text-[11px] text-[#5B6B7D] font-mono">{item.contractor_friendly_id}</div>
+                                            )}
                                             <div className="text-[11px] text-[#5B6B7D] mt-0.5">{item.contractor_phone ?? '—'}</div>
                                         </td>
                                         <td className="px-4 py-3">

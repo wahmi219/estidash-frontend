@@ -247,6 +247,9 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
                                             <Link href={`/dashboard/lead-bank/${r.id}`} className="text-[#00458B] hover:text-[#045CB4] font-medium flex items-center gap-1">
                                                 {r.contractor_name ?? 'Unknown'} <ExternalLink size={11} />
                                             </Link>
+                                            {r.contractor_friendly_id && (
+                                                <div className="text-[11px] text-[#5B6B7D] font-mono">{r.contractor_friendly_id}</div>
+                                            )}
                                             <div className="text-[11px] text-[#5B6B7D] mt-0.5">{r.contractor_email ?? '—'} · {r.contractor_state_code ?? '—'}</div>
                                         </td>
                                         <td className="px-4 py-3">

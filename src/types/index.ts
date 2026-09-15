@@ -903,6 +903,7 @@ export interface ContractorPermitSummary {
 
 export interface ContractorRecord {
     id: string;
+    friendly_id: string | null;
     name: string;
     license_number: string | null;
     license_type: string | null;
@@ -1761,6 +1762,7 @@ export interface ContactTask {
     updated_at: string;
     // Enriched (backend commit d0391ca) — never on the raw task row itself.
     contractor_name: string | null;
+    contractor_friendly_id: string | null;
     contractor_phone: string | null;
     contractor_website: string | null;
     contractor_state_code: string | null;
@@ -1793,6 +1795,7 @@ export interface ReadyForLeadBankItem {
     permit_number: string;
     contractor_id: string;
     contractor_name: string;
+    contractor_friendly_id: string | null;
     contractor_phone: string | null;
     contractor_website: string | null;
     primary_email: string | null;
@@ -1865,6 +1868,7 @@ export interface LeadBankRelationship {
     // Enriched (backend commit "Lead Bank + Verification enrichment") --
     // batched per page, never on the raw relationship row itself.
     contractor_name: string | null;
+    contractor_friendly_id: string | null;
     contractor_email: string | null;
     contractor_phone: string | null;
     contractor_state_code: string | null;
@@ -1977,6 +1981,7 @@ export interface ManualOutreachRelationshipDetail {
     relationship_id: string;
     contractor_id: string;
     company_name: string | null;
+    contractor_friendly_id: string | null;
     primary_email: string | null;
     primary_email_status: 'usable' | 'unusable' | 'legacy_unverified' | 'none';
     usable_contact_email: string | null;
@@ -2041,6 +2046,7 @@ export interface CandidateLicenseSummary {
 
 export interface CandidateContractorSummary {
     id: string;
+    friendly_id: string | null;
     name: string;
     aliases: string[];
     license_number: string | null;
@@ -2051,7 +2057,7 @@ export interface CandidateContractorSummary {
     address: string | null;
     state_code: string | null;
     email: string | null;
-    email_status: 'usable' | 'unusable' | 'none';
+    email_status: 'usable' | 'unusable' | 'legacy_unverified' | 'none';
     permit_history_count: number;
     has_lead_bank_relationship: boolean;
     crm_relationship_status: string | null;

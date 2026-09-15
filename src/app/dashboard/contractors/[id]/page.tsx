@@ -324,6 +324,9 @@ export default function ContractorDetailPage() {
                             </h1>
                             <NameQualityFlag value={contractor.name_quality} />
                         </div>
+                        {contractor.friendly_id && (
+                            <div className="text-xs text-[#5B6B7D] font-mono">{contractor.friendly_id}</div>
+                        )}
                         {contractor.name_quality === 'questionable' && (
                             <p className="text-xs text-amber-700">
                                 This name may not be a real business name — it looks like it came from bad source data during ingestion, not a real contractor. Shown as recorded.

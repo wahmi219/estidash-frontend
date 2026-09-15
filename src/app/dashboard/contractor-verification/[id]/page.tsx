@@ -157,6 +157,9 @@ export default function VerificationCandidateDetailPage() {
                                     {candidate.candidate_contractor.name}
                                 </Link>
                             </Field>
+                            {candidate.candidate_contractor.friendly_id && (
+                                <Field label="Friendly ID">{candidate.candidate_contractor.friendly_id}</Field>
+                            )}
                             {candidate.candidate_contractor.aliases.length > 0 && (
                                 <Field label="Known Aliases">{candidate.candidate_contractor.aliases.join(', ')}</Field>
                             )}

@@ -217,6 +217,9 @@ export default function ContactInfoNeededPage() {
                                             <Link href={`/dashboard/contractors/${t.contractor_id}`} className="text-[#00458B] hover:text-[#045CB4] font-medium flex items-center gap-1">
                                                 {t.contractor_name ?? 'Unknown'} <ExternalLink size={11} />
                                             </Link>
+                                            {t.contractor_friendly_id && (
+                                                <div className="text-[11px] text-[#5B6B7D] font-mono">{t.contractor_friendly_id}</div>
+                                            )}
                                             <div className="text-[11px] text-[#5B6B7D] mt-0.5">
                                                 {t.contact_summary ?? 'No usable email'}
                                                 {t.sibling_opportunity_count > 0 && (

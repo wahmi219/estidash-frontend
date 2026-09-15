@@ -94,6 +94,9 @@ function ContractorRow({ contractor }: { contractor: ContractorRecord }) {
                     </span>
                     <NameQualityFlag value={contractor.name_quality} />
                 </div>
+                {contractor.friendly_id && (
+                    <div className="text-[11px] text-[#5B6B7D] font-mono mt-0.5">{contractor.friendly_id}</div>
+                )}
                 {types.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                         {types.map((t, i) => (

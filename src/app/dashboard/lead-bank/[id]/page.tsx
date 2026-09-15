@@ -134,6 +134,7 @@ export default function LeadBankRelationshipDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <Field label="Company">{detail.company_name ?? '—'}</Field>
+                    <Field label="Friendly ID">{detail.contractor_friendly_id ?? '—'}</Field>
                     <Field label="Contractor ID"><span className="font-mono text-xs">{detail.contractor_id}</span></Field>
                     <Field label="Phone">{detail.phone ?? '—'}</Field>
                     <Field label="Website">{detail.website ?? '—'}</Field>
