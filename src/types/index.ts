@@ -1978,7 +1978,7 @@ export interface ManualOutreachRelationshipDetail {
     contractor_id: string;
     company_name: string | null;
     primary_email: string | null;
-    primary_email_status: 'usable' | 'unusable' | 'none';
+    primary_email_status: 'usable' | 'unusable' | 'legacy_unverified' | 'none';
     usable_contact_email: string | null;
     usable_alternative_email_count: number;
     outreach_eligible: boolean;

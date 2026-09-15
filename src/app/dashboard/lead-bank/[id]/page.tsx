@@ -146,11 +146,16 @@ export default function LeadBankRelationshipDetailPage() {
                                         Unusable
                                     </span>
                                 )}
+                                {detail.primary_email_status === 'legacy_unverified' && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border bg-gray-100 text-gray-600 border-gray-300">
+                                        Legacy — Not Verified
+                                    </span>
+                                )}
                             </span>
                         ) : '—'}
                     </Field>
                     <Field label="Alternate Usable Emails">{detail.usable_alternative_email_count}</Field>
-                    {detail.primary_email_status === 'unusable' && detail.usable_contact_email && (
+                    {(detail.primary_email_status === 'unusable' || detail.primary_email_status === 'legacy_unverified') && detail.usable_contact_email && (
                         <Field label="Usable Contact Email">{detail.usable_contact_email}</Field>
                     )}
                 </div>
@@ -158,6 +163,14 @@ export default function LeadBankRelationshipDetailPage() {
                     <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                         The historically-designated primary email is unusable. EHUB never automatically contacts another
                         address — if no usable email remains, this contractor routes to Contact Info Needed.
+                    </p>
+                )}
+                {detail.primary_email_status === 'legacy_unverified' && (
+                    <p className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                        This address comes from a legacy source field and has not been accepted into the contractor&apos;s
+                        normalized contact record. It is shown as evidence only — EHUB does not treat it as a usable
+                        contact until it is added under Emails on the contractor&apos;s profile, so this contractor routes
+                        to Contact Info Needed until then.
                     </p>
                 )}
             </section>
