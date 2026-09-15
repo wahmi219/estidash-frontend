@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '@/services/api';
 import PageHeader from '@/components/common/PageHeader';
+import ConfirmModal from '@/components/common/ConfirmModal';
 import type { ScoringRubricDetail, ScoringStats, SampleScoreResult, CostEstimateStats } from '@/types';
 
 type Status = 'idle' | 'saving' | 'saved' | 'error';
@@ -116,6 +117,7 @@ function CostBackfillCard() {
     const [concurrency, setConcurrency] = useState(6);
     const [maxTotal, setMaxTotal] = useState<number | ''>('');
     const [showOpts, setShowOpts] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const load = useCallback(async () => {
         try { setStats(await apiService.getCostEstimateStats()); } catch { /* ignore */ }
@@ -123,18 +125,14 @@ function CostBackfillCard() {
     }, []);
     useEffect(() => { load(); }, [load]);
 
+    const cap = typeof maxTotal === 'number' && maxTotal > 0 ? maxTotal : 200000;
+    const remaining = stats?.remaining_unestimated;
+    const fillImpact = remaining != null
+        ? `up to ${Math.min(cap, remaining).toLocaleString()} permits (${remaining.toLocaleString()} currently missing a cost)`
+        : `up to ${cap.toLocaleString()} permits`;
+
     const run = async () => {
-        // Phase 11.3 (P1 — "High-impact Settings actions lack visible
-        // safeguards before interaction"): this calls a real, potentially
-        // long-running AI cost-estimation service across up to
-        // max_total permits (200,000 by default) — it previously had NO
-        // confirmation at all, unlike Reset below.
-        const cap = typeof maxTotal === 'number' && maxTotal > 0 ? maxTotal : 200000;
-        const remaining = stats?.remaining_unestimated;
-        const impact = remaining != null
-            ? `up to ${Math.min(cap, remaining).toLocaleString()} permits (${remaining.toLocaleString()} currently missing a cost)`
-            : `up to ${cap.toLocaleString()} permits`;
-        if (!confirm(`Run AI cost estimation against ${impact}, scoring ≥ ${minScore}? This calls a real external AI service and re-scores each permit it touches.`)) return;
+        setShowConfirm(false);
         setRunning(true); setMsg(null);
         try {
             const res = await apiService.runBulkCostEstimation({
@@ -166,6 +164,17 @@ function CostBackfillCard() {
 
     return (
         <div className="mb-6 rounded-lg border border-[#DFE6EE] bg-white p-5">
+            {showConfirm && (
+                <ConfirmModal
+                    title="Run AI cost estimation now?"
+                    consequences={`This calls a real external AI service and re-scores each permit it touches, scoring ≥ ${minScore}.`}
+                    affectedEstimate={fillImpact}
+                    confirmLabel="Fill costs now"
+                    confirmVariant="primary"
+                    onCancel={() => setShowConfirm(false)}
+                    onConfirm={run}
+                />
+            )}
             <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                     <h2 className="text-sm font-semibold text-[#0E2B5C] flex items-center gap-1.5">
@@ -190,7 +199,7 @@ function CostBackfillCard() {
                         className="px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-white border border-[#DFE6EE] text-[#5B6B7D] hover:bg-[#F7F9FB] hover:text-[#0E2B5C]">
                         {showOpts ? <ChevronUp size={12} /> : <ChevronDown size={12} />} Options
                     </button>
-                    <button onClick={run} disabled={busy}
+                    <button onClick={() => setShowConfirm(true)} disabled={busy}
                         className="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 bg-[#00458B] hover:bg-[#045CB4] text-white disabled:opacity-60">
                         {busy ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />}
                         {busy ? 'Estimating…' : 'Fill costs now'}
@@ -308,6 +317,11 @@ export default function PermitScoringPage() {
     const [sampleRunning, setSampleRunning] = useState(false);
     const [sampleResults, setSampleResults] = useState<SampleScoreResult[] | null>(null);
     const [sampleError, setSampleError] = useState<string | null>(null);
+    // Phase 11.7 (CFW-05): which high-impact action is pending an in-app
+    // confirmation, replacing native confirm() -- a native confirm()
+    // blocks the whole tab and, per the Phase 11 Controlled Functional
+    // Workflow Test, can wedge automated/remote browser control entirely.
+    const [pendingConfirm, setPendingConfirm] = useState<'save' | 'reset' | 'run' | null>(null);
 
     const dirty = !!content && !!rubric && JSON.stringify(content) !== JSON.stringify(rubric.content);
 
@@ -342,13 +356,14 @@ export default function PermitScoringPage() {
     const set = (path: (string | number)[], value: unknown) =>
         setContent((c) => (c ? setByPath(c, path, value) : c));
 
-    const handleSave = async () => {
+    const handleSave = () => {
         if (!content) return;
-        // Phase 11.3 (P1 — no confirmation existed for Save Version at
-        // all): this creates a new active rubric version immediately
-        // affecting every future scoring run (live ingestion and
-        // backfills alike) — never previously confirmed before saving.
-        if (!confirm('Save this as the new active scoring rubric version? Every future scoring run (live ingestion and backfills) will use these values immediately.')) return;
+        setPendingConfirm('save');
+    };
+
+    const doSave = async () => {
+        if (!content) return;
+        setPendingConfirm(null);
         setStatus('saving'); setErrorMsg(null);
         try {
             const updated = await apiService.updateScoringRubric(content);
@@ -363,8 +378,10 @@ export default function PermitScoringPage() {
         }
     };
 
-    const handleReset = async () => {
-        if (!confirm('Reset the rubric to the default v5.0 values? This creates a new active version.')) return;
+    const handleReset = () => setPendingConfirm('reset');
+
+    const doReset = async () => {
+        setPendingConfirm(null);
         setStatus('saving');
         try {
             const updated = await apiService.resetScoringRubric();
@@ -390,18 +407,16 @@ export default function PermitScoringPage() {
         }
     };
 
-    const handleRun = async () => {
-        // Phase 11.3 (P1 — "Fill Costs and Run Scoring have Options, but
-        // no visible dry-run/impact summary until interaction"): this
-        // runs a real bulk-scoring pass across every not-yet-scored
-        // permit (or up to runLimit) — previously started with zero
-        // confirmation or estimate.
-        const impact = runLimit !== ''
-            ? `up to ${runLimit.toLocaleString()} permits`
-            : stats
-                ? `all ${stats.never_processed.toLocaleString()} not-yet-processed permits`
-                : 'all not-yet-processed permits';
-        if (!confirm(`Run scoring against ${impact} using rubric v${stats?.rubric_version ?? rubric?.version ?? '?'}? This writes score_bucket/lead_score to the live permit_records table.`)) return;
+    const runImpact = runLimit !== ''
+        ? `up to ${runLimit.toLocaleString()} permits`
+        : stats
+            ? `all ${stats.never_processed.toLocaleString()} not-yet-processed permits`
+            : 'all not-yet-processed permits';
+
+    const handleRun = () => setPendingConfirm('run');
+
+    const doRun = async () => {
+        setPendingConfirm(null);
         setRunning(true); setRunMsg(null);
         try {
             const res = await apiService.runPermitScoring({
@@ -473,6 +488,36 @@ export default function PermitScoringPage() {
 
     return (
         <div className="p-6 lg:p-8 max-w-6xl mx-auto">
+            {pendingConfirm === 'save' && (
+                <ConfirmModal
+                    title="Save new active scoring rubric version?"
+                    consequences="Every future scoring run — live ingestion and backfills alike — will use these values immediately."
+                    confirmLabel="Save Version"
+                    confirmVariant="primary"
+                    onCancel={() => setPendingConfirm(null)}
+                    onConfirm={doSave}
+                />
+            )}
+            {pendingConfirm === 'reset' && (
+                <ConfirmModal
+                    title="Reset rubric to default v5.0 values?"
+                    consequences="This creates a new active version from the default v5.0 values. Your unsaved edits above will be discarded."
+                    confirmLabel="Reset"
+                    onCancel={() => setPendingConfirm(null)}
+                    onConfirm={doReset}
+                />
+            )}
+            {pendingConfirm === 'run' && (
+                <ConfirmModal
+                    title="Run scoring now?"
+                    consequences={`This writes score_bucket/lead_score to the live permit_records table using rubric v${stats?.rubric_version ?? rubric?.version ?? '?'}.`}
+                    affectedEstimate={runImpact}
+                    confirmLabel="Run Scoring"
+                    confirmVariant="primary"
+                    onCancel={() => setPendingConfirm(null)}
+                    onConfirm={doRun}
+                />
+            )}
             <PageHeader
                 icon={Gauge}
                 title="Permit Qualification"
