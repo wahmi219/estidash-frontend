@@ -189,9 +189,11 @@ export default function VerificationCandidateDetailPage() {
                                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${
                                             candidate.candidate_contractor.email_status === 'usable'
                                                 ? 'bg-green-50 text-green-700 border-green-200'
-                                                : 'bg-red-50 text-red-700 border-red-200'
+                                                : candidate.candidate_contractor.email_status === 'legacy_unverified'
+                                                    ? 'bg-gray-100 text-gray-600 border-gray-300'
+                                                    : 'bg-red-50 text-red-700 border-red-200'
                                         }`}>
-                                            {candidate.candidate_contractor.email_status}
+                                            {candidate.candidate_contractor.email_status === 'legacy_unverified' ? 'legacy — not verified' : candidate.candidate_contractor.email_status}
                                         </span>
                                     </span>
                                 ) : 'Unavailable'}
