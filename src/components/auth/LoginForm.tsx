@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -18,6 +18,19 @@ export default function LoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    // Phase 11.12 M1 — null while unknown (or if the probe fails), so the
+    // notice renders only once we can say something true about it.
+    const [deviceCheckEnabled, setDeviceCheckEnabled] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        authService.capabilities().then((caps) => {
+            if (!cancelled && caps) setDeviceCheckEnabled(caps.device_check_enabled);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
@@ -152,11 +165,18 @@ export default function LoginForm() {
                 </button>
             </form>
 
-            {/* Device notice — only visible when device check could be relevant */}
-            <p className="mt-6 text-center text-xs text-[#5B6B7D] flex items-center justify-center gap-1.5">
-                <Smartphone size={11} />
-                Signing in from a new device will require admin approval
-            </p>
+            {/* Phase 11.12 M1 — device notice, shown ONLY when this
+                deployment actually enforces device approval. Previously
+                hardcoded, which contradicted User Management's (correct)
+                "Device enforcement is disabled in this environment". While
+                the setting is unknown, or enforcement is off, nothing is
+                claimed. */}
+            {deviceCheckEnabled === true && (
+                <p className="mt-6 text-center text-xs text-[#5B6B7D] flex items-center justify-center gap-1.5">
+                    <Smartphone size={11} />
+                    Signing in from a new device will require admin approval
+                </p>
+            )}
         </motion.div>
     );
 }

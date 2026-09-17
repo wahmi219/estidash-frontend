@@ -52,6 +52,23 @@ const authClient = axios.create({
 });
 
 export const authService = {
+    /**
+     * Phase 11.12 M1 — what this deployment's auth actually enforces, so
+     * the sign-in screen can describe it rather than assert a hardcoded
+     * policy. Unauthenticated by design (the form renders before anyone
+     * has credentials). Never throws: if this cannot be reached, the
+     * caller falls back to saying nothing, which is the honest default —
+     * a promise about device approval is worse than no promise.
+     */
+    async capabilities(): Promise<{ device_check_enabled: boolean; environment: string } | null> {
+        try {
+            const response = await authClient.get('/auth/capabilities');
+            return response.data;
+        } catch {
+            return null;
+        }
+    },
+
     async login(email: string, password: string): Promise<LoginResult> {
         const response = await authClient.post('/auth/login', { email, password });
         if (response.status === 202) {
