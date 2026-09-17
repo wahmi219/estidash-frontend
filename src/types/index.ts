@@ -855,6 +855,13 @@ export interface PermitsState {
     lastFetchParams: string | null;
     lastFetchedAt: string | null;
 
+    // Phase 11.12 H1 — the requestId of the most recently STARTED permits
+    // fetch. A response whose requestId is not this one is a superseded
+    // in-flight request and must be discarded, never rendered. See the
+    // fetchPermits reducers for why recomputing the query key at
+    // fulfilment time was not a sufficient guard on its own.
+    currentRequestId: string | null;
+
     // Per-query page cache — keyed by JSON-serialised query params.
     // Lets back/forward pagination return instantly from memory.
     pageCache: Record<string, PageCacheEntry>;

@@ -68,6 +68,7 @@ const initialState: PermitsState = {
     error: null,
     lastFetchParams: null,
     lastFetchedAt: null,
+    currentRequestId: null,
     pageCache: {},
     availableCities: [],
     availableCounties: [],
@@ -355,7 +356,12 @@ const permitsSlice = createSlice({
     },
     extraReducers: (builder) => {
         // Fetch Permits
-        builder.addCase(fetchPermits.pending, (state) => {
+        builder.addCase(fetchPermits.pending, (state, action) => {
+            // Phase 11.12 H1 — claim latest-request ownership. Every
+            // dispatch supersedes whatever was in flight before it, so
+            // only the newest request may write results.
+            state.currentRequestId = action.meta.requestId;
+
             // Only show the loading spinner for genuine network fetches.
             // When the thunk body will serve this query from the page cache,
             // we skip the loading state so the current items remain visible
@@ -369,6 +375,31 @@ const permitsSlice = createSlice({
         });
 
         builder.addCase(fetchPermits.fulfilled, (state, action) => {
+            // ── Phase 11.12 H1: stale-response guard ────────────────────
+            // THE BUG. Searching for "EXT-4c560ad2" could render a permit
+            // that does not match it, while loading the same query as a
+            // fresh URL returned the right record. Typing produces several
+            // overlapping requests; responses can arrive out of order, and
+            // this reducer both rendered whatever arrived last AND wrote it
+            // into pageCache under a key recomputed from CURRENT state —
+            // so an older response was stored under the newer query's key
+            // and then served from cache, which is why the wrong row
+            // persisted rather than flickering.
+            //
+            // Recomputing the key at fulfilment time is what made this
+            // unfixable from inside the reducer: by then the params that
+            // produced `action.payload` are gone. Tracking the newest
+            // requestId instead lets a superseded response be recognised
+            // and dropped, whatever order it lands in.
+            // Only a request that another request has actually superseded
+            // is dropped. A null currentRequestId means nothing newer ever
+            // claimed ownership, so there is no conflict to resolve and the
+            // response is accepted — this keeps the guard from rejecting a
+            // legitimate result in any flow that resolves without a
+            // recorded pending.
+            if (state.currentRequestId !== null && state.currentRequestId !== action.meta.requestId) {
+                return;
+            }
             state.status = 'succeeded';
             state.items = action.payload.data;
             state.pagination.totalRecords = action.payload.total;
@@ -404,6 +435,12 @@ const permitsSlice = createSlice({
         });
 
         builder.addCase(fetchPermits.rejected, (state, action) => {
+            // Same H1 guard: a superseded request failing (including an
+            // abort) must not put the page into an error state that the
+            // still-in-flight current request is about to resolve anyway.
+            if (state.currentRequestId !== null && state.currentRequestId !== action.meta.requestId) {
+                return;
+            }
             state.status = 'failed';
             state.error = action.payload?.message || 'Failed to fetch permits';
         });

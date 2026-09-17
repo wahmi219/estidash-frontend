@@ -96,3 +96,106 @@ describe('permitsSlice — Latest Sync drill-down (EHUB Latest Sync Dashboard Dr
         expect(state.filters.qualification).toBe('qualified');
     });
 });
+
+// ---------------------------------------------------------------------------
+// Phase 11.12 H1 (Part T item 15) — a superseded search response can never
+// be rendered.
+//
+// The audit reproduced this by typing a permit number: the table briefly
+// showed a permit that did not match the query, while the same query loaded
+// as a fresh URL returned the correct record. These tests drive the reducer
+// directly with out-of-order requestIds, which is the condition rapid typing
+// produces and which no amount of debouncing removes.
+// ---------------------------------------------------------------------------
+
+function permitRow(permitNumber: string) {
+    return { id: `id-${permitNumber}`, permit_number: permitNumber } as never;
+}
+
+function searchResponse(permitNumber: string): PermitSearchResponse {
+    return {
+        data: [permitRow(permitNumber)],
+        total: 1,
+        total_is_estimate: false,
+        sync_batch: null,
+        limit: 25,
+        offset: 0,
+    } as PermitSearchResponse;
+}
+
+describe('permitsSlice — H1 stale search response guard', () => {
+    it('renders the newest request’s results', () => {
+        let state = initial();
+        state = permitsReducer(state, fetchPermits.pending('req-1', undefined));
+        state = permitsReducer(
+            state,
+            fetchPermits.fulfilled(searchResponse('EXT-4c560ad2'), 'req-1', undefined),
+        );
+        expect(state.items).toHaveLength(1);
+        expect((state.items[0] as { permit_number: string }).permit_number).toBe('EXT-4c560ad2');
+        expect(state.status).toBe('succeeded');
+    });
+
+    it('drops an older response that resolves AFTER a newer request started', () => {
+        let state = initial();
+        // Two overlapping searches: the user kept typing.
+        state = permitsReducer(state, fetchPermits.pending('req-old', undefined));
+        state = permitsReducer(state, fetchPermits.pending('req-new', undefined));
+
+        // The first request's response arrives late.
+        state = permitsReducer(
+            state,
+            fetchPermits.fulfilled(searchResponse('EXT-STALE-NONMATCH'), 'req-old', undefined),
+        );
+
+        // It must not have been rendered, and must not have been cached.
+        expect(state.items).toHaveLength(0);
+        expect(Object.keys(state.pageCache)).toHaveLength(0);
+
+        // The newer response still lands normally.
+        state = permitsReducer(
+            state,
+            fetchPermits.fulfilled(searchResponse('EXT-4c560ad2'), 'req-new', undefined),
+        );
+        expect((state.items[0] as { permit_number: string }).permit_number).toBe('EXT-4c560ad2');
+    });
+
+    it('does not let a superseded response overwrite results already rendered', () => {
+        let state = initial();
+        state = permitsReducer(state, fetchPermits.pending('req-old', undefined));
+        state = permitsReducer(state, fetchPermits.pending('req-new', undefined));
+        state = permitsReducer(
+            state,
+            fetchPermits.fulfilled(searchResponse('EXT-4c560ad2'), 'req-new', undefined),
+        );
+        // Now the abandoned request finally answers.
+        state = permitsReducer(
+            state,
+            fetchPermits.fulfilled(searchResponse('EXT-STALE-NONMATCH'), 'req-old', undefined),
+        );
+        expect((state.items[0] as { permit_number: string }).permit_number).toBe('EXT-4c560ad2');
+    });
+
+    it('ignores a superseded rejection so the page does not flash an error', () => {
+        let state = initial();
+        state = permitsReducer(state, fetchPermits.pending('req-old', undefined));
+        state = permitsReducer(state, fetchPermits.pending('req-new', undefined));
+        state = permitsReducer(
+            state,
+            fetchPermits.rejected(new Error('aborted'), 'req-old', undefined),
+        );
+        expect(state.status).not.toBe('failed');
+        expect(state.error).toBeNull();
+    });
+
+    it('still reports a genuine failure of the current request', () => {
+        let state = initial();
+        state = permitsReducer(state, fetchPermits.pending('req-1', undefined));
+        state = permitsReducer(
+            state,
+            fetchPermits.rejected(new Error('boom'), 'req-1', undefined),
+        );
+        expect(state.status).toBe('failed');
+        expect(state.error).toBeTruthy();
+    });
+});
