@@ -322,7 +322,9 @@ class ApiService {
             },
         });
 
-        logger.info('File uploaded successfully', response.data, this.context);
+        // Phase 11.12 K1: a summary, not the whole response body — an
+        // upload result echoes back parsed row data.
+        logger.info('File uploaded successfully', { status: response.status }, this.context);
         return response.data;
     }
 
