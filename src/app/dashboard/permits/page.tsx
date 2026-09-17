@@ -56,7 +56,12 @@ function useDebounce<T>(value: T, delay: number): T {
 const SAVED_VIEWS: { key: string; label: string; qualification: string | null; hasContractor: boolean | null }[] = [
     { key: 'all', label: 'All Permits', qualification: null, hasContractor: null },
     { key: 'qualified', label: 'Qualified', qualification: 'qualified', hasContractor: null },
-    { key: 'contractor_verification', label: 'Contractor Verification', qualification: 'qualified', hasContractor: false },
+    // Phase 11.12 C1 — this view counts PERMITS awaiting a contractor
+    // match (140,843 of them), while the Dashboard card of the formerly
+    // identical name counts verification TASKS (355). Two populations,
+    // one label, a ~400x apparent mismatch. Both names now say which
+    // population they are, so neither can be read as the other.
+    { key: 'contractor_verification', label: 'Permits Requiring Contractor Verification', qualification: 'qualified', hasContractor: false },
     { key: 'invalid', label: 'Invalid / Excluded', qualification: 'invalid', hasContractor: null },
 ];
 

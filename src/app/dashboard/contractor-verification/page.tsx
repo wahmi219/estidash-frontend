@@ -96,8 +96,8 @@ export default function ContractorVerificationPage() {
         <div className="max-w-7xl mx-auto">
             <PageHeader
                 icon={ShieldAlert}
-                title="Contractor Verification"
-                subtitle="Permits where contractor identity could not be confirmed automatically — resolve before any Lead Bank eligibility"
+                title="Contractor Verification Tasks"
+                subtitle="One task per permit whose contractor identity could not be confirmed automatically. Resolve before any Lead Bank eligibility. This is a count of open TASKS — not the same population as Permit Records' 'Permits Requiring Contractor Verification', which counts every qualified permit with no contractor linked yet."
             />
 
             <div className="bg-white border border-[#DFE6EE] rounded-lg p-3 mb-4 flex items-center gap-3 flex-wrap">

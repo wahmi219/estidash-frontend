@@ -226,7 +226,11 @@ export default function ContractorFiltersPanel({
                         type="text"
                         value={searchValue}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        placeholder="Search by name, email, phone, license..."
+                        // Phase 11.12 J2: Contractor ID search already worked
+                        // server-side; the placeholder never said so, so
+                        // operators could not discover they may paste an
+                        // EH-####### straight in.
+                        placeholder="Search company, Contractor ID, license, location..."
                         className="w-full pl-9 pr-9 py-2 bg-white border border-[#DFE6EE] rounded-lg text-[#0E2B5C] placeholder-[#5B6B7D] focus:outline-none focus:ring-2 focus:ring-[#00458B]/25 focus:border-[#00458B] transition-colors text-sm"
                     />
                     {searchValue && (

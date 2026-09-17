@@ -30,7 +30,9 @@ interface LatestSyncSummary {
 // Chunk 4) -- each key's card links to the exact queue that count comes
 // from, so a number here can never contradict its own drill-down.
 const WORKFLOW_METRICS: { key: keyof DashboardSummary; label: string; icon: typeof ShieldAlert; accent: 'amber' | 'blue' | 'green' | 'red'; href: string }[] = [
-    { key: 'contractor_verification_pending', label: 'Contractor Verification', icon: ShieldAlert, accent: 'amber', href: '/dashboard/contractor-verification' },
+    // Phase 11.12 C1 — see the matching comment on Permit Records'
+    // saved view. This card is a count of open verification TASKS.
+    { key: 'contractor_verification_pending', label: 'Contractor Verification Tasks', icon: ShieldAlert, accent: 'amber', href: '/dashboard/contractor-verification' },
     { key: 'contact_info_needed', label: 'Contact Info Needed', icon: Phone, accent: 'blue', href: '/dashboard/contact-info-needed' },
     { key: 'ready_for_lead_bank', label: 'Ready for Lead Bank', icon: Wallet, accent: 'green', href: '/dashboard/ready-for-lead-bank' },
     { key: 'ready_for_outreach', label: 'Ready for Outreach', icon: Send, accent: 'blue', href: '/dashboard/lead-bank' },
