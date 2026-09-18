@@ -982,6 +982,11 @@ export interface ContractorLeadBankSummary {
     sales_owner_id: number | null;
     dnc: boolean;
     primary_opportunity_id: string | null;
+    // Phase 11.13 Part 10 — relationship_status/outreach_status above are
+    // FROZEN at archive time when archived_at is set, not a current state.
+    archived_at: string | null;
+    archived_by: string | null;
+    archived_reason: string | null;
 }
 
 export interface ContractorFilters {

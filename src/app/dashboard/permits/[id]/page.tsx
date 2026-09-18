@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { PermitRecord } from '@/types';
+import { permitNumberDisplay } from '@/lib/permitIdentifierDisplay';
 import PermitAnalysis from './PermitAnalysis';
 import ScoreBreakdownCard from './ScoreBreakdownCard';
 
@@ -553,9 +554,27 @@ export default function PermitDetailPage() {
                     <div className="space-y-3">
                         {/* Permit number + qualification + status */}
                         <div className="flex items-center gap-2.5 flex-wrap">
-                            <h1 className="text-xl sm:text-2xl font-bold text-[#0E2B5C] tracking-tight">
-                                #{permit.permit_number}
-                            </h1>
+                            {/* Phase 11.13 Part 32 — a UUID-shaped permit_number
+                                never renders as "#<uuid>", which reads as a
+                                fabricated business identifier. See
+                                permitIdentifierDisplay.ts: 657 permits in the
+                                pilot DB have no external number at all, only
+                                a raw (sometimes truncated) source record ID. */}
+                            {(() => {
+                                const idDisplay = permitNumberDisplay(permit.permit_number);
+                                return idDisplay.isInternalReference ? (
+                                    <h1
+                                        className="text-lg sm:text-xl font-semibold text-[#5B6B7D] tracking-tight font-mono"
+                                        title="No external permit number on file for this source — internal record reference only"
+                                    >
+                                        {idDisplay.label}: {idDisplay.value}
+                                    </h1>
+                                ) : (
+                                    <h1 className="text-xl sm:text-2xl font-bold text-[#0E2B5C] tracking-tight">
+                                        #{idDisplay.value}
+                                    </h1>
+                                );
+                            })()}
                             <QualificationBadge isExcluded={isExcluded} scoreBucket={scoreBucket} isTerminal={!!permit.is_terminal} />
                             {bucketBadge && (
                                 <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide border ${bucketBadge.cls}`}>
@@ -889,9 +908,28 @@ export default function PermitDetailPage() {
                         )}
                     </div>
                     {permit.lead_score != null && (
-                        <span className="text-sm font-mono text-[#0E2B5C]">
-                            {Math.round(permit.lead_score)} <span className="text-[#5B6B7D] text-xs">/ 100</span>
-                        </span>
+                        // Phase 11.13 Part 31 — proven in Phase 11.12 I1: the
+                        // backend never scores a permit after exclusion
+                        // (zero rows anywhere have scored_at > excluded_at
+                        // with a non-null score). A score surviving on an
+                        // excluded permit is therefore always a HISTORICAL
+                        // value computed before exclusion, not a live one —
+                        // this chip previously rendered it identically to an
+                        // active permit's score, directly beside the
+                        // "Excluded" badge, which read as a contradiction
+                        // ("73/100" next to "permits aren't scored").
+                        isExcluded ? (
+                            <span
+                                className="text-xs font-mono text-[#5B6B7D]"
+                                title="Computed before this permit was excluded; not an active/current score"
+                            >
+                                Historical score before exclusion: {Math.round(permit.lead_score)} / 100
+                            </span>
+                        ) : (
+                            <span className="text-sm font-mono text-[#0E2B5C]">
+                                {Math.round(permit.lead_score)} <span className="text-[#5B6B7D] text-xs">/ 100</span>
+                            </span>
+                        )
                     )}
                 </div>
 

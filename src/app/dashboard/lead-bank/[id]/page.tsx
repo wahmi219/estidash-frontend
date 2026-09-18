@@ -12,6 +12,7 @@ import PageHeader from '@/components/common/PageHeader';
 import SectionHeading from '@/components/common/SectionHeading';
 import ConfirmModal from '@/components/common/ConfirmModal';
 import { apiService } from '@/services/api';
+import { permitNumberDisplay } from '@/lib/permitIdentifierDisplay';
 import type {
     ManualOutreachRelationshipDetail, LeadOpportunityListResponse, LeadBankHistoryResponse,
     OutreachWorkflowDetail, ContractorRecord,
@@ -303,7 +304,18 @@ export default function LeadBankRelationshipDetailPage() {
                             <tbody className="divide-y divide-[#DFE6EE]">
                                 {opportunities.items.map((o) => (
                                     <tr key={o.id}>
-                                        <td className="px-3 py-2 text-[#0E2B5C]">{o.snapshot_permit_number ?? '—'}<div className="text-[11px] text-[#5B6B7D]">{o.snapshot_permit_type}</div></td>
+                                        <td className="px-3 py-2 text-[#0E2B5C]">
+                                            {/* Phase 11.13 Part 32 — a UUID-shaped snapshot
+                                                permit number renders as an internal reference,
+                                                never a fabricated permit #. */}
+                                            {(() => {
+                                                const d = permitNumberDisplay(o.snapshot_permit_number ?? null);
+                                                return d.isInternalReference
+                                                    ? <span className="text-[#5B6B7D] font-mono text-xs" title="No external permit number on file for this source">Internal reference</span>
+                                                    : d.value;
+                                            })()}
+                                            <div className="text-[11px] text-[#5B6B7D]">{o.snapshot_permit_type}</div>
+                                        </td>
                                         <td className="px-3 py-2 text-[#5B6B7D] max-w-[160px] truncate" title={o.snapshot_scope ?? ''}>{o.snapshot_scope ?? '—'}</td>
                                         <td className="px-3 py-2 text-[#5B6B7D] max-w-[180px] truncate" title={o.snapshot_address ?? ''}>{o.snapshot_address ?? '—'}</td>
                                         <td className="px-3 py-2 text-right font-mono text-[#0E2B5C]">{fmtMoney(o.snapshot_valuation)}</td>

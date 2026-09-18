@@ -296,6 +296,15 @@ export default function ContractorDetailPage() {
     // `phone` deliberately appears in both identity_strength and
     // contactability server-side (contractor_completeness_service.py).
     const missingFields = computeMissingContractorFields(contractor);
+    // Phase 11.13 Part 11 — same condition as the "source evidence,
+    // unverified" badge on the Email row above: a legacy address IS
+    // visibly displayed on this page even though no usable canonical
+    // email exists. "Missing: Email" would read as a flat contradiction
+    // right next to that visible address, so this case gets its own
+    // truthful wording instead.
+    const legacyEmailShownWithNoCanonical = !!(
+        contractor.canonical_email_checked && !contractor.canonical_email && contractor.email
+    );
 
     const conflicts = (contractor.extra_data?.ingestion_contact_conflicts ?? null) as Record<string, unknown> | null;
     const similarRecords = contractor.possible_similar_records ?? [];
@@ -448,8 +457,16 @@ export default function ContractorDetailPage() {
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {missingFields.map(f => (
-                            <span key={f.key} className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[11px]">
-                                Missing: {f.label}
+                            <span
+                                key={f.key}
+                                className="px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded text-[11px]"
+                                title={f.key === 'email' && legacyEmailShownWithNoCanonical
+                                    ? 'A legacy/source-evidence email is shown above, but it is not a verified, outreach-eligible canonical address.'
+                                    : undefined}
+                            >
+                                {f.key === 'email' && legacyEmailShownWithNoCanonical
+                                    ? 'No Usable Canonical Email (legacy address on file)'
+                                    : `Missing: ${f.label}`}
                             </span>
                         ))}
                     </div>
@@ -615,12 +632,37 @@ export default function ContractorDetailPage() {
                     <Building2 size={13} /> Lead Bank / CRM
                 </h3>
                 {contractor.lead_bank ? (
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                        <DetailRow icon={Shield} label="Relationship Status" value={contractor.lead_bank.relationship_status.replace(/_/g, ' ')} />
-                        <DetailRow icon={Mail} label="Outreach Status" value={contractor.lead_bank.outreach_status.replace(/_/g, ' ')} />
-                        <DetailRow icon={Hash} label="Sales Owner" value={contractor.lead_bank.sales_owner_id ? `User #${contractor.lead_bank.sales_owner_id}` : 'Unassigned'} />
-                        <DetailRow icon={AlertCircle} label="Do Not Contact" value={contractor.lead_bank.dnc ? 'Yes' : 'No'} />
-                    </div>
+                    contractor.lead_bank.archived_at ? (
+                        // Phase 11.13 Part 10 — an archived relationship (e.g.
+                        // SCHEFFERS) must never render as if it were live.
+                        // relationship_status/outreach_status below are the
+                        // values FROZEN at archive time — shown, but only
+                        // labeled as historical, never as the current state.
+                        <div className="space-y-3 text-sm">
+                            <div className="flex items-center gap-2">
+                                <span className="px-2 py-1 bg-slate-100 text-slate-700 border border-slate-300 rounded text-[11px] font-semibold uppercase tracking-wide">
+                                    Archived
+                                </span>
+                                <span className="text-xs text-[#5B6B7D]">{formatDate(contractor.lead_bank.archived_at)}</span>
+                            </div>
+                            {contractor.lead_bank.archived_reason && (
+                                <p className="text-xs text-[#5B6B7D] leading-relaxed">
+                                    Reason: {contractor.lead_bank.archived_reason}
+                                </p>
+                            )}
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-[#DFE6EE]">
+                                <DetailRow icon={Shield} label="Relationship Status (historical, at archive)" value={contractor.lead_bank.relationship_status.replace(/_/g, ' ')} />
+                                <DetailRow icon={Mail} label="Outreach Status (historical, at archive)" value={contractor.lead_bank.outreach_status.replace(/_/g, ' ')} />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                            <DetailRow icon={Shield} label="Relationship Status" value={contractor.lead_bank.relationship_status.replace(/_/g, ' ')} />
+                            <DetailRow icon={Mail} label="Outreach Status" value={contractor.lead_bank.outreach_status.replace(/_/g, ' ')} />
+                            <DetailRow icon={Hash} label="Sales Owner" value={contractor.lead_bank.sales_owner_id ? `User #${contractor.lead_bank.sales_owner_id}` : 'Unassigned'} />
+                            <DetailRow icon={AlertCircle} label="Do Not Contact" value={contractor.lead_bank.dnc ? 'Yes' : 'No'} />
+                        </div>
+                    )
                 ) : (
                     <p className="text-sm text-[#5B6B7D]">
                         No Lead Bank relationship yet — this contractor is not already in another

@@ -53,6 +53,13 @@ function useDebounce<T>(value: T, delay: number): T {
 // other active filter (state/city/county, project type, dates, value, work scope, etc.)
 // is preserved when switching views. `isExcluded` is always cleared alongside — it's a
 // legacy hidden field that predates `qualification` and must not silently conflict with it.
+// Phase 11.13 Part 30 — the exact backend Literal enum
+// (app/routers/permits.py's `qualification` query param). A URL carrying
+// any other value 422s server-side; validating here means that request is
+// never sent AND the user gets a visible, specific message instead of the
+// blank/unexplained state the audit found.
+const VALID_QUALIFICATION_VALUES = new Set(['qualified', 'invalid', 'terminal', 'no_send']);
+
 const SAVED_VIEWS: { key: string; label: string; qualification: string | null; hasContractor: boolean | null }[] = [
     { key: 'all', label: 'All Permits', qualification: null, hasContractor: null },
     { key: 'qualified', label: 'Qualified', qualification: 'qualified', hasContractor: null },
@@ -76,6 +83,10 @@ function PermitsPageContent() {
     const permits = useAppSelector(selectPermits);
     const status = useAppSelector(selectPermitsStatus);
     const error = useAppSelector(selectPermitsError);
+    // Phase 11.13 Part 30 — set when the URL carried a filter value the
+    // backend would reject; distinct from `error` (a network/API failure)
+    // because this one is caught and handled BEFORE any request fires.
+    const [invalidFilterNotice, setInvalidFilterNotice] = useState<string | null>(null);
     const filters = useAppSelector(selectPermitFilters);
     const pagination = useAppSelector(selectPermitPagination);
     const sorting = useAppSelector(selectPermitSorting);
@@ -127,7 +138,24 @@ function PermitsPageContent() {
         if (search) urlFilters.search = search;
         if (startDate) urlFilters.startDate = startDate;
         if (endDate) urlFilters.endDate = endDate;
-        if (qualification) urlFilters.qualification = qualification;
+        if (qualification) {
+            // Phase 11.13 Part 30 — invalid URL filter enum (e.g. a
+            // hand-edited or stale bookmarked ?qualification=bogus)
+            // previously reached the backend, 422'd, and rendered an
+            // unexplained blank state. Now sanitized here: an unrecognized
+            // value is dropped before any request is built, and the user
+            // sees a clear, specific message instead.
+            if (VALID_QUALIFICATION_VALUES.has(qualification)) {
+                urlFilters.qualification = qualification;
+            } else {
+                setInvalidFilterNotice(
+                    `The URL's qualification filter ("${qualification}") is not a recognized value and was ignored. Showing all permits instead.`
+                );
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('qualification');
+                router.replace(cleanUrl.pathname + cleanUrl.search, { scroll: false });
+            }
+        }
         if (hasContractorParam !== null) urlFilters.hasContractor = hasContractorParam === 'true';
         if (addedStartDate) urlFilters.addedStartDate = addedStartDate;
         if (addedEndDate) urlFilters.addedEndDate = addedEndDate;
@@ -400,6 +428,21 @@ function PermitsPageContent() {
                 onSearchChange={handleSearchChange}
                 onSearchClear={handleSearchClear}
             />
+
+            {/* Phase 11.13 Part 30 — invalid-filter notice, dismissible,
+                shown instead of an unexplained blank state. */}
+            {invalidFilterNotice && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
+                    <AlertCircle size={20} />
+                    <span>{invalidFilterNotice}</span>
+                    <button
+                        onClick={() => setInvalidFilterNotice(null)}
+                        className="ml-auto text-sm underline hover:no-underline"
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            )}
 
             {/* Error Banner */}
             {error && (

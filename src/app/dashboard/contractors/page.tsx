@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useCallback, useState } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import {
     HardHat,
     RefreshCw,
@@ -77,21 +78,28 @@ type ContractorsView = 'permit-contractors' | 'registry';
 function ContractorRow({ contractor }: { contractor: ContractorRecord }) {
     const router = useRouter();
     const types = contractor.contractor_types;
+    const href = `/dashboard/contractors/${contractor.id}`;
 
     return (
         <tr
-            onClick={() => router.push(`/dashboard/contractors/${contractor.id}`)}
+            // Phase 11.13 Part 34 — the row itself still navigates on click
+            // (unchanged UX for every existing user), but the name cell
+            // below is now a real <Link>, so opening in a new tab, copying
+            // the link, and keyboard navigation all work without depending
+            // on this onClick handler.
+            onClick={() => router.push(href)}
             className="border-b border-[#DFE6EE] hover:bg-[#F7F9FB] transition-colors cursor-pointer"
         >
             {/* Contractor */}
             <td className="px-4 py-3">
                 <div className="flex items-center gap-1.5">
-                    <span
-                        className="font-medium text-[#0E2B5C] truncate max-w-[220px]"
+                    <Link
+                        href={href}
+                        className="font-medium text-[#0E2B5C] truncate max-w-[220px] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00458B]/40 rounded-sm"
                         title={contractor.name_quality === 'questionable' ? `${contractor.name} (may not be a real business name)` : contractor.name}
                     >
                         {contractor.name}
-                    </span>
+                    </Link>
                     <NameQualityFlag value={contractor.name_quality} />
                 </div>
                 {contractor.friendly_id && (

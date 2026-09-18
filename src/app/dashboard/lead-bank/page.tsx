@@ -7,6 +7,7 @@ import { useAppSelector } from '@/hooks/useAppDispatch';
 import PageHeader from '@/components/common/PageHeader';
 import PermitPagination from '@/components/permits/PermitPagination';
 import { apiService } from '@/services/api';
+import { permitNumberDisplay } from '@/lib/permitIdentifierDisplay';
 import type {
     LeadBankRelationship, LeadBankRelationshipListResponse,
     DueOutreachResponse, DueOutreachStageItem,
@@ -264,7 +265,17 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
                                             </span>
                                         </td>
                                         <td className="px-4 py-3">
-                                            <div className="text-[#0E2B5C]">{r.primary_opportunity_permit_number ?? '—'}</div>
+                                            {/* Phase 11.13 Part 32 — never render a raw
+                                                UUID-shaped opportunity identifier as if it
+                                                were a permit number. */}
+                                            <div className="text-[#0E2B5C]">
+                                                {(() => {
+                                                    const d = permitNumberDisplay(r.primary_opportunity_permit_number ?? null);
+                                                    return d.isInternalReference
+                                                        ? <span className="text-[#5B6B7D] font-mono text-xs" title="No external permit number on file">Internal ID</span>
+                                                        : d.value;
+                                                })()}
+                                            </div>
                                             <div className="text-[11px] text-[#5B6B7D]">
                                                 {r.primary_opportunity_qualification_bucket ? `${r.primary_opportunity_qualification_bucket} · ${r.primary_opportunity_score != null ? Math.round(r.primary_opportunity_score) : '—'}` : ''}
                                                 {r.primary_opportunity_valuation ? ` · ${formatCurrency(r.primary_opportunity_valuation)}` : ''}

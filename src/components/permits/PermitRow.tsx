@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Calendar, ExternalLink, User, Wand2, Loader2, Star, CheckCircle2, XCircle } from 'lucide-react';
 import { PermitRecord } from '@/types';
 import { apiService } from '@/services/api';
+import { isUuidShapedIdentifier } from '@/lib/permitIdentifierDisplay';
 
 interface PermitRowProps {
     permit: PermitRecord;
@@ -364,7 +365,17 @@ const PermitRow = React.forwardRef<HTMLTableRowElement, PermitRowProps>(function
 
             {/* Permit / Project Scope */}
             <td className="px-4 py-3 text-[#0E2B5C] max-w-60">
-                <div className="font-mono text-sm">{permit.permit_number}</div>
+                {/* Phase 11.13 Part 32 — a UUID-shaped permit_number (the
+                    source had no human number; see permitIdentifierDisplay.ts)
+                    renders as a de-emphasized internal reference, never
+                    styled like a real permit number. */}
+                {isUuidShapedIdentifier(permit.permit_number) ? (
+                    <div className="font-mono text-[11px] text-[#5B6B7D]" title="No external permit number on file — internal record reference">
+                        Internal ID: {permit.permit_number}
+                    </div>
+                ) : (
+                    <div className="font-mono text-sm">{permit.permit_number}</div>
+                )}
                 <div className="text-xs text-[#5B6B7D] truncate" title={permit.permit_type}>
                     {permit.permit_type}
                     {permit.permit_subtype ? ` · ${permit.permit_subtype}` : ''}

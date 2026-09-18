@@ -865,7 +865,10 @@ export default function PermitScoringPage() {
                                 <select value={content.bucket_tiers[b.key] ?? ''}
                                     onChange={(e) => set(['bucket_tiers', b.key], e.target.value || null)}
                                     className="px-2.5 py-1.5 rounded-lg bg-white border border-[#DFE6EE] text-sm text-[#0E2B5C]">
-                                    <option value="">—</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option>
+                                    {/* Phase 11.13 Part 38 — "—" was ambiguous: does it mean
+                                        this bucket intentionally has no tier, or that the
+                                        value hasn't loaded yet? Say which. */}
+                                    <option value="">Not configured</option><option value="A">Tier A</option><option value="B">Tier B</option><option value="C">Tier C</option>
                                 </select>
                             </div>
                         </div>
