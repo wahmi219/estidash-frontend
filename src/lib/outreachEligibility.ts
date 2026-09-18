@@ -23,7 +23,31 @@ const REASON_LABELS: Record<string, string> = {
     no_primary_opportunity: 'No current opportunity is attached',
     primary_opportunity_not_current: 'The primary opportunity is no longer current',
     relationship_not_found: 'Relationship not found',
+    synthetic_qa_fixture: 'Synthetic QA fixture',
+    archived: 'Relationship is archived',
 };
+
+// Final Pre-Reaudit Cleanup Part A — reasons strong enough that the stored
+// outreach_status column becomes untrustworthy to display as-is (mirrors
+// outreach_workflow_service.AUTHORITATIVE_STOP_REASONS / the "dominating
+// state" concept on the backend). Deliberately excludes benign/transient
+// reasons the stored status is SUPPOSED to already represent correctly
+// (cooldown, an already-active sequence, the global manual-outreach kill
+// switch, or a structural gap like a missing contractor) — those are not
+// lies, just not "ready right now".
+const STRONG_BLOCKING_REASONS = new Set([
+    'dnc', 'not_interested', 'active_client_suppressed', 'former_client_suppressed',
+    'warm_lead_suppressed', 'active_opportunity_suppressed', 'no_usable_primary_email',
+    'synthetic_qa_fixture', 'archived', 'no_primary_opportunity',
+]);
+
+export function hasStrongBlockingReason(reasons: string[]): boolean {
+    return reasons.some((r) => STRONG_BLOCKING_REASONS.has(r) || r.startsWith('primary_opportunity_'));
+}
+
+export function strongBlockingReasons(reasons: string[]): string[] {
+    return reasons.filter((r) => STRONG_BLOCKING_REASONS.has(r) || r.startsWith('primary_opportunity_'));
+}
 
 function labelReason(reason: string): string {
     if (REASON_LABELS[reason]) return REASON_LABELS[reason];

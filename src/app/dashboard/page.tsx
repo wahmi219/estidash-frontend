@@ -117,9 +117,15 @@ export default function DashboardPage() {
                     </p>
                 )}
                 {health && !health.scheduler_enabled && (
-                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-                        Source sync is disabled in this environment — Warning/staleness states above
-                        reflect historical record only, not a currently-running scheduler.
+                    // Final Pre-Reaudit Cleanup Part L — see the matching
+                    // banner on /dashboard/datasources for why this no
+                    // longer says Warning states are merely historical:
+                    // the health model now derives Warning/Failed/Needs
+                    // Auth from the latest meaningful sync outcome only,
+                    // never from staleness while the scheduler is off.
+                    <p className="text-xs text-[#5B6B7D] bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg px-3 py-2 mt-2">
+                        Source sync is disabled in this environment. Health above reflects each
+                        source&apos;s latest known result; freshness and scheduling are tracked separately.
                     </p>
                 )}
             </section>

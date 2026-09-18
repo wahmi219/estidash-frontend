@@ -30,9 +30,17 @@ function DataSourcesPageInner() {
     const [connectorFilter, setConnectorFilter] = useState('all');
     const [healthFilter, setHealthFilter] = useState<string>(searchParams.get('health')?.toUpperCase() ?? 'all');
     const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null);
-    // Phase 11.2 P1-02: same distinction as the Dashboard's Permit Source
-    // Health banner — Warning/staleness columns below reflect historical
-    // record only while sync is disabled for this whole environment.
+    // Final Pre-Reaudit Cleanup Part L — the banner below used to warn that
+    // Warning/staleness values were "historical record only" while the
+    // scheduler is off. That was true under the pre-11.13 health model,
+    // which penalized a source as WARNING merely for being stale while
+    // sync was intentionally disabled. The health model no longer does
+    // that (see data_source_health_service.py Part 18/19/20): HEALTH is
+    // now derived only from the latest meaningful sync outcome, and
+    // staleness/scheduling are separate, non-penalizing dimensions. So
+    // Warning/Failed/Needs Auth counts below ARE current, truthful health
+    // — this flag now only explains WHY sync isn't actively running, not a
+    // reason to distrust the health values themselves.
     const [schedulerEnabled, setSchedulerEnabled] = useState<boolean | null>(null);
 
     const load = useCallback(async () => {
@@ -104,9 +112,11 @@ function DataSourcesPageInner() {
             />
 
             {schedulerEnabled === false && (
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-                    Source sync is disabled in this environment — Warning/staleness values below
-                    reflect historical record only, not a currently-running scheduler.
+                <p className="text-xs text-[#5B6B7D] bg-[#F7F9FB] border border-[#DFE6EE] rounded-lg px-3 py-2 mb-4">
+                    Source sync is disabled in this environment. Health below reflects each
+                    source&apos;s latest known result — a source is not marked Warning merely for
+                    being stale while the scheduler is off. Freshness and scheduling are tracked
+                    as separate columns, not folded into health.
                 </p>
             )}
 
@@ -115,11 +125,9 @@ function DataSourcesPageInner() {
                 <SummaryChip label="Configured Sources" value={sources.length.toString()} />
                 <SummaryChip label="Active / Schedulable" value={activeCount.toString()} />
                 <SummaryChip
-                    label={schedulerEnabled === false ? 'Needs Attention (historical)' : 'Needs Attention'}
+                    label="Needs Attention"
                     value={needsAttentionCount.toString()}
-                    title={schedulerEnabled === false
-                        ? 'Reflects historical staleness/failure record while source sync is disabled in this environment — not a live count of sources currently failing to sync.'
-                        : undefined}
+                    title="Failed, Stuck, Warning, or Needs Auth by current health — not affected by the scheduler being on or off."
                 />
                 <SummaryChip
                     label="Records at Last Sync"

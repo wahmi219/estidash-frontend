@@ -62,7 +62,28 @@ const OUTREACH_BADGE: Record<string, string> = {
     previously_contacted_new_project: 'bg-purple-50 text-purple-700 border-purple-200',
     completed_no_response: 'bg-gray-100 text-[#5B6B7D] border-gray-200',
     delivery_issue: 'bg-red-50 text-red-700 border-red-200',
+    blocked: 'bg-red-100 text-red-800 border-red-300',
 };
+
+// Final Pre-Reaudit Cleanup Part A — human-readable labels for
+// effective_outreach_blocked_reasons (see outreach_workflow_service.
+// compute_effective_outreach_status_map() for the exact reason codes).
+const BLOCKED_REASON_LABELS: Record<string, string> = {
+    archived: 'Relationship is archived',
+    synthetic_qa_fixture: 'Synthetic QA fixture',
+    dnc: 'Do Not Contact',
+    not_interested: 'Not Interested',
+    former_client: 'Former Client',
+    active_client: 'Active Client',
+    no_usable_primary_email: 'No usable canonical email',
+    no_primary_opportunity: 'No Primary Opportunity',
+};
+function blockedReasonLabel(reason: string): string {
+    if (BLOCKED_REASON_LABELS[reason]) return BLOCKED_REASON_LABELS[reason];
+    const stopped = reason.match(/^stopped_(.+)$/);
+    if (stopped) return `Stopped: ${stopped[1].replace(/_/g, ' ')}`;
+    return reason.replace(/_/g, ' ');
+}
 
 function label(options: { value: string; label: string }[], value: string): string {
     return options.find((o) => o.value === value)?.label ?? value;
@@ -260,9 +281,25 @@ function RelationshipsTab({ currentUserId }: { currentUserId: number | null }) {
                                             {r.dnc && <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] text-red-700"><Ban size={10} /> DNC</span>}
                                         </td>
                                         <td className="px-4 py-3">
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${OUTREACH_BADGE[r.outreach_status] ?? OUTREACH_BADGE.ready}`}>
-                                                {label(OUTREACH_STATUS_OPTIONS, r.outreach_status)}
-                                            </span>
+                                            {/* Final Pre-Reaudit Cleanup Part A — the stored
+                                                outreach_status column is never rewritten just
+                                                for display; effective_outreach_status is the
+                                                truthful current value (identical to the stored
+                                                one unless a stronger state, e.g. an
+                                                unrestarted Manual Stop or NOT INTERESTED,
+                                                makes the stored value a lie). */}
+                                            {r.effective_outreach_blocked ? (
+                                                <span
+                                                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${OUTREACH_BADGE.blocked}`}
+                                                    title={`Blocked: ${r.effective_outreach_blocked_reasons.map(blockedReasonLabel).join(', ')} (stored value: ${label(OUTREACH_STATUS_OPTIONS, r.stored_outreach_status)})`}
+                                                >
+                                                    Blocked
+                                                </span>
+                                            ) : (
+                                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border ${OUTREACH_BADGE[r.effective_outreach_status] ?? OUTREACH_BADGE.ready}`}>
+                                                    {label(OUTREACH_STATUS_OPTIONS, r.effective_outreach_status)}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3">
                                             {/* Phase 11.13 Part 32 — never render a raw

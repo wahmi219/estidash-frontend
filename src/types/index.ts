@@ -1866,6 +1866,21 @@ export interface LeadBankRelationship {
     contractor_id: string;
     relationship_status: RelationshipStatus;
     outreach_status: OutreachStatus;
+    // Final Pre-Reaudit Cleanup Part A6 — `outreach_status` above is the
+    // raw, never-corrected stored column (historical evidence of what it
+    // was last explicitly set to). `effective_outreach_status` is the
+    // truthful CURRENT value to render: identical to the stored one
+    // unless a stronger state (DNC, Not Interested, Former Client, Active
+    // Client, an authoritative Manual Stop with no later restart, no
+    // usable canonical email, a synthetic fixture, or an archived
+    // relationship) makes displaying the stored value a lie, in which
+    // case this reads "blocked" and `effective_outreach_blocked_reasons`
+    // names every reason that applies. Always prefer this field over
+    // `outreach_status` for what the UI shows as the current state.
+    stored_outreach_status: OutreachStatus;
+    effective_outreach_status: OutreachStatus | 'blocked';
+    effective_outreach_blocked: boolean;
+    effective_outreach_blocked_reasons: string[];
     sales_owner_id: number | null;
     primary_opportunity_id: string | null;
     primary_opportunity_locked: boolean;

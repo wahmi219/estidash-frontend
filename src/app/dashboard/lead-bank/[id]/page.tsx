@@ -17,7 +17,10 @@ import type {
     ManualOutreachRelationshipDetail, LeadOpportunityListResponse, LeadBankHistoryResponse,
     OutreachWorkflowDetail, ContractorRecord,
 } from '@/types';
-import { primaryIneligibleReason, describeIneligibleReasons } from '@/lib/outreachEligibility';
+import {
+    primaryIneligibleReason, describeIneligibleReasons,
+    hasStrongBlockingReason, strongBlockingReasons,
+} from '@/lib/outreachEligibility';
 import { hasRole } from '@/lib/roles';
 import type { RootState } from '@/store/store';
 
@@ -242,7 +245,27 @@ export default function LeadBankRelationshipDetailPage() {
                 <SectionHeading className="mb-3">CRM Relationship</SectionHeading>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
                     <Field label="Relationship Status">{detail.relationship_status.replace(/_/g, ' ')}</Field>
-                    <Field label="Outreach Status">{detail.outreach_status.replace(/_/g, ' ')}</Field>
+                    {/* Final Pre-Reaudit Cleanup Part A — the stored
+                        outreach_status column is never rewritten just for
+                        display. check_outreach_eligible() already runs on
+                        every load of this page (outreach_eligible /
+                        outreach_ineligible_reasons below), so a strong
+                        blocking reason (Not Interested, an unrestarted
+                        Manual Stop's downstream effects, no usable email,
+                        etc.) shows "Blocked" here instead of a stale
+                        "ready" that would contradict it. */}
+                    <Field label="Outreach Status">
+                        {!detail.outreach_eligible && hasStrongBlockingReason(detail.outreach_ineligible_reasons) ? (
+                            <span
+                                className="text-red-700 font-semibold"
+                                title={`Blocked: ${strongBlockingReasons(detail.outreach_ineligible_reasons).map((r) => r.replace(/_/g, ' ')).join(', ')} (stored value: ${detail.outreach_status.replace(/_/g, ' ')})`}
+                            >
+                                Blocked
+                            </span>
+                        ) : (
+                            detail.outreach_status.replace(/_/g, ' ')
+                        )}
+                    </Field>
                     <Field label="Sales Owner">{detail.sales_owner_name ?? 'Unassigned'}</Field>
                     <Field label="Do Not Contact">{detail.dnc ? 'Yes' : 'No'}</Field>
                     <Field label="Last Contacted">{fmtDateTime(detail.last_contacted_at)}</Field>
